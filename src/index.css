@@ -1,0 +1,282 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased text-gray-900;
+  }
+}
+
+@layer components {
+  .container {
+    @apply max-w-7xl;
+  }
+
+  /* Global card hover lift for the shared frosted card pattern */
+  :is(div, section, article, li)[class*="bg-white/5"][class*="border-white/10"][class*="rounded-"] {
+    @apply transition-transform duration-300;
+  }
+
+  :is(div, section, article, li)[class*="bg-white/5"][class*="border-white/10"][class*="rounded-"]:hover {
+    transform: translateY(-4px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :is(div, section, article, li)[class*="bg-white/5"][class*="border-white/10"][class*="rounded-"]:hover {
+      transform: none;
+    }
+  }
+}
+
+@layer utilities {
+  .animate-in {
+    animation-fill-mode: both;
+  }
+
+  .slide-in-from-top {
+    animation-name: slideInFromTop;
+  }
+
+  .slide-in-from-bottom {
+    animation-name: slideInFromBottom;
+  }
+
+  .duration-300 {
+    animation-duration: 300ms;
+  }
+  .duration-500 {
+    animation-duration: 500ms;
+  }
+  .duration-700 {
+    animation-duration: 700ms;
+  }
+
+  .duration-1000 {
+    animation-duration: 1000ms;
+  }
+
+  .delay-100{
+    animation-delay: 100ms;
+  }
+  .delay-500{
+    animation-delay: 500ms;
+  }
+  .delay-1000{
+    animation-delay: 1000ms;
+  }
+  .delay-1500{
+    animation-delay: 1500ms;
+  }
+  .delay-2000{
+    animation-delay: 2000ms;
+  }
+}
+
+  @keyframes slideInFromTop {
+    from {
+      opacity: 0;
+      transform: translateY(-1rem);
+    }
+     
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideInFromBottom {
+    from {
+      opacity: 0;
+      transform: translateY(1rem);
+    }
+     
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+/* Custom scrollbar for code editor */
+pre::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+pre::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Force readable text in light mode for components that hardcode bright text colors */
+@layer utilities {
+  html:not(.dark) .text-white,
+  html:not(.dark) .text-gray-100,
+  html:not(.dark) .text-gray-200,
+  html:not(.dark) .text-gray-300,
+  html:not(.dark) .text-gray-400,
+  html:not(.dark) .text-blue-200,
+  html:not(.dark) .text-blue-300,
+  html:not(.dark) .text-blue-400,
+  html:not(.dark) .text-cyan-400,
+  html:not(.dark) .text-indigo-400,
+  html:not(.dark) .text-purple-300,
+  html:not(.dark) .text-purple-400,
+  html:not(.dark) .text-emerald-300,
+  html:not(.dark) .text-emerald-400,
+  html:not(.dark) .text-green-400,
+  html:not(.dark) .text-yellow-400,
+  html:not(.dark) .text-red-300 {
+    color: rgb(17 24 39) !important;
+  }
+}
+
+/* Keep Hero's original bright text treatment in light mode */
+@layer utilities {
+  html:not(.dark) .hero-theme-preserve .text-white {
+    color: rgb(255 255 255) !important;
+  }
+
+  html:not(.dark) .hero-theme-preserve .text-gray-200 {
+    color: rgb(229 231 235) !important;
+  }
+
+  html:not(.dark) .hero-theme-preserve .text-gray-300 {
+    color: rgb(209 213 219) !important;
+  }
+
+  html:not(.dark) .hero-theme-preserve .text-gray-400 {
+    color: rgb(156 163 175) !important;
+  }
+
+  html:not(.dark) .hero-theme-preserve .text-blue-300 {
+    color: rgb(147 197 253) !important;
+  }
+
+  html:not(.dark) .hero-theme-preserve .text-blue-400 {
+    color: rgb(96 165 250) !important;
+  }
+
+  html:not(.dark) .hero-theme-preserve .text-blue-200 {
+    color: rgb(191 219 254) !important;
+  }
+
+  html:not(.dark) .hero-theme-preserve .text-cyan-400 {
+    color: rgb(34 211 238) !important;
+  }
+
+  html:not(.dark) .hero-theme-preserve .text-indigo-400 {
+    color: rgb(129 140 248) !important;
+  }
+
+  html:not(.dark) .hero-theme-preserve .text-purple-200 {
+    color: rgb(233 213 255) !important;
+  }
+
+  html:not(.dark) .hero-theme-preserve .text-purple-300 {
+    color: rgb(216 180 254) !important;
+  }
+
+  html:not(.dark) .hero-theme-preserve .text-purple-400 {
+    color: rgb(192 132 252) !important;
+  }
+
+  html:not(.dark) .hero-theme-preserve .text-emerald-200 {
+    color: rgb(167 243 208) !important;
+  }
+
+  html:not(.dark) .hero-theme-preserve .text-emerald-300 {
+    color: rgb(110 231 183) !important;
+  }
+
+  html:not(.dark) .hero-theme-preserve .text-emerald-400 {
+    color: rgb(52 211 153) !important;
+  }
+}
+
+/* Keep Navbar text palette identical to dark theme in light mode */
+@layer utilities {
+  html:not(.dark) .navbar-theme-preserve .text-white {
+    color: rgb(255 255 255) !important;
+  }
+
+  html:not(.dark) .navbar-theme-preserve .text-gray-300 {
+    color: rgb(209 213 219) !important;
+  }
+
+  html:not(.dark) .navbar-theme-preserve .text-gray-400 {
+    color: rgb(156 163 175) !important;
+  }
+
+  html:not(.dark) .navbar-theme-preserve .text-blue-400 {
+    color: rgb(96 165 250) !important;
+  }
+
+  html:not(.dark) .navbar-theme-preserve .text-red-300 {
+    color: rgb(252 165 165) !important;
+  }
+}
+
+/* Keep dashboard React playground text readable on dark editor surfaces in light mode */
+@layer utilities {
+  html:not(.dark) .react-playground-preserve .text-white {
+    color: rgb(255 255 255) !important;
+  }
+
+  html:not(.dark) .react-playground-preserve .text-gray-100 {
+    color: rgb(243 244 246) !important;
+  }
+
+  html:not(.dark) .react-playground-preserve .text-gray-200 {
+    color: rgb(229 231 235) !important;
+  }
+
+  html:not(.dark) .react-playground-preserve .text-gray-400 {
+    color: rgb(156 163 175) !important;
+  }
+}
+
+/* Keep login/signup field text white in light mode (dark input backgrounds) */
+@layer utilities {
+  html:not(.dark) .auth-form-preserve input.text-white,
+  html:not(.dark) .auth-form-preserve select.text-white,
+  html:not(.dark) .auth-form-preserve textarea.text-white {
+    color: rgb(255 255 255) !important;
+  }
+}
+
+/* Keep light-theme borders visible for dark-theme styled cards */
+@layer utilities {
+  html:not(.dark) .border-white\/10 {
+    border-color: rgb(203 213 225 / 0.9) !important;
+  }
+
+  html:not(.dark) .border-white\/20 {
+    border-color: rgb(148 163 184 / 0.75) !important;
+  }
+
+  html:not(.dark) :is(div, section, article, li)[class*="bg-white/5"][class*="border-white/10"][class*="rounded-"] {
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  }
+}
+
+/* Preserve Hero's original subtle white-outline treatment in light mode */
+@layer utilities {
+  html:not(.dark) .hero-theme-preserve .border-white\/10 {
+    border-color: rgb(255 255 255 / 0.1) !important;
+  }
+
+  html:not(.dark) .hero-theme-preserve .border-white\/20 {
+    border-color: rgb(255 255 255 / 0.2) !important;
+  }
+}
+

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRACK YOUR ORDER | <%= orderId %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  
+</head>
+<body>
+    <div>
+        <h1>Order Status</h1>
+        <p>ID: <%= orderId %></p>
+    </div>
+    <div>
+        <h2>
+            <%= orderedItem %>
+        </h2>
+        <p><%= orderedItem.deliveryStatus %></p>
+    </div>
+    <div>
+        <div>
+            <span>Delivery Progress</span>
+            <span><%= progress %></span>
+        </div>
+        <div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+                <div class="bg-indigo-600 h-3 rounded-full transition-all" style="width: <% progress %>%"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
