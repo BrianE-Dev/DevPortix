@@ -1,18 +1,18 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
-const connectDB = require('./database/dbconnection');
-const authRoutes = require('./src/backend/routes/authRoutes');
-const userRoutes = require('./src/backend/routes/userRoutes');
-const projectRoutes = require('./src/backend/routes/projectRoutes');
-const portfolioRoutes = require('./src/backend/routes/portfolioRoutes');
-const adminRoutes = require('./src/backend/routes/adminRoutes');
-const communityRoutes = require('./src/backend/routes/communityRoutes');
-const paymentRoutes = require('./src/backend/routes/paymentRoutes');
-const orderRoutes = require('./src/backend/order/order.router');
-const mentorshipRoutes = require('./src/backend/routes/mentorshipRoutes');
+const connectDB = require('./backend/database/dbconnection');
+const authRoutes = require('./backend/routes/authRoutes');
+const userRoutes = require('./backend/routes/userRoutes');
+const projectRoutes = require('./backend/routes/projectRoutes');
+const portfolioRoutes = require('./backend/routes/portfolioRoutes');
+const adminRoutes = require('./backend/routes/adminRoutes');
+const communityRoutes = require('./backend/routes/communityRoutes');
+const paymentRoutes = require('./backend/routes/paymentRoutes');
+const orderRoutes = require('./backend/order/order.router');
+const mentorshipRoutes = require('./backend/routes/mentorshipRoutes');
 
 const EXPRESSPORT = Number(process.env.PORT) || 5500;
 const app = express();
