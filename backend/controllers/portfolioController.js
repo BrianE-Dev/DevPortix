@@ -1,6 +1,9 @@
 const Portfolio = require('../modules/portfolio');
 const User = require('../modules/userSchema');
 
+const ALLOWED_ACCENTS = ['blue', 'emerald', 'rose', 'amber', 'violet'];
+const ACCENT_DEBUG = String(process.env.DEBUG_ACCENT || '').trim() === '1';
+
 const normalizeSlug = (value) =>
   String(value || '')
     .trim()
@@ -9,21 +12,38 @@ const normalizeSlug = (value) =>
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
 
-const toPortfolioPayload = (doc) => ({
-  id: String(doc._id),
-  ownerId: String(doc.ownerId),
-  username: doc.username,
-  slug: doc.slug,
-  displayName: doc.displayName,
-  headline: doc.headline,
-  bio: doc.bio,
-  accent: doc.accent,
-  screenshots: doc.screenshots || [],
-  documents: doc.documents || [],
-  codeSnippets: doc.codeSnippets || [],
-  createdAt: doc.createdAt,
-  updatedAt: doc.updatedAt,
-});
+const toPortfolioPayload = (doc, fallbackSkills = [], fallbackOwner = {}) => {
+  const owner = doc?.ownerId && typeof doc.ownerId === 'object' ? doc.ownerId : null;
+  const ownerId = owner?._id || doc.ownerId;
+  const ownerSkills = Array.isArray(owner?.skills) ? owner.skills : fallbackSkills;
+  const portfolioSkills = Array.isArray(doc.skills) ? doc.skills : [];
+  const skills = portfolioSkills.length > 0 ? portfolioSkills : ownerSkills;
+
+  return {
+    id: String(doc._id),
+    ownerId: String(ownerId),
+    ownerAvatar: owner?.avatar || fallbackOwner.avatar || '',
+    ownerFullName: owner?.fullName || fallbackOwner.fullName || '',
+    username: doc.username,
+    slug: doc.slug,
+    displayName: doc.displayName,
+    headline: doc.headline,
+    bio: doc.bio,
+    heroIntro: doc.heroIntro || { title: '', subtitle: '', summary: '' },
+    projects: doc.projects || [],
+    experienceLevel: doc.experienceLevel,
+    skills,
+    timeline: doc.timeline || [],
+    certifications: doc.certifications || [],
+    contact: doc.contact || { email: '', phone: '', location: '', website: '' },
+    accent: doc.accent,
+    screenshots: doc.screenshots || [],
+    documents: doc.documents || [],
+    codeSnippets: doc.codeSnippets || [],
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+};
 
 const resolveUniqueSlug = async (base, currentOwnerId = null) => {
   const normalizedBase = normalizeSlug(base) || 'developer';
@@ -42,9 +62,12 @@ const resolveUniqueSlug = async (base, currentOwnerId = null) => {
 
 const getMyPortfolio = async (req, res) => {
   try {
-    const portfolio = await Portfolio.findOne({ ownerId: req.userId });
+    const portfolio = await Portfolio.findOne({ ownerId: req.userId }).populate('ownerId', 'skills avatar fullName');
     if (!portfolio) {
       return res.status(404).json({ message: 'Portfolio not found' });
+    }
+    if (ACCENT_DEBUG) {
+      console.log(`[accent][get] owner=${req.userId} accent=${portfolio.accent}`);
     }
     return res.status(200).json({ portfolio: toPortfolioPayload(portfolio) });
   } catch (error) {
@@ -54,7 +77,7 @@ const getMyPortfolio = async (req, res) => {
 
 const createMyPortfolio = async (req, res) => {
   try {
-    const existing = await Portfolio.findOne({ ownerId: req.userId });
+    const existing = await Portfolio.findOne({ ownerId: req.userId }).populate('ownerId', 'skills avatar fullName');
     if (existing) {
       return res.status(200).json({ portfolio: toPortfolioPayload(existing) });
     }
@@ -74,13 +97,35 @@ const createMyPortfolio = async (req, res) => {
       displayName: user.fullName || usernameBase,
       headline: 'Developer Portfolio',
       bio: 'Building thoughtful software and shipping impactful products.',
+      heroIntro: {
+        title: user.fullName || usernameBase,
+        subtitle: 'Portfolio',
+        summary: 'Welcome to my portfolio.',
+      },
+      projects: [],
+      skills: Array.isArray(user.skills) ? user.skills : [],
+      timeline: [],
+      certifications: [],
+      contact: {
+        email: user.email || '',
+        phone: '',
+        location: '',
+        website: '',
+      },
+      experienceLevel: 1,
       accent: 'blue',
       screenshots: [],
       documents: [],
       codeSnippets: [],
     });
 
-    return res.status(201).json({ portfolio: toPortfolioPayload(portfolio) });
+    return res.status(201).json({
+      portfolio: toPortfolioPayload(
+        portfolio,
+        user?.skills || [],
+        { avatar: user?.avatar || '', fullName: user?.fullName || '' }
+      ),
+    });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to create portfolio', error: error.message });
   }
@@ -108,15 +153,89 @@ const updateMyPortfolio = async (req, res) => {
     if (updates.displayName !== undefined) updates.displayName = String(updates.displayName || '').trim();
     if (updates.headline !== undefined) updates.headline = String(updates.headline || '').trim();
     if (updates.bio !== undefined) updates.bio = String(updates.bio || '').trim();
-    if (updates.accent !== undefined) updates.accent = String(updates.accent || 'blue').trim();
+    if (updates.heroIntro !== undefined) {
+      const heroIntro = updates.heroIntro && typeof updates.heroIntro === 'object' ? updates.heroIntro : {};
+      updates.heroIntro = {
+        title: String(heroIntro.title || '').trim(),
+        subtitle: String(heroIntro.subtitle || '').trim(),
+        summary: String(heroIntro.summary || '').trim(),
+      };
+    }
+    if (updates.projects !== undefined && !Array.isArray(updates.projects)) updates.projects = [];
+    if (Array.isArray(updates.projects)) {
+      updates.projects = updates.projects.map((item) => ({
+        id: String(item?.id || ''),
+        title: String(item?.title || '').trim(),
+        description: String(item?.description || '').trim(),
+        link: String(item?.link || '').trim(),
+        stack: Array.isArray(item?.stack) ? item.stack.map((tech) => String(tech || '').trim()).filter(Boolean) : [],
+      })).filter((item) => item.id);
+    }
+    if (updates.skills !== undefined) {
+      updates.skills = Array.isArray(updates.skills)
+        ? [...new Set(updates.skills.map((skill) => String(skill || '').trim()).filter(Boolean))]
+        : [];
+    }
+    if (updates.timeline !== undefined && !Array.isArray(updates.timeline)) updates.timeline = [];
+    if (Array.isArray(updates.timeline)) {
+      updates.timeline = updates.timeline.map((item) => ({
+        id: String(item?.id || ''),
+        title: String(item?.title || '').trim(),
+        organization: String(item?.organization || '').trim(),
+        startDate: String(item?.startDate || '').trim(),
+        endDate: String(item?.endDate || '').trim(),
+        description: String(item?.description || '').trim(),
+      })).filter((item) => item.id);
+    }
+    if (updates.certifications !== undefined && !Array.isArray(updates.certifications)) updates.certifications = [];
+    if (Array.isArray(updates.certifications)) {
+      updates.certifications = updates.certifications.map((item) => ({
+        id: String(item?.id || ''),
+        name: String(item?.name || '').trim(),
+        issuer: String(item?.issuer || '').trim(),
+        issueDate: String(item?.issueDate || '').trim(),
+        credentialUrl: String(item?.credentialUrl || '').trim(),
+      })).filter((item) => item.id);
+    }
+    if (updates.contact !== undefined) {
+      const contact = updates.contact && typeof updates.contact === 'object' ? updates.contact : {};
+      updates.contact = {
+        email: String(contact.email || '').trim(),
+        phone: String(contact.phone || '').trim(),
+        location: String(contact.location || '').trim(),
+        website: String(contact.website || '').trim(),
+      };
+    }
+    if (updates.experienceLevel !== undefined) {
+      const numericLevel = Number(updates.experienceLevel);
+      updates.experienceLevel = Number.isFinite(numericLevel)
+        ? Math.min(5, Math.max(1, Math.round(numericLevel)))
+        : 1;
+    }
+    if (updates.accent !== undefined) {
+      const requestedAccent = String(updates.accent || '').trim().toLowerCase();
+      updates.accent = ALLOWED_ACCENTS.includes(requestedAccent)
+        ? requestedAccent
+        : String(portfolio.accent || 'blue').trim().toLowerCase();
+      if (ACCENT_DEBUG) {
+        console.log(`[accent][patch:request] owner=${req.userId} requested=${requestedAccent} normalized=${updates.accent}`);
+      }
+    }
     if (updates.screenshots !== undefined && !Array.isArray(updates.screenshots)) updates.screenshots = [];
     if (updates.documents !== undefined && !Array.isArray(updates.documents)) updates.documents = [];
     if (updates.codeSnippets !== undefined && !Array.isArray(updates.codeSnippets)) updates.codeSnippets = [];
 
-    Object.assign(portfolio, updates);
-    await portfolio.save();
+    const updatedPortfolio = await Portfolio.findOneAndUpdate(
+      { ownerId: req.userId },
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).populate('ownerId', 'skills avatar fullName');
 
-    return res.status(200).json({ portfolio: toPortfolioPayload(portfolio) });
+    if (ACCENT_DEBUG && updates.accent !== undefined) {
+      console.log(`[accent][patch:result] owner=${req.userId} persisted=${updatedPortfolio?.accent}`);
+    }
+
+    return res.status(200).json({ portfolio: toPortfolioPayload(updatedPortfolio) });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to update portfolio', error: error.message });
   }
@@ -127,7 +246,7 @@ const getPublicPortfolio = async (req, res) => {
     const slug = normalizeSlug(req.params.slug);
     const portfolio = await Portfolio.findOne({
       $or: [{ slug }, { username: req.params.slug }],
-    });
+    }).populate('ownerId', 'skills avatar fullName');
 
     if (!portfolio) {
       return res.status(404).json({ message: 'Portfolio not found' });

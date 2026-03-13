@@ -25,6 +25,40 @@ const codeSnippetSchema = new Schema(
   { _id: false }
 );
 
+const portfolioProjectSchema = new Schema(
+  {
+    id: { type: String, required: true, trim: true },
+    title: { type: String, default: '', trim: true },
+    description: { type: String, default: '', trim: true },
+    link: { type: String, default: '', trim: true },
+    stack: { type: [String], default: [] },
+  },
+  { _id: false }
+);
+
+const timelineSchema = new Schema(
+  {
+    id: { type: String, required: true, trim: true },
+    title: { type: String, default: '', trim: true },
+    organization: { type: String, default: '', trim: true },
+    startDate: { type: String, default: '', trim: true },
+    endDate: { type: String, default: '', trim: true },
+    description: { type: String, default: '', trim: true },
+  },
+  { _id: false }
+);
+
+const certificationSchema = new Schema(
+  {
+    id: { type: String, required: true, trim: true },
+    name: { type: String, default: '', trim: true },
+    issuer: { type: String, default: '', trim: true },
+    issueDate: { type: String, default: '', trim: true },
+    credentialUrl: { type: String, default: '', trim: true },
+  },
+  { _id: false }
+);
+
 const portfolioSchema = new Schema(
   {
     ownerId: {
@@ -64,6 +98,39 @@ const portfolioSchema = new Schema(
       default: '',
       trim: true,
       maxlength: 4000,
+    },
+    heroIntro: {
+      title: { type: String, default: '', trim: true, maxlength: 160 },
+      subtitle: { type: String, default: '', trim: true, maxlength: 240 },
+      summary: { type: String, default: '', trim: true, maxlength: 1200 },
+    },
+    projects: {
+      type: [portfolioProjectSchema],
+      default: [],
+    },
+    skills: {
+      type: [String],
+      default: [],
+    },
+    timeline: {
+      type: [timelineSchema],
+      default: [],
+    },
+    certifications: {
+      type: [certificationSchema],
+      default: [],
+    },
+    contact: {
+      email: { type: String, default: '', trim: true },
+      phone: { type: String, default: '', trim: true },
+      location: { type: String, default: '', trim: true },
+      website: { type: String, default: '', trim: true },
+    },
+    experienceLevel: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: 1,
     },
     accent: {
       type: String,

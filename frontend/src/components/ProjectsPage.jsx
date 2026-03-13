@@ -3,6 +3,7 @@ import ProjectModal from './ProjectModal';
 import LocalStorageService from '../services/localStorageService';
 import { useAuth } from '../hooks/useAuth';
 import { projectApi } from '../services/projectApi';
+import { useModal } from '../hooks/useModal';
 
 const EMPTY_FORM = {
   title: '',
@@ -22,6 +23,7 @@ const ProjectsPage = () => {
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [error, setError] = useState('');
+  const { showSuccess, showError: showErrorModal } = useModal();
   const projectLimitInfo = useMemo(() => {
     const limit = LocalStorageService.getProjectLimitForSubscription(user?.subscription);
     return {
@@ -52,9 +54,9 @@ const ProjectsPage = () => {
 
   const openCreateModal = () => {
     if (isCreateBlocked) {
-      setError(
-        `You reached your ${user?.subscription || 'free'} plan limit (${projectLimitInfo.limit} projects). Upgrade to add more projects.`
-      );
+      const message = `You reached your ${user?.subscription || 'free'} plan limit (${projectLimitInfo.limit} projects). Upgrade to add more projects.`;
+      setError(message);
+      showErrorModal('Limit Reached', message);
       return;
     }
 
@@ -96,12 +98,15 @@ const ProjectsPage = () => {
       }
       setError('');
       closeModal();
+      showSuccess('Project Saved', projectId ? 'Project updated successfully.' : 'Project created successfully.');
     } catch (saveError) {
       if (saveError?.status === 403) {
         setError(saveError.message);
+        showErrorModal('Save Failed', saveError.message);
         return;
       }
       setError('Unable to save project right now. Please try again.');
+      showErrorModal('Save Failed', 'Unable to save project right now. Please try again.');
     }
   };
 

@@ -12,9 +12,10 @@
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
-    "dev": "concurrently --kill-others-on-fail -n frontend,backend -c cyan,green \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev": "concurrently --kill-others-on-fail -n frontend,backend,portfolio-service -c cyan,green,magenta \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:portfolio-service\"",
     "dev:frontend": "cd frontend && vite",
     "dev:backend": "nodemon server.js",
+    "dev:portfolio-service": "nodemon backend/portfolio.service.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon server.js",
     "build": "cd frontend && vite build",

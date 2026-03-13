@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { BookOpen, Code2, ExternalLink, FolderGit2, PlusCircle, UserCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -27,13 +27,23 @@ const StudentDashboard = () => {
   const [editingSkillValue, setEditingSkillValue] = useState('');
   const [portfolio, setPortfolio] = useState(null);
   const [portfolioError, setPortfolioError] = useState('');
+  const portfolioUpdateQueueRef = useRef(Promise.resolve());
+  const lastPortfolioMutationAtRef = useRef(0);
+  const accentIntentRef = useRef('');
   const [instructors, setInstructors] = useState([]);
   const [selectedInstructor, setSelectedInstructor] = useState(null);
   const [selectedInstructorId, setSelectedInstructorId] = useState('');
   const [mentorAssignments, setMentorAssignments] = useState([]);
   const [mentorshipBusy, setMentorshipBusy] = useState(false);
   const [mentorshipError, setMentorshipError] = useState('');
-  const activeAccent = getDashboardAccent(portfolio?.accent || 'violet');
+  const [submissionDrafts, setSubmissionDrafts] = useState({});
+  const [submissionBusyAssignmentId, setSubmissionBusyAssignmentId] = useState('');
+  const [submissionErrors, setSubmissionErrors] = useState({});
+  const activeAccent = getDashboardAccent(
+    portfolio?.accent ||
+    LocalStorageService.getDashboardAccentIntent(user?.id) ||
+    LocalStorageService.getDashboardAccent(user?.id)
+  );
   const hasPortfolio = Boolean(portfolio);
   const portfolioPath = hasPortfolio
     ? `/portfolio/${portfolio?.slug || portfolio?.username || ''}`
@@ -72,13 +82,42 @@ const StudentDashboard = () => {
   }, [user?.skills]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
     const loadPortfolio = async () => {
+      const requestStartedAt = Date.now();
       try {
         const token = LocalStorageService.getToken();
         if (!token) return;
         const response = await portfolioApi.getMine(token);
-        setPortfolio(response.portfolio);
+        if (requestStartedAt < lastPortfolioMutationAtRef.current) {
+          return;
+        }
+        const serverAccent = String(response?.portfolio?.accent || '').trim().toLowerCase();
+        const preferredAccent = String(
+          LocalStorageService.getDashboardAccentIntent(user?.id) ||
+          LocalStorageService.getDashboardAccent(user?.id) ||
+          ''
+        ).trim().toLowerCase();
+        if (preferredAccent && serverAccent && preferredAccent !== serverAccent) {
+          const syncedResponse = await portfolioApi.updateMine(token, { accent: preferredAccent });
+          const syncedAccent = String(syncedResponse?.portfolio?.accent || '').trim().toLowerCase();
+          if (syncedAccent === preferredAccent) {
+            setPortfolio(syncedResponse.portfolio);
+            LocalStorageService.setDashboardAccent(syncedResponse?.portfolio?.accent, user?.id);
+            LocalStorageService.setDashboardAccentIntent('', user?.id);
+          } else {
+            setPortfolio({ ...syncedResponse.portfolio, accent: preferredAccent });
+            LocalStorageService.setDashboardAccent(preferredAccent, user?.id);
+          }
+          return;
+        }
+        const accentIntent = String(accentIntentRef.current || '').trim().toLowerCase();
+        const effectiveAccent = accentIntent || serverAccent;
+        if (accentIntent && serverAccent === accentIntent) {
+          accentIntentRef.current = '';
+        }
+        setPortfolio({ ...response.portfolio, accent: effectiveAccent || response?.portfolio?.accent });
+        LocalStorageService.setDashboardAccent(effectiveAccent || response?.portfolio?.accent, user?.id);
       } catch (error) {
         if (error.status !== 404) {
           setPortfolioError('Unable to load portfolio right now.');
@@ -86,7 +125,7 @@ const StudentDashboard = () => {
       }
     };
     loadPortfolio();
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -128,7 +167,28 @@ const StudentDashboard = () => {
         setInstructors(nextInstructors);
         setSelectedInstructor(mentorshipResponse.instructor || null);
         setSelectedInstructorId(mentorshipResponse.instructor?.id || '');
-        setMentorAssignments(Array.isArray(mentorshipResponse.assignments) ? mentorshipResponse.assignments : []);
+        const nextAssignments = Array.isArray(mentorshipResponse.assignments) ? mentorshipResponse.assignments : [];
+        setMentorAssignments(nextAssignments);
+        setSubmissionDrafts((current) => {
+          const nextDrafts = {};
+          nextAssignments.forEach((assignment) => {
+            const existingDraft = current[assignment.id];
+            nextDrafts[assignment.id] = {
+              answer: existingDraft?.answer ?? assignment?.submission?.answer ?? '',
+              submissionAttachment: existingDraft?.submissionAttachment ?? null,
+            };
+          });
+          return nextDrafts;
+        });
+        setSubmissionErrors((current) => {
+          const nextErrors = {};
+          nextAssignments.forEach((assignment) => {
+            if (current[assignment.id]) {
+              nextErrors[assignment.id] = current[assignment.id];
+            }
+          });
+          return nextErrors;
+        });
       } catch (error) {
         setMentorshipError(error?.message || 'Unable to load mentorship data right now.');
       } finally {
@@ -175,9 +235,11 @@ const StudentDashboard = () => {
 
   const handleCreatePortfolio = async () => {
     try {
+      lastPortfolioMutationAtRef.current = Date.now();
       const token = LocalStorageService.getToken();
       const response = await portfolioApi.createMine(token);
       setPortfolio(response.portfolio);
+      LocalStorageService.setDashboardAccent(response?.portfolio?.accent, user?.id);
       setActiveMenuKey('portfolio');
       await persistMenuSelection('portfolio');
       setPortfolioError('');
@@ -186,11 +248,57 @@ const StudentDashboard = () => {
     }
   };
 
-  const handlePortfolioUpdate = async (updates) => {
-    const token = LocalStorageService.getToken();
-    const response = await portfolioApi.updateMine(token, updates);
-    setPortfolio(response.portfolio);
-    setPortfolioError('');
+  const handlePortfolioUpdate = (updates) => {
+    lastPortfolioMutationAtRef.current = Date.now();
+    const hasAccentUpdate = updates && Object.prototype.hasOwnProperty.call(updates, 'accent');
+    const requestedAccent = hasAccentUpdate ? String(updates.accent || '').trim().toLowerCase() : '';
+    if (updates && Object.prototype.hasOwnProperty.call(updates, 'accent')) {
+      accentIntentRef.current = requestedAccent;
+      LocalStorageService.setDashboardAccentIntent(requestedAccent, user?.id);
+      LocalStorageService.setDashboardAccent(requestedAccent, user?.id);
+      setPortfolio((currentPortfolio) =>
+        currentPortfolio ? { ...currentPortfolio, accent: requestedAccent } : currentPortfolio
+      );
+    }
+
+    const nextUpdate = portfolioUpdateQueueRef.current.then(async () => {
+      const token = LocalStorageService.getToken();
+      let response = await portfolioApi.updateMine(token, updates);
+      if (hasAccentUpdate) {
+        const persistedAccent = String(response?.portfolio?.accent || '').trim().toLowerCase();
+        if (requestedAccent && persistedAccent !== requestedAccent) {
+          response = await portfolioApi.updateMine(token, { accent: requestedAccent });
+        }
+      }
+      setPortfolio((currentPortfolio) => {
+        if (hasAccentUpdate) {
+          const persistedAccent = String(response?.portfolio?.accent || '').trim().toLowerCase();
+          if (requestedAccent && persistedAccent === requestedAccent) {
+            accentIntentRef.current = '';
+            LocalStorageService.setDashboardAccentIntent('', user?.id);
+          }
+          return {
+            ...response.portfolio,
+            accent: requestedAccent || persistedAccent || response?.portfolio?.accent,
+          };
+        }
+        if (!currentPortfolio) {
+          return response.portfolio;
+        }
+        return {
+          ...response.portfolio,
+          accent: currentPortfolio.accent || response?.portfolio?.accent,
+        };
+      });
+      if (hasAccentUpdate) {
+        LocalStorageService.setDashboardAccent(requestedAccent || response?.portfolio?.accent, user?.id);
+      }
+      setPortfolioError('');
+      return response.portfolio;
+    });
+
+    portfolioUpdateQueueRef.current = nextUpdate.catch(() => undefined);
+    return nextUpdate;
   };
 
   const handleAddSkill = async () => {
@@ -291,6 +399,72 @@ const StudentDashboard = () => {
     }
   };
 
+  const handleSubmissionAnswerChange = (assignmentId, value) => {
+    setSubmissionDrafts((current) => ({
+      ...current,
+      [assignmentId]: {
+        ...(current[assignmentId] || {}),
+        answer: value,
+      },
+    }));
+  };
+
+  const handleSubmissionFileChange = (assignmentId, file) => {
+    setSubmissionDrafts((current) => ({
+      ...current,
+      [assignmentId]: {
+        ...(current[assignmentId] || {}),
+        submissionAttachment: file || null,
+      },
+    }));
+  };
+
+  const handleSubmitAssignment = async (assignmentId) => {
+    const token = LocalStorageService.getToken();
+    if (!token) return;
+
+    const draft = submissionDrafts[assignmentId] || {};
+    const answer = String(draft.answer || '').trim();
+    const submissionAttachment = draft.submissionAttachment || null;
+
+    if (!answer && !submissionAttachment) {
+      setSubmissionErrors((current) => ({
+        ...current,
+        [assignmentId]: 'Add an answer or attachment before submitting.',
+      }));
+      return;
+    }
+
+    try {
+      setSubmissionBusyAssignmentId(assignmentId);
+      setSubmissionErrors((current) => ({ ...current, [assignmentId]: '' }));
+      const response = await mentorshipApi.submitMyAssignment(token, assignmentId, {
+        answer,
+        submissionAttachment,
+      });
+      const updatedAssignment = response?.assignment;
+      if (!updatedAssignment?.id) return;
+
+      setMentorAssignments((current) =>
+        current.map((assignment) => (assignment.id === updatedAssignment.id ? updatedAssignment : assignment))
+      );
+      setSubmissionDrafts((current) => ({
+        ...current,
+        [assignmentId]: {
+          answer: updatedAssignment?.submission?.answer || answer,
+          submissionAttachment: null,
+        },
+      }));
+    } catch (error) {
+      setSubmissionErrors((current) => ({
+        ...current,
+        [assignmentId]: error?.message || 'Unable to submit assignment right now.',
+      }));
+    } finally {
+      setSubmissionBusyAssignmentId('');
+    }
+  };
+
   return (
     <DashboardShell
       role="Student"
@@ -327,7 +501,7 @@ const StudentDashboard = () => {
                   onChange={(event) => setSkillInput(event.target.value)}
                   onKeyDown={handleSkillKeyDown}
                   placeholder="Type a skill (e.g. React)"
-                  className="flex-1 rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`flex-1 rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 ${activeAccent.focusRingClass}`}
                 />
                 <button
                   type="button"
@@ -352,7 +526,7 @@ const StudentDashboard = () => {
                             type="text"
                             value={editingSkillValue}
                             onChange={(event) => setEditingSkillValue(event.target.value)}
-                            className="w-28 rounded bg-black/20 px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className={`w-28 rounded bg-black/20 px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 ${activeAccent.focusRingClass}`}
                           />
                           <button type="button" onClick={handleSaveEditedSkill} disabled={skillsBusy} className="text-[10px]">
                             save
@@ -432,7 +606,7 @@ const StudentDashboard = () => {
               <select
                 value={selectedInstructorId}
                 onChange={(event) => setSelectedInstructorId(event.target.value)}
-                className="rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 ${activeAccent.focusRingClass}`}
               >
                 <option value="">Select an instructor</option>
                 {instructors.map((instructor) => (
@@ -469,7 +643,7 @@ const StudentDashboard = () => {
                         href={resolveMedia(assignment.attachment.url)}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-sm text-blue-300 hover:text-blue-200 mt-2 inline-block"
+                        className={`text-sm mt-2 inline-block ${activeAccent.linkClass}`}
                       >
                         Open attachment ({assignment.attachment.originalName || 'file'})
                       </a>
@@ -478,6 +652,50 @@ const StudentDashboard = () => {
                       Score: {Number.isFinite(assignment.score) ? assignment.score : 'Not scored'} | Due:{' '}
                       {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'No due date'}
                     </p>
+                    {assignment.submission?.submittedAt && (
+                      <p className={`text-xs mt-2 ${activeAccent.textClass}`}>
+                        Submitted: {new Date(assignment.submission.submittedAt).toLocaleString()}
+                      </p>
+                    )}
+                    <div className="mt-3 space-y-3">
+                      <textarea
+                        value={submissionDrafts[assignment.id]?.answer || ''}
+                        onChange={(event) => handleSubmissionAnswerChange(assignment.id, event.target.value)}
+                        placeholder="Write your answer"
+                        rows={4}
+                        className={`w-full rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 ${activeAccent.focusRingClass}`}
+                      />
+                      <div className="flex flex-col md:flex-row md:items-center gap-3">
+                        <input
+                          type="file"
+                          onChange={(event) =>
+                            handleSubmissionFileChange(assignment.id, event.target.files?.[0] || null)
+                          }
+                          className="text-sm text-gray-300 file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1.5 file:text-sm file:text-white file:bg-white/20 hover:file:bg-white/30"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSubmitAssignment(assignment.id)}
+                          disabled={submissionBusyAssignmentId === assignment.id}
+                          className={`px-4 py-2 rounded-lg text-white transition ${activeAccent.primaryButtonClass}`}
+                        >
+                          {submissionBusyAssignmentId === assignment.id ? 'Submitting...' : 'Submit Assignment'}
+                        </button>
+                      </div>
+                      {assignment.submission?.attachment?.url && (
+                        <a
+                          href={resolveMedia(assignment.submission.attachment.url)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={`text-sm inline-block ${activeAccent.linkClass}`}
+                        >
+                          View submitted file ({assignment.submission.attachment.originalName || 'file'})
+                        </a>
+                      )}
+                      {submissionErrors[assignment.id] && (
+                        <p className="text-sm text-red-300">{submissionErrors[assignment.id]}</p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

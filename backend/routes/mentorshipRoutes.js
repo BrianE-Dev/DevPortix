@@ -12,6 +12,7 @@ const {
   createAssignment,
   updateAssignment,
   deleteAssignment,
+  submitMyAssignment,
 } = require('../controllers/mentorshipController');
 
 const router = express.Router();
@@ -55,5 +56,12 @@ router.patch(
   updateAssignment
 );
 router.delete('/assignments/:assignmentId', validateUser, requireRole(['instructor']), deleteAssignment);
+router.patch(
+  '/my-assignments/:assignmentId/submit',
+  validateUser,
+  requireRole(['student']),
+  upload.single('submissionAttachment'),
+  submitMyAssignment
+);
 
 module.exports = router;

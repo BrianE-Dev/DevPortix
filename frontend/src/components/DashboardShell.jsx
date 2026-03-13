@@ -7,7 +7,7 @@ const DashboardShell = ({
   role,
   title,
   subtitle,
-  accentClass = 'text-violet-300',
+  accentClass = 'text-blue-300',
   activeTabClass = '',
   menuItems = [],
   activeMenuKey,

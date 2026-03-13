@@ -93,6 +93,40 @@ const mentorshipAssignmentSchema = new Schema(
       type: Date,
       default: null,
     },
+    submission: {
+      answer: {
+        type: String,
+        default: '',
+        trim: true,
+        maxlength: 5000,
+      },
+      attachment: {
+        url: {
+          type: String,
+          default: '',
+          trim: true,
+        },
+        mimeType: {
+          type: String,
+          default: '',
+          trim: true,
+        },
+        originalName: {
+          type: String,
+          default: '',
+          trim: true,
+        },
+        size: {
+          type: Number,
+          default: 0,
+          min: 0,
+        },
+      },
+      submittedAt: {
+        type: Date,
+        default: null,
+      },
+    },
   },
   {
     timestamps: true,

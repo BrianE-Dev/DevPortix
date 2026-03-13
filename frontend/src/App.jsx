@@ -3,6 +3,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
+import { ModalProvider } from './context/ModalContext.jsx';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
@@ -36,8 +37,8 @@ const AppContent = () => {
   const { theme } = useTheme();
   const appThemeClass =
     theme === 'dark'
-      ? 'min-h-screen bg-gray-950 text-gray-100 transition-colors duration-300'
-      : 'min-h-screen bg-blue-100 text-gray-900 transition-colors duration-300';
+      ? 'min-h-screen bg-gray-950 text-gray-100 transition-colors duration-300 theme-dark'
+      : 'min-h-screen bg-blue-100 text-gray-900 transition-colors duration-300 theme-light';
 
   return (
     <>
@@ -111,7 +112,9 @@ function App() {
     <Router>
       <ThemeProvider>
         <AuthProvider>
-          <AppContent />
+          <ModalProvider>
+            <AppContent />
+          </ModalProvider>
         </AuthProvider>
       </ThemeProvider>
     </Router>

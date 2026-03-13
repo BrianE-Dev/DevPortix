@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { BarChart3, BriefcaseBusiness, Code2, ExternalLink, Network, PlusCircle, UserCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -24,7 +24,14 @@ const ProfessionalDashboard = () => {
   const [editingSkillValue, setEditingSkillValue] = useState('');
   const [portfolio, setPortfolio] = useState(null);
   const [portfolioError, setPortfolioError] = useState('');
-  const activeAccent = getDashboardAccent(portfolio?.accent || 'violet');
+  const portfolioUpdateQueueRef = useRef(Promise.resolve());
+  const lastPortfolioMutationAtRef = useRef(0);
+  const accentIntentRef = useRef('');
+  const activeAccent = getDashboardAccent(
+    portfolio?.accent ||
+    LocalStorageService.getDashboardAccentIntent(user?.id) ||
+    LocalStorageService.getDashboardAccent(user?.id)
+  );
   const hasPortfolio = Boolean(portfolio);
   const portfolioPath = hasPortfolio
     ? `/portfolio/${portfolio?.slug || portfolio?.username || ''}`
@@ -63,13 +70,42 @@ const ProfessionalDashboard = () => {
   }, [user?.skills]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
     const loadPortfolio = async () => {
+      const requestStartedAt = Date.now();
       try {
         const token = LocalStorageService.getToken();
         if (!token) return;
         const response = await portfolioApi.getMine(token);
-        setPortfolio(response.portfolio);
+        if (requestStartedAt < lastPortfolioMutationAtRef.current) {
+          return;
+        }
+        const serverAccent = String(response?.portfolio?.accent || '').trim().toLowerCase();
+        const preferredAccent = String(
+          LocalStorageService.getDashboardAccentIntent(user?.id) ||
+          LocalStorageService.getDashboardAccent(user?.id) ||
+          ''
+        ).trim().toLowerCase();
+        if (preferredAccent && serverAccent && preferredAccent !== serverAccent) {
+          const syncedResponse = await portfolioApi.updateMine(token, { accent: preferredAccent });
+          const syncedAccent = String(syncedResponse?.portfolio?.accent || '').trim().toLowerCase();
+          if (syncedAccent === preferredAccent) {
+            setPortfolio(syncedResponse.portfolio);
+            LocalStorageService.setDashboardAccent(syncedResponse?.portfolio?.accent, user?.id);
+            LocalStorageService.setDashboardAccentIntent('', user?.id);
+          } else {
+            setPortfolio({ ...syncedResponse.portfolio, accent: preferredAccent });
+            LocalStorageService.setDashboardAccent(preferredAccent, user?.id);
+          }
+          return;
+        }
+        const accentIntent = String(accentIntentRef.current || '').trim().toLowerCase();
+        const effectiveAccent = accentIntent || serverAccent;
+        if (accentIntent && serverAccent === accentIntent) {
+          accentIntentRef.current = '';
+        }
+        setPortfolio({ ...response.portfolio, accent: effectiveAccent || response?.portfolio?.accent });
+        LocalStorageService.setDashboardAccent(effectiveAccent || response?.portfolio?.accent, user?.id);
       } catch (error) {
         if (error.status !== 404) {
           setPortfolioError('Unable to load portfolio right now.');
@@ -77,7 +113,7 @@ const ProfessionalDashboard = () => {
       }
     };
     loadPortfolio();
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -136,9 +172,11 @@ const ProfessionalDashboard = () => {
 
   const handleCreatePortfolio = async () => {
     try {
+      lastPortfolioMutationAtRef.current = Date.now();
       const token = LocalStorageService.getToken();
       const response = await portfolioApi.createMine(token);
       setPortfolio(response.portfolio);
+      LocalStorageService.setDashboardAccent(response?.portfolio?.accent, user?.id);
       setActiveMenuKey('portfolio');
       await persistMenuSelection('portfolio');
       setPortfolioError('');
@@ -147,11 +185,57 @@ const ProfessionalDashboard = () => {
     }
   };
 
-  const handlePortfolioUpdate = async (updates) => {
-    const token = LocalStorageService.getToken();
-    const response = await portfolioApi.updateMine(token, updates);
-    setPortfolio(response.portfolio);
-    setPortfolioError('');
+  const handlePortfolioUpdate = (updates) => {
+    lastPortfolioMutationAtRef.current = Date.now();
+    const hasAccentUpdate = updates && Object.prototype.hasOwnProperty.call(updates, 'accent');
+    const requestedAccent = hasAccentUpdate ? String(updates.accent || '').trim().toLowerCase() : '';
+    if (updates && Object.prototype.hasOwnProperty.call(updates, 'accent')) {
+      accentIntentRef.current = requestedAccent;
+      LocalStorageService.setDashboardAccentIntent(requestedAccent, user?.id);
+      LocalStorageService.setDashboardAccent(requestedAccent, user?.id);
+      setPortfolio((currentPortfolio) =>
+        currentPortfolio ? { ...currentPortfolio, accent: requestedAccent } : currentPortfolio
+      );
+    }
+
+    const nextUpdate = portfolioUpdateQueueRef.current.then(async () => {
+      const token = LocalStorageService.getToken();
+      let response = await portfolioApi.updateMine(token, updates);
+      if (hasAccentUpdate) {
+        const persistedAccent = String(response?.portfolio?.accent || '').trim().toLowerCase();
+        if (requestedAccent && persistedAccent !== requestedAccent) {
+          response = await portfolioApi.updateMine(token, { accent: requestedAccent });
+        }
+      }
+      setPortfolio((currentPortfolio) => {
+        if (hasAccentUpdate) {
+          const persistedAccent = String(response?.portfolio?.accent || '').trim().toLowerCase();
+          if (requestedAccent && persistedAccent === requestedAccent) {
+            accentIntentRef.current = '';
+            LocalStorageService.setDashboardAccentIntent('', user?.id);
+          }
+          return {
+            ...response.portfolio,
+            accent: requestedAccent || persistedAccent || response?.portfolio?.accent,
+          };
+        }
+        if (!currentPortfolio) {
+          return response.portfolio;
+        }
+        return {
+          ...response.portfolio,
+          accent: currentPortfolio.accent || response?.portfolio?.accent,
+        };
+      });
+      if (hasAccentUpdate) {
+        LocalStorageService.setDashboardAccent(requestedAccent || response?.portfolio?.accent, user?.id);
+      }
+      setPortfolioError('');
+      return response.portfolio;
+    });
+
+    portfolioUpdateQueueRef.current = nextUpdate.catch(() => undefined);
+    return nextUpdate;
   };
 
   const handleAddSkill = async () => {
@@ -272,7 +356,7 @@ const ProfessionalDashboard = () => {
                 onChange={(event) => setSkillInput(event.target.value)}
                 onKeyDown={handleSkillKeyDown}
                 placeholder="Type a skill (e.g. React)"
-                className="flex-1 rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`flex-1 rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 ${activeAccent.focusRingClass}`}
               />
               <button
                 type="button"
@@ -297,7 +381,7 @@ const ProfessionalDashboard = () => {
                           type="text"
                           value={editingSkillValue}
                           onChange={(event) => setEditingSkillValue(event.target.value)}
-                          className="w-28 rounded bg-black/20 px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className={`w-28 rounded bg-black/20 px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 ${activeAccent.focusRingClass}`}
                         />
                         <button type="button" onClick={handleSaveEditedSkill} disabled={skillsBusy} className="text-[10px]">
                           save

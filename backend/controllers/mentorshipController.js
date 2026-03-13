@@ -25,6 +25,21 @@ const toAssignmentPayload = (doc) => ({
         size: Number(doc.attachment.size || 0),
       }
     : null,
+  submission:
+    doc.submission?.submittedAt || doc.submission?.answer || doc.submission?.attachment?.url
+      ? {
+          answer: doc.submission?.answer || '',
+          attachment: doc.submission?.attachment?.url
+            ? {
+                url: doc.submission.attachment.url,
+                mimeType: doc.submission.attachment.mimeType || '',
+                originalName: doc.submission.attachment.originalName || '',
+                size: Number(doc.submission.attachment.size || 0),
+              }
+            : null,
+          submittedAt: doc.submission?.submittedAt || null,
+        }
+      : null,
   score: doc.score ?? null,
   dueDate: doc.dueDate || null,
   createdAt: doc.createdAt,
@@ -309,6 +324,55 @@ const deleteAssignment = async (req, res) => {
   }
 };
 
+const submitMyAssignment = async (req, res) => {
+  try {
+    const assignmentId = String(req.params.assignmentId || '').trim();
+    if (!assignmentId) {
+      return res.status(400).json({ message: 'assignmentId is required' });
+    }
+
+    const assignment = await MentorshipAssignment.findOne({
+      _id: assignmentId,
+      studentId: req.userId,
+    });
+
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    const answer = String(req.body?.answer || '').trim();
+    const hasAttachment = Boolean(req.file);
+    if (!answer && !hasAttachment) {
+      return res.status(400).json({ message: 'Please provide an answer or attachment' });
+    }
+
+    const nextSubmission = {
+      answer,
+      submittedAt: new Date(),
+      attachment: hasAttachment
+        ? toAttachmentPayload(req.file)
+        : assignment.submission?.attachment?.url
+          ? assignment.submission.attachment
+          : {
+              url: '',
+              mimeType: '',
+              originalName: '',
+              size: 0,
+            },
+    };
+
+    assignment.submission = nextSubmission;
+    await assignment.save();
+
+    return res.status(200).json({
+      message: 'Assignment submitted',
+      assignment: toAssignmentPayload(assignment),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to submit assignment', error: error.message });
+  }
+};
+
 module.exports = {
   listInstructors,
   selectInstructor,
@@ -317,4 +381,5 @@ module.exports = {
   createAssignment,
   updateAssignment,
   deleteAssignment,
+  submitMyAssignment,
 };

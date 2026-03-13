@@ -20,6 +20,7 @@ import {
   Download,
   TrendingUp,
 } from 'lucide-react';
+import { useModal } from '../hooks/useModal';
 
 const mockProjects = [
   {
@@ -68,16 +69,25 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [projects, setProjects] = useState(mockProjects);
   const [analytics] = useState(mockAnalytics);
+  const { confirm, showSuccess } = useModal();
   const user = authUser;
   const welcomeName = user?.fullName || user?.username || 'User';
 
-  const handleDeleteProject = (projectId) => {
-    if (window.confirm('Are you sure you want to delete this project?')) {
-      const updatedProjects = projects.filter(project => project.id !== projectId);
-      setProjects(updatedProjects);
-      // In your actual app, you would also update localStorage here
-      // LocalStorageService.deleteProject(projectId);
-    }
+  const handleDeleteProject = async (projectId) => {
+    const isConfirmed = await confirm({
+      title: 'Delete Project?',
+      message: 'This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'warning',
+    });
+    if (!isConfirmed) return;
+
+    const updatedProjects = projects.filter(project => project.id !== projectId);
+    setProjects(updatedProjects);
+    showSuccess('Project Deleted', 'Project removed successfully.');
+    // In your actual app, you would also update localStorage here
+    // LocalStorageService.deleteProject(projectId);
   };
 
   const tabs = [
@@ -226,7 +236,7 @@ const Dashboard = () => {
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDeleteProject(project.id)}
+                            onClick={() => { void handleDeleteProject(project.id); }}
                             className="p-2 text-red-400 hover:text-red-300"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -360,7 +370,7 @@ const Dashboard = () => {
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDeleteProject(project.id)}
+                            onClick={() => { void handleDeleteProject(project.id); }}
                             className="p-2 text-red-400 hover:text-red-300"
                           >
                             <Trash2 className="w-4 h-4" />

@@ -9,6 +9,9 @@ const STORAGE_KEYS = {
   PORTFOLIO_SETTINGS: 'devportix_portfolio_settings',
   PORTFOLIOS: 'devportix_portfolios',
   THEME: 'devportix_theme',
+  DASHBOARD_ACCENT: 'devportix_dashboard_accent',
+  DASHBOARD_ACCENT_BY_USER: 'devportix_dashboard_accent_by_user',
+  DASHBOARD_ACCENT_INTENT_BY_USER: 'devportix_dashboard_accent_intent_by_user',
 };
 
 const SUBSCRIPTION_PROJECT_LIMITS = {
@@ -333,8 +336,23 @@ class LocalStorageService {
       displayName: user?.fullName || username,
       headline: 'Developer Portfolio',
       bio: 'Building thoughtful software and shipping impactful products.',
-      accent: 'blue',
+      heroIntro: {
+        title: user?.fullName || username,
+        subtitle: 'Portfolio',
+        summary: 'Welcome to my portfolio.',
+      },
       projects: [],
+      skills: [],
+      timeline: [],
+      certifications: [],
+      contact: {
+        email: user?.email || '',
+        phone: '',
+        location: '',
+        website: '',
+      },
+      experienceLevel: 1,
+      accent: 'blue',
       screenshots: [],
       codeSnippets: [],
       documents: [],
@@ -393,6 +411,100 @@ class LocalStorageService {
 
   static setTheme(theme) {
     localStorage.setItem(STORAGE_KEYS.THEME, theme);
+  }
+
+  static getDashboardAccent(userId = null) {
+    const normalizedUserId = String(userId || '').trim();
+    if (normalizedUserId) {
+      const raw = localStorage.getItem(STORAGE_KEYS.DASHBOARD_ACCENT_BY_USER);
+      if (raw) {
+        try {
+          const byUser = JSON.parse(raw);
+          const userAccent = String(byUser?.[normalizedUserId] || '').trim().toLowerCase();
+          const allowedAccents = ['blue', 'emerald', 'rose', 'amber', 'violet'];
+          if (allowedAccents.includes(userAccent)) {
+            return userAccent;
+          }
+        } catch {
+          // fall back to global key
+        }
+      }
+    }
+
+    const accent = String(localStorage.getItem(STORAGE_KEYS.DASHBOARD_ACCENT) || 'blue').trim().toLowerCase();
+    const allowedAccents = ['blue', 'emerald', 'rose', 'amber', 'violet'];
+    return allowedAccents.includes(accent) ? accent : 'blue';
+  }
+
+  static setDashboardAccent(accent, userId = null) {
+    const normalizedAccent = String(accent || 'blue').trim().toLowerCase();
+    const allowedAccents = ['blue', 'emerald', 'rose', 'amber', 'violet'];
+    const nextAccent = allowedAccents.includes(normalizedAccent) ? normalizedAccent : 'blue';
+    localStorage.setItem(STORAGE_KEYS.DASHBOARD_ACCENT, nextAccent);
+
+    const normalizedUserId = String(userId || '').trim();
+    if (normalizedUserId) {
+      const raw = localStorage.getItem(STORAGE_KEYS.DASHBOARD_ACCENT_BY_USER);
+      let byUser = {};
+      if (raw) {
+        try {
+          byUser = JSON.parse(raw) || {};
+        } catch {
+          byUser = {};
+        }
+      }
+      byUser[normalizedUserId] = nextAccent;
+      localStorage.setItem(STORAGE_KEYS.DASHBOARD_ACCENT_BY_USER, JSON.stringify(byUser));
+    }
+
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('devportix:accent-changed', { detail: { accent: nextAccent } }));
+    }
+    return nextAccent;
+  }
+
+  static getDashboardAccentIntent(userId = null) {
+    const normalizedUserId = String(userId || '').trim();
+    if (!normalizedUserId) return '';
+
+    const raw = localStorage.getItem(STORAGE_KEYS.DASHBOARD_ACCENT_INTENT_BY_USER);
+    if (!raw) return '';
+    try {
+      const byUser = JSON.parse(raw) || {};
+      const accent = String(byUser?.[normalizedUserId] || '').trim().toLowerCase();
+      const allowedAccents = ['blue', 'emerald', 'rose', 'amber', 'violet'];
+      return allowedAccents.includes(accent) ? accent : '';
+    } catch {
+      return '';
+    }
+  }
+
+  static setDashboardAccentIntent(accent, userId = null) {
+    const normalizedUserId = String(userId || '').trim();
+    if (!normalizedUserId) return '';
+
+    const normalizedAccent = String(accent || '').trim().toLowerCase();
+    const allowedAccents = ['blue', 'emerald', 'rose', 'amber', 'violet'];
+    const nextAccent = allowedAccents.includes(normalizedAccent) ? normalizedAccent : '';
+
+    const raw = localStorage.getItem(STORAGE_KEYS.DASHBOARD_ACCENT_INTENT_BY_USER);
+    let byUser = {};
+    if (raw) {
+      try {
+        byUser = JSON.parse(raw) || {};
+      } catch {
+        byUser = {};
+      }
+    }
+
+    if (nextAccent) {
+      byUser[normalizedUserId] = nextAccent;
+    } else {
+      delete byUser[normalizedUserId];
+    }
+
+    localStorage.setItem(STORAGE_KEYS.DASHBOARD_ACCENT_INTENT_BY_USER, JSON.stringify(byUser));
+    return nextAccent;
   }
 
   // Mock analytics data

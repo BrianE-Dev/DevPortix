@@ -71,4 +71,13 @@ export const mentorshipApi = {
       headers: authHeaders(token),
     });
   },
+
+  async submitMyAssignment(token, assignmentId, payload) {
+    const hasFile = payload?.submissionAttachment instanceof File;
+    return request(`/api/mentorship/my-assignments/${encodeURIComponent(assignmentId)}/submit`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: hasFile ? toFormData(payload) : JSON.stringify(payload),
+    });
+  },
 };

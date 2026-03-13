@@ -32,7 +32,8 @@ const InstructorDashboard = () => {
   const [assignmentDraft, setAssignmentDraft] = useState(defaultDraft);
   const [editingAssignmentId, setEditingAssignmentId] = useState('');
   const [removeExistingAttachment, setRemoveExistingAttachment] = useState(false);
-  const activeAccent = getDashboardAccent('violet');
+  const [accentKey, setAccentKey] = useState(() => LocalStorageService.getDashboardAccent());
+  const activeAccent = getDashboardAccent(accentKey);
 
   const menuItems = [
     { key: 'overview', label: 'Overview', icon: BarChart3, badge: 'Now' },
@@ -45,11 +46,6 @@ const InstructorDashboard = () => {
   const allAssignments = useMemo(
     () => students.flatMap((student) => student.assignments || []),
     [students]
-  );
-
-  const selectedStudent = useMemo(
-    () => students.find((student) => student.id === selectedStudentId) || null,
-    [selectedStudentId, students]
   );
 
   const filteredAssignments = useMemo(() => {
@@ -73,22 +69,22 @@ const InstructorDashboard = () => {
         title: 'Active Students',
         value: String(students.length),
         detail: students.length === 0 ? 'No students selected you yet' : 'Students assigned to you',
-        detailColor: 'text-emerald-300',
+        detailColor: activeAccent.textClass,
       },
       {
         title: 'Assignments',
         value: String(allAssignments.length),
         detail: 'Created from Assignments menu',
-        detailColor: 'text-amber-300',
+        detailColor: activeAccent.textClass,
       },
       {
         title: 'Average Score',
         value: averageScore,
         detail: 'Across scored assignments',
-        detailColor: 'text-blue-300',
+        detailColor: activeAccent.textClass,
       },
     ],
-    [allAssignments.length, averageScore, students.length]
+    [activeAccent.textClass, allAssignments.length, averageScore, students.length]
   );
 
   const loadStudents = async () => {
@@ -122,6 +118,17 @@ const InstructorDashboard = () => {
     if (!user?.id) return;
     loadStudents();
   }, [user?.id]);
+
+  useEffect(() => {
+    const handleAccentChanged = (event) => {
+      setAccentKey(event?.detail?.accent || LocalStorageService.getDashboardAccent());
+    };
+
+    window.addEventListener('devportix:accent-changed', handleAccentChanged);
+    return () => {
+      window.removeEventListener('devportix:accent-changed', handleAccentChanged);
+    };
+  }, []);
 
   const handleMenuSelect = async (key) => {
     setActiveMenuKey(key);
@@ -260,7 +267,7 @@ const InstructorDashboard = () => {
                 type="button"
                 onClick={loadStudents}
                 disabled={busy}
-                className="text-sm text-emerald-300 hover:text-emerald-200 transition"
+                className={`text-sm transition ${activeAccent.linkClass}`}
               >
                 Refresh
               </button>
@@ -426,7 +433,7 @@ const InstructorDashboard = () => {
                           href={resolveMedia(assignment.attachment.url)}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-sm text-emerald-300 hover:text-emerald-200 mt-2 inline-block"
+                          className={`text-sm mt-2 inline-block ${activeAccent.linkClass}`}
                         >
                           Open attachment ({assignment.attachment.originalName || 'file'})
                         </a>
@@ -454,7 +461,7 @@ const InstructorDashboard = () => {
               {allAssignments.slice(0, 12).map((assignment) => {
                 const student = students.find((item) => item.id === assignment.studentId);
                 return (
-                  <div key={assignment.id} className="border-l-4 border-emerald-400 bg-white/5 rounded-r-lg p-4">
+                  <div key={assignment.id} className={`border-l-4 ${activeAccent.borderClass} bg-white/5 rounded-r-lg p-4`}>
                     <p className="font-medium text-white">{assignment.title}</p>
                     <p className="text-sm text-gray-300 mt-1">{assignment.question}</p>
                     <p className="text-xs text-gray-400 mt-2">
