@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { BookOpen, Code2, ExternalLink, FolderGit2, PlusCircle, UserCircle } from 'lucide-react';
+import { BookOpen, Code2, ExternalLink, FolderGit2, PlusCircle, Trophy, UserCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { ROLES } from '../../utils/constants';
 import DashboardShell from '../../components/DashboardShell';
 import ReactPlayground from '../../components/ReactPlayground';
 import LocalStorageService from '../../services/localStorageService';
 import PortfolioBuilder from '../../components/PortfolioBuilder';
+import QuizCenter from '../../components/QuizCenter';
 import { portfolioApi } from '../../services/portfolioApi';
 import { authApi } from '../../services/authApi';
 import { getDashboardAccent } from '../../utils/dashboardAccent';
@@ -14,6 +15,7 @@ import { mentorshipApi } from '../../services/mentorshipApi';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5500';
 const resolveMedia = (url) => (!url ? '' : url.startsWith('http') ? url : `${API_BASE_URL}${url}`);
+const UPGRADE_PROMPT = 'Upgrade to a better plan to access your portfolio.';
 
 const StudentDashboard = () => {
   const { loading, isAuthenticated, user, getDashboardPath, updateProfile } = useAuth();
@@ -39,6 +41,7 @@ const StudentDashboard = () => {
   const [submissionDrafts, setSubmissionDrafts] = useState({});
   const [submissionBusyAssignmentId, setSubmissionBusyAssignmentId] = useState('');
   const [submissionErrors, setSubmissionErrors] = useState({});
+  const [portfolioUpgradeRequired, setPortfolioUpgradeRequired] = useState(false);
   const activeAccent = getDashboardAccent(
     portfolio?.accent ||
     LocalStorageService.getDashboardAccentIntent(user?.id) ||
@@ -50,9 +53,12 @@ const StudentDashboard = () => {
     : null;
   const menuItems = [
     { key: 'overview', label: 'Overview', icon: BookOpen, badge: 'Now' },
+    { key: 'quiz-center', label: 'Quiz Center', icon: Trophy, badge: 'Now' },
     { key: 'projects', label: 'My Projects', icon: FolderGit2, badge: 'Soon' },
     { key: 'mentorship', label: 'Mentorship', icon: BookOpen, badge: 'Now' },
-    hasPortfolio
+    portfolioUpgradeRequired && !hasPortfolio
+      ? { key: 'portfolio-upgrade', label: 'Portfolio', icon: UserCircle, badge: 'Upgrade' }
+      : hasPortfolio
       ? { key: 'portfolio', label: 'My Portfolio', icon: UserCircle, badge: 'Live' }
       : { key: 'create-portfolio', label: 'Create Portfolio', icon: PlusCircle, badge: 'New' },
     ...(hasPortfolio
@@ -89,6 +95,7 @@ const StudentDashboard = () => {
         const token = LocalStorageService.getToken();
         if (!token) return;
         const response = await portfolioApi.getMine(token);
+        setPortfolioUpgradeRequired(false);
         if (requestStartedAt < lastPortfolioMutationAtRef.current) {
           return;
         }
@@ -119,6 +126,17 @@ const StudentDashboard = () => {
         setPortfolio({ ...response.portfolio, accent: effectiveAccent || response?.portfolio?.accent });
         LocalStorageService.setDashboardAccent(effectiveAccent || response?.portfolio?.accent, user?.id);
       } catch (error) {
+        if (error?.status === 403) {
+          setPortfolioUpgradeRequired(true);
+          setPortfolio(null);
+          setPortfolioError(UPGRADE_PROMPT);
+          return;
+        }
+        if (error?.status === 404) {
+          setPortfolioUpgradeRequired(false);
+          setPortfolio(null);
+          return;
+        }
         if (error.status !== 404) {
           setPortfolioError('Unable to load portfolio right now.');
         }
@@ -225,6 +243,11 @@ const StudentDashboard = () => {
   };
 
   const handleMenuSelect = async (key) => {
+    if (key === 'portfolio-upgrade') {
+      setActiveMenuKey('portfolio-upgrade');
+      setPortfolioError(UPGRADE_PROMPT);
+      return;
+    }
     if (key === 'create-portfolio') {
       handleCreatePortfolio();
       return;
@@ -239,11 +262,18 @@ const StudentDashboard = () => {
       const token = LocalStorageService.getToken();
       const response = await portfolioApi.createMine(token);
       setPortfolio(response.portfolio);
+      setPortfolioUpgradeRequired(false);
       LocalStorageService.setDashboardAccent(response?.portfolio?.accent, user?.id);
       setActiveMenuKey('portfolio');
       await persistMenuSelection('portfolio');
       setPortfolioError('');
-    } catch {
+    } catch (error) {
+      if (error?.status === 403) {
+        setPortfolioUpgradeRequired(true);
+        setPortfolioError(UPGRADE_PROMPT);
+        setActiveMenuKey('portfolio-upgrade');
+        return;
+      }
       setPortfolioError('Unable to create portfolio right now.');
     }
   };
@@ -594,6 +624,14 @@ const StudentDashboard = () => {
         </div>
       )}
 
+      {activeMenuKey === 'quiz-center' && (
+        <QuizCenter
+          accent={activeAccent}
+          userSubscription={user?.subscription}
+          userFullName={displayName}
+        />
+      )}
+
       {activeMenuKey === 'mentorship' && (
         <div className="space-y-6">
           <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
@@ -718,6 +756,19 @@ const StudentDashboard = () => {
             Create Portfolio
           </button>
           {portfolioError && <p className="text-sm text-red-300 mt-3">{portfolioError}</p>}
+        </div>
+      )}
+
+      {activeMenuKey === 'portfolio-upgrade' && portfolioUpgradeRequired && (
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+          <h3 className="text-xl font-semibold text-white mb-2">Portfolio Access Locked</h3>
+          <p className="text-gray-300">{UPGRADE_PROMPT}</p>
+          <a
+            href="/pricing"
+            className={`inline-flex mt-4 px-4 py-2 rounded-lg text-white transition ${activeAccent.primaryButtonClass}`}
+          >
+            Upgrade Plan
+          </a>
         </div>
       )}
 

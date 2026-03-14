@@ -15,6 +15,7 @@ const mentorshipRoutes = require('./backend/routes/mentorshipRoutes');
 
 const EXPRESSPORT = Number(process.env.PORT) || 5500;
 const PORTFOLIO_SERVICE_URL = process.env.PORTFOLIO_SERVICE_URL || 'http://localhost:5601';
+const QUIZ_SERVICE_URL = process.env.QUIZ_SERVICE_URL || 'http://localhost:5602';
 const app = express();
 app.set('etag', false);
 
@@ -31,9 +32,9 @@ app.get('/api/health', (_req, res) => {
   res.status(200).json({ ok: true });
 });
 
-const proxyPortfolioRequest = async (req, res) => {
+const createProxyHandler = (baseUrl, serviceName) => async (req, res) => {
   try {
-    const targetUrl = `${PORTFOLIO_SERVICE_URL}${req.originalUrl}`;
+    const targetUrl = `${baseUrl}${req.originalUrl}`;
     const headers = { ...req.headers };
     delete headers.host;
     delete headers.connection;
@@ -61,11 +62,14 @@ const proxyPortfolioRequest = async (req, res) => {
     return res.send(payload);
   } catch (error) {
     return res.status(502).json({
-      message: 'Portfolio service unavailable',
+      message: `${serviceName} unavailable`,
       error: error.message,
     });
   }
 };
+
+const proxyPortfolioRequest = createProxyHandler(PORTFOLIO_SERVICE_URL, 'Portfolio service');
+const proxyQuizRequest = createProxyHandler(QUIZ_SERVICE_URL, 'Quiz service');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -76,6 +80,7 @@ app.use('/api/community', communityRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/mentorship', mentorshipRoutes);
+app.use('/api/quizzes', proxyQuizRequest);
 
 connectDB();
 

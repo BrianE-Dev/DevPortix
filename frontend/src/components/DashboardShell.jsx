@@ -35,6 +35,11 @@ const DashboardShell = ({
     const chars = parts.map((part) => part[0]?.toUpperCase()).join('');
     return chars || 'U';
   }, [user?.fullName]);
+  const currentPlan = useMemo(() => {
+    const normalized = String(user?.subscription || 'free').trim().toLowerCase();
+    if (!normalized) return 'FREE';
+    return normalized.toUpperCase();
+  }, [user?.subscription]);
 
   const fileToDataUrl = (file) =>
     new Promise((resolve, reject) => {
@@ -163,6 +168,9 @@ const DashboardShell = ({
               </div>
 
               <div className="flex flex-col items-end">
+                <span className={`mb-2 inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold ${accentClass}`}>
+                  Current Plan: {currentPlan}
+                </span>
                 <button
                   type="button"
                   onClick={triggerAvatarPicker}

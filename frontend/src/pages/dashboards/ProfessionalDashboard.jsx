@@ -11,6 +11,8 @@ import { portfolioApi } from '../../services/portfolioApi';
 import { authApi } from '../../services/authApi';
 import { getDashboardAccent } from '../../utils/dashboardAccent';
 
+const UPGRADE_PROMPT = 'Upgrade to a better plan to access your portfolio.';
+
 const ProfessionalDashboard = () => {
   const { loading, isAuthenticated, user, getDashboardPath, updateProfile } = useAuth();
   const displayName = user?.fullName || user?.username || 'Professional';
@@ -24,6 +26,7 @@ const ProfessionalDashboard = () => {
   const [editingSkillValue, setEditingSkillValue] = useState('');
   const [portfolio, setPortfolio] = useState(null);
   const [portfolioError, setPortfolioError] = useState('');
+  const [portfolioUpgradeRequired, setPortfolioUpgradeRequired] = useState(false);
   const portfolioUpdateQueueRef = useRef(Promise.resolve());
   const lastPortfolioMutationAtRef = useRef(0);
   const accentIntentRef = useRef('');
@@ -40,7 +43,9 @@ const ProfessionalDashboard = () => {
     { key: 'overview', label: 'Overview', icon: BarChart3, badge: 'Now' },
     { key: 'experience', label: 'Experience', icon: BriefcaseBusiness, badge: 'Soon' },
     { key: 'network', label: 'Network', icon: Network, badge: 'Soon' },
-    hasPortfolio
+    portfolioUpgradeRequired && !hasPortfolio
+      ? { key: 'portfolio-upgrade', label: 'Portfolio', icon: UserCircle, badge: 'Upgrade' }
+      : hasPortfolio
       ? { key: 'portfolio', label: 'My Portfolio', icon: UserCircle, badge: 'Live' }
       : { key: 'create-portfolio', label: 'Create Portfolio', icon: PlusCircle, badge: 'New' },
     ...(hasPortfolio
@@ -77,6 +82,7 @@ const ProfessionalDashboard = () => {
         const token = LocalStorageService.getToken();
         if (!token) return;
         const response = await portfolioApi.getMine(token);
+        setPortfolioUpgradeRequired(false);
         if (requestStartedAt < lastPortfolioMutationAtRef.current) {
           return;
         }
@@ -107,6 +113,17 @@ const ProfessionalDashboard = () => {
         setPortfolio({ ...response.portfolio, accent: effectiveAccent || response?.portfolio?.accent });
         LocalStorageService.setDashboardAccent(effectiveAccent || response?.portfolio?.accent, user?.id);
       } catch (error) {
+        if (error?.status === 403) {
+          setPortfolioUpgradeRequired(true);
+          setPortfolio(null);
+          setPortfolioError(UPGRADE_PROMPT);
+          return;
+        }
+        if (error?.status === 404) {
+          setPortfolioUpgradeRequired(false);
+          setPortfolio(null);
+          return;
+        }
         if (error.status !== 404) {
           setPortfolioError('Unable to load portfolio right now.');
         }
@@ -162,6 +179,11 @@ const ProfessionalDashboard = () => {
   };
 
   const handleMenuSelect = async (key) => {
+    if (key === 'portfolio-upgrade') {
+      setActiveMenuKey('portfolio-upgrade');
+      setPortfolioError(UPGRADE_PROMPT);
+      return;
+    }
     if (key === 'create-portfolio') {
       handleCreatePortfolio();
       return;
@@ -176,11 +198,18 @@ const ProfessionalDashboard = () => {
       const token = LocalStorageService.getToken();
       const response = await portfolioApi.createMine(token);
       setPortfolio(response.portfolio);
+      setPortfolioUpgradeRequired(false);
       LocalStorageService.setDashboardAccent(response?.portfolio?.accent, user?.id);
       setActiveMenuKey('portfolio');
       await persistMenuSelection('portfolio');
       setPortfolioError('');
-    } catch {
+    } catch (error) {
+      if (error?.status === 403) {
+        setPortfolioUpgradeRequired(true);
+        setPortfolioError(UPGRADE_PROMPT);
+        setActiveMenuKey('portfolio-upgrade');
+        return;
+      }
       setPortfolioError('Unable to create portfolio right now.');
     }
   };
@@ -453,6 +482,19 @@ const ProfessionalDashboard = () => {
             Create Portfolio
           </button>
           {portfolioError && <p className="text-sm text-red-300 mt-3">{portfolioError}</p>}
+        </div>
+      )}
+
+      {activeMenuKey === 'portfolio-upgrade' && portfolioUpgradeRequired && (
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+          <h3 className="text-xl font-semibold text-white mb-2">Portfolio Access Locked</h3>
+          <p className="text-gray-300">{UPGRADE_PROMPT}</p>
+          <a
+            href="/pricing"
+            className={`inline-flex mt-4 px-4 py-2 rounded-lg text-white transition ${activeAccent.primaryButtonClass}`}
+          >
+            Upgrade Plan
+          </a>
         </div>
       )}
 
