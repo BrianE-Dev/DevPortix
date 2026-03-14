@@ -258,9 +258,22 @@ const getPublicPortfolio = async (req, res) => {
   }
 };
 
+const deleteMyPortfolio = async (req, res) => {
+  try {
+    const deleted = await Portfolio.findOneAndDelete({ ownerId: req.userId });
+    if (!deleted) {
+      return res.status(404).json({ message: 'Portfolio not found' });
+    }
+    return res.status(200).json({ message: 'Portfolio deleted successfully' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to delete portfolio', error: error.message });
+  }
+};
+
 module.exports = {
   getMyPortfolio,
   createMyPortfolio,
   updateMyPortfolio,
+  deleteMyPortfolio,
   getPublicPortfolio,
 };

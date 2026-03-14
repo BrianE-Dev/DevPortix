@@ -22,6 +22,7 @@ const toPublicUser = (userDoc) => ({
   role: userDoc.role,
   githubUsername: userDoc.githubUsername,
   avatar: userDoc.avatar,
+  bio: userDoc.bio || '',
   subscription: userDoc.subscription,
   skills: Array.isArray(userDoc.skills) ? userDoc.skills : [],
   dashboardMenu: userDoc.dashboardMenu || {},

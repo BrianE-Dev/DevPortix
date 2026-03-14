@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import LocalStorageService from '../services/localStorageService';
 import { communityApi } from '../services/communityApi';
+import { useModal } from '../hooks/useModal';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5500';
 const resolveMedia = (url) => (!url ? '' : url.startsWith('http') ? url : `${API_BASE_URL}${url}`);
 
 const CommunityPage = () => {
+  const { confirm } = useModal();
   const token = useMemo(() => LocalStorageService.getToken(), []);
   const [tab, setTab] = useState('chat');
   const [posts, setPosts] = useState([]);
@@ -15,6 +17,7 @@ const CommunityPage = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [media, setMedia] = useState(null);
+  const [mediaPreviewUrl, setMediaPreviewUrl] = useState('');
   const [editing, setEditing] = useState(null);
   const [commentDrafts, setCommentDrafts] = useState({});
   const [error, setError] = useState('');
@@ -69,6 +72,26 @@ const CommunityPage = () => {
     else loadPosts();
   }, [tab, loadPosts, loadPeople]);
 
+  useEffect(() => () => {
+    if (mediaPreviewUrl) {
+      URL.revokeObjectURL(mediaPreviewUrl);
+    }
+  }, [mediaPreviewUrl]);
+
+  const handleMediaChange = (event) => {
+    const nextFile = event.target.files?.[0] || null;
+    setMedia(nextFile);
+    setMediaPreviewUrl((currentUrl) => {
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+      if (nextFile && String(nextFile.type || '').startsWith('image/')) {
+        return URL.createObjectURL(nextFile);
+      }
+      return '';
+    });
+  };
+
   const createOrUpdatePost = async (event) => {
     event.preventDefault();
     if (!token || !content.trim()) return;
@@ -89,6 +112,12 @@ const CommunityPage = () => {
       setTitle('');
       setContent('');
       setMedia(null);
+      setMediaPreviewUrl((currentUrl) => {
+        if (currentUrl) {
+          URL.revokeObjectURL(currentUrl);
+        }
+        return '';
+      });
       setEditing(null);
       await loadPosts();
     } catch (err) {
@@ -97,6 +126,15 @@ const CommunityPage = () => {
   };
 
   const removePost = async (id) => {
+    const isConfirmed = await confirm({
+      type: 'warning',
+      title: 'Delete Post?',
+      message: 'Are you sure you want to delete this post?',
+      confirmText: 'Yes',
+      cancelText: 'No',
+    });
+    if (!isConfirmed) return;
+
     try {
       await communityApi.removePost(token, id);
       await loadPosts();
@@ -223,7 +261,14 @@ const CommunityPage = () => {
               rows={4}
             />
             {tab === 'blog' && (
-              <input type="file" onChange={(e) => setMedia(e.target.files?.[0] || null)} className="text-xs" />
+              <>
+                <input type="file" onChange={handleMediaChange} className="text-xs" />
+                {mediaPreviewUrl && (
+                  <div className="rounded border p-2 w-fit">
+                    <img src={mediaPreviewUrl} alt="Selected media preview" className="h-24 w-24 object-cover rounded" />
+                  </div>
+                )}
+              </>
             )}
             <button className="px-3 py-2 rounded bg-blue-600 text-white text-sm">
               {editing ? 'Update' : 'Post'}
@@ -246,6 +291,12 @@ const CommunityPage = () => {
                         setTitle(post.title || '');
                         setContent(post.content || '');
                         setMedia(null);
+                        setMediaPreviewUrl((currentUrl) => {
+                          if (currentUrl) {
+                            URL.revokeObjectURL(currentUrl);
+                          }
+                          return '';
+                        });
                       }}>
                         Edit
                       </button>

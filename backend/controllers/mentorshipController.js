@@ -41,6 +41,7 @@ const toAssignmentPayload = (doc) => ({
         }
       : null,
   score: doc.score ?? null,
+  remark: doc.remark || '',
   dueDate: doc.dueDate || null,
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt,
@@ -83,17 +84,33 @@ const selectInstructor = async (req, res) => {
       return res.status(404).json({ message: 'Instructor not found' });
     }
 
-    const link = await MentorshipLink.findOneAndUpdate(
-      { studentId: req.userId },
-      {
-        $set: {
-          instructorId,
-          studentId: req.userId,
-          status: 'active',
-        },
-      },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
+    const existingLink = await MentorshipLink.findOne({ studentId: req.userId, status: 'active' })
+      .populate('instructorId', 'fullName email role githubUsername avatar');
+
+    if (existingLink) {
+      if (String(existingLink.instructorId?._id || existingLink.instructorId) === instructorId) {
+        return res.status(200).json({
+          message: 'Instructor already selected',
+          mentorship: {
+            id: String(existingLink._id),
+            instructor: existingLink.instructorId
+              ? toUserPayload(existingLink.instructorId)
+              : toUserPayload(instructor),
+            status: existingLink.status,
+          },
+        });
+      }
+
+      return res.status(409).json({
+        message: 'Instructor selection is locked. Only your instructor can remove you before you can select again.',
+      });
+    }
+
+    const link = await MentorshipLink.create({
+      instructorId,
+      studentId: req.userId,
+      status: 'active',
+    });
 
     return res.status(200).json({
       message: 'Instructor selected',
@@ -157,6 +174,73 @@ const listMyStudents = async (req, res) => {
   }
 };
 
+const addMyStudent = async (req, res) => {
+  try {
+    const studentEmail = String(req.body?.studentEmail || '').trim().toLowerCase();
+    if (!studentEmail) {
+      return res.status(400).json({ message: 'studentEmail is required' });
+    }
+
+    const student = await User.findOne({ email: studentEmail, role: 'student' })
+      .select('fullName email role githubUsername avatar');
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const existingLink = await MentorshipLink.findOne({ studentId: student._id, status: 'active' }).lean();
+    if (existingLink && String(existingLink.instructorId) !== String(req.userId)) {
+      return res.status(409).json({ message: 'Student is already assigned to another instructor' });
+    }
+
+    await MentorshipLink.findOneAndUpdate(
+      { studentId: student._id },
+      {
+        $set: {
+          instructorId: req.userId,
+          studentId: student._id,
+          status: 'active',
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    return res.status(200).json({
+      message: 'Student added successfully',
+      student: toUserPayload(student),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to add student', error: error.message });
+  }
+};
+
+const removeMyStudent = async (req, res) => {
+  try {
+    const studentId = String(req.params.studentId || '').trim();
+    if (!studentId) {
+      return res.status(400).json({ message: 'studentId is required' });
+    }
+
+    const removedLink = await MentorshipLink.findOneAndDelete({
+      instructorId: req.userId,
+      studentId,
+      status: 'active',
+    });
+
+    if (!removedLink) {
+      return res.status(404).json({ message: 'Student assignment not found' });
+    }
+
+    await MentorshipAssignment.deleteMany({
+      instructorId: req.userId,
+      studentId,
+    });
+
+    return res.status(200).json({ message: 'Student removed successfully' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to remove student', error: error.message });
+  }
+};
+
 const createAssignment = async (req, res) => {
   try {
     const studentId = String(req.params.studentId || '').trim();
@@ -185,6 +269,7 @@ const createAssignment = async (req, res) => {
     }
 
     const details = String(req.body?.details || '').trim();
+    const remark = String(req.body?.remark || '').trim();
     const rawScore = req.body?.score;
     const score = rawScore === '' || rawScore === undefined || rawScore === null
       ? null
@@ -208,6 +293,7 @@ const createAssignment = async (req, res) => {
       details,
       attachment: toAttachmentPayload(req.file),
       score,
+      remark,
       dueDate,
     });
 
@@ -217,6 +303,102 @@ const createAssignment = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to create assignment', error: error.message });
+  }
+};
+
+const createAssignments = async (req, res) => {
+  try {
+    const target = String(req.body?.target || 'selected').trim().toLowerCase();
+    if (!['all', 'selected'].includes(target)) {
+      return res.status(400).json({ message: "target must be either 'all' or 'selected'" });
+    }
+
+    const title = String(req.body?.title || '').trim();
+    if (!title) {
+      return res.status(400).json({ message: 'title is required' });
+    }
+
+    const question = String(req.body?.question || '').trim();
+    if (!question) {
+      return res.status(400).json({ message: 'question is required' });
+    }
+
+    const details = String(req.body?.details || '').trim();
+    const remark = String(req.body?.remark || '').trim();
+    const rawScore = req.body?.score;
+    const score = rawScore === '' || rawScore === undefined || rawScore === null
+      ? null
+      : Number(rawScore);
+    if (score !== null && (!Number.isFinite(score) || score < 0 || score > 100)) {
+      return res.status(400).json({ message: 'score must be a number between 0 and 100' });
+    }
+
+    const dueDateRaw = String(req.body?.dueDate || '').trim();
+    const dueDate = dueDateRaw ? new Date(dueDateRaw) : null;
+    if (dueDateRaw && Number.isNaN(dueDate.getTime())) {
+      return res.status(400).json({ message: 'dueDate is invalid' });
+    }
+
+    const activeLinks = await MentorshipLink.find({
+      instructorId: req.userId,
+      status: 'active',
+    })
+      .select('studentId')
+      .lean();
+
+    const allStudentIds = activeLinks.map((link) => String(link.studentId));
+    if (allStudentIds.length === 0) {
+      return res.status(400).json({ message: 'No active students found for this instructor' });
+    }
+
+    let targetStudentIds = allStudentIds;
+    if (target === 'selected') {
+      const rawStudentIds = req.body?.studentIds;
+      let parsedIds = [];
+
+      if (Array.isArray(rawStudentIds)) {
+        parsedIds = rawStudentIds;
+      } else if (typeof rawStudentIds === 'string') {
+        try {
+          const maybeArray = JSON.parse(rawStudentIds);
+          if (Array.isArray(maybeArray)) {
+            parsedIds = maybeArray;
+          }
+        } catch {
+          parsedIds = rawStudentIds.split(',').map((item) => item.trim()).filter(Boolean);
+        }
+      }
+
+      const allowedStudentIds = new Set(allStudentIds);
+      targetStudentIds = [...new Set(parsedIds.map((item) => String(item || '').trim()).filter(Boolean))]
+        .filter((studentId) => allowedStudentIds.has(studentId));
+
+      if (targetStudentIds.length === 0) {
+        return res.status(400).json({ message: 'Select at least one valid student' });
+      }
+    }
+
+    const docs = targetStudentIds.map((studentId) => ({
+      instructorId: req.userId,
+      studentId,
+      title,
+      question,
+      details,
+      attachment: toAttachmentPayload(req.file),
+      score,
+      remark,
+      dueDate,
+    }));
+
+    const createdAssignments = await MentorshipAssignment.insertMany(docs);
+
+    return res.status(201).json({
+      message: `Assignments created for ${createdAssignments.length} student(s)`,
+      count: createdAssignments.length,
+      assignments: createdAssignments.map(toAssignmentPayload),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to create assignments', error: error.message });
   }
 };
 
@@ -250,6 +432,10 @@ const updateAssignment = async (req, res) => {
 
     if (req.body?.details !== undefined) {
       assignment.details = String(req.body.details || '').trim();
+    }
+
+    if (req.body?.remark !== undefined) {
+      assignment.remark = String(req.body.remark || '').trim();
     }
 
     if (req.body?.score !== undefined) {
@@ -378,6 +564,9 @@ module.exports = {
   selectInstructor,
   getMyMentorship,
   listMyStudents,
+  addMyStudent,
+  removeMyStudent,
+  createAssignments,
   createAssignment,
   updateAssignment,
   deleteAssignment,

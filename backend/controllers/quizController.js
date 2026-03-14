@@ -8,6 +8,12 @@ const {
 } = require('../data/quizQuestionBank');
 
 const PASS_PERCENTAGE = 60;
+const CERTIFICATE_FORMATS = ['png', 'pdf'];
+
+const normalizePlan = (value) => {
+  const normalized = String(value || 'free').trim().toLowerCase();
+  return normalized === 'pro' ? 'premium' : normalized;
+};
 
 const toTrackPayload = (track) => ({
   id: track,
@@ -136,6 +142,11 @@ const getLatestScore = async (req, res) => {
 
 const getCertificateData = async (req, res) => {
   try {
+    const requestedFormat = String(req.query?.format || 'png').trim().toLowerCase();
+    if (!CERTIFICATE_FORMATS.includes(requestedFormat)) {
+      return res.status(400).json({ message: 'Invalid certificate format. Use png or pdf.' });
+    }
+
     const trackKey = resolveTrackKey(req.params.track);
     if (!trackKey) {
       return res.status(400).json({ message: 'Invalid track. Use html, css, javascript, or react.' });
@@ -156,7 +167,44 @@ const getCertificateData = async (req, res) => {
       });
     }
 
-    const user = await User.findById(req.userId).select('fullName').lean();
+    const user = await User.findById(req.userId).select('fullName subscription freePngCertificatesIssued');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const userPlan = normalizePlan(user.subscription);
+    const isFreePlan = userPlan === 'free';
+
+    if (isFreePlan && requestedFormat === 'pdf') {
+      return res.status(403).json({
+        message: 'PDF certificates are available on paid plans only.',
+      });
+    }
+
+    if (isFreePlan && requestedFormat === 'png') {
+      const claimedUsage = await User.findOneAndUpdate(
+        {
+          _id: req.userId,
+          $or: [
+            { freePngCertificatesIssued: { $exists: false } },
+            { freePngCertificatesIssued: { $lt: 1 } },
+          ],
+        },
+        {
+          $inc: { freePngCertificatesIssued: 1 },
+        },
+        {
+          new: true,
+          projection: { freePngCertificatesIssued: 1 },
+        }
+      ).lean();
+
+      if (!claimedUsage) {
+        return res.status(403).json({
+          message: 'Free plan allows only one PNG certificate. Upgrade to generate more certificates.',
+        });
+      }
+    }
+
     const studentName = user?.fullName || 'DevPortix Student';
     const trackLabel = QUIZ_TRACKS[trackKey].label;
     const certificateId = `DVP-${String(latestAttempt._id).slice(-8).toUpperCase()}`;
@@ -166,6 +214,7 @@ const getCertificateData = async (req, res) => {
         certificateId,
         studentName,
         track: trackLabel,
+        format: requestedFormat,
         score: latestAttempt.score,
         totalQuestions: latestAttempt.totalQuestions,
         percentage: latestAttempt.percentage,

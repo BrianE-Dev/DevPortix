@@ -192,6 +192,15 @@ const PortfolioBuilder = ({ portfolio, onUpdate, accentClass = 'text-blue-300' }
   };
 
   const removeItem = async (kind, id) => {
+    const isConfirmed = await confirm({
+      type: 'warning',
+      title: 'Delete Item?',
+      message: 'Are you sure you want to delete this item?',
+      confirmText: 'Yes',
+      cancelText: 'No',
+    });
+    if (!isConfirmed) return;
+
     const list = portfolio[kind] || [];
     try {
       await onUpdate({ [kind]: list.filter((item) => item.id !== id) });
@@ -360,6 +369,15 @@ const PortfolioBuilder = ({ portfolio, onUpdate, accentClass = 'text-blue-300' }
   };
 
   const handleDeletePortfolioSkill = async (skillToDelete) => {
+    const isConfirmed = await confirm({
+      type: 'warning',
+      title: 'Delete Skill?',
+      message: 'Are you sure you want to delete this skill?',
+      confirmText: 'Yes',
+      cancelText: 'No',
+    });
+    if (!isConfirmed) return;
+
     const existingSkills = Array.isArray(portfolio.skills) ? portfolio.skills : [];
     try {
       await onUpdate({ skills: existingSkills.filter((skill) => skill !== skillToDelete) });
@@ -408,6 +426,15 @@ const PortfolioBuilder = ({ portfolio, onUpdate, accentClass = 'text-blue-300' }
   };
 
   const handleDeleteProjectSection = async (projectId) => {
+    const isConfirmed = await confirm({
+      type: 'warning',
+      title: 'Delete Project?',
+      message: 'Are you sure you want to delete this project entry?',
+      confirmText: 'Yes',
+      cancelText: 'No',
+    });
+    if (!isConfirmed) return;
+
     const existingProjects = Array.isArray(portfolio.projects) ? portfolio.projects : [];
     try {
       await onUpdate({ projects: existingProjects.filter((item) => item.id !== projectId) });
@@ -459,6 +486,15 @@ const PortfolioBuilder = ({ portfolio, onUpdate, accentClass = 'text-blue-300' }
   };
 
   const handleDeleteTimeline = async (timelineId) => {
+    const isConfirmed = await confirm({
+      type: 'warning',
+      title: 'Delete Timeline Item?',
+      message: 'Are you sure you want to delete this timeline item?',
+      confirmText: 'Yes',
+      cancelText: 'No',
+    });
+    if (!isConfirmed) return;
+
     const existingTimeline = Array.isArray(portfolio.timeline) ? portfolio.timeline : [];
     try {
       await onUpdate({ timeline: existingTimeline.filter((item) => item.id !== timelineId) });
@@ -508,6 +544,15 @@ const PortfolioBuilder = ({ portfolio, onUpdate, accentClass = 'text-blue-300' }
   };
 
   const handleDeleteCertification = async (certificationId) => {
+    const isConfirmed = await confirm({
+      type: 'warning',
+      title: 'Delete Certification?',
+      message: 'Are you sure you want to delete this certification?',
+      confirmText: 'Yes',
+      cancelText: 'No',
+    });
+    if (!isConfirmed) return;
+
     const existingCertifications = Array.isArray(portfolio.certifications) ? portfolio.certifications : [];
     try {
       await onUpdate({ certifications: existingCertifications.filter((item) => item.id !== certificationId) });
@@ -538,6 +583,15 @@ const PortfolioBuilder = ({ portfolio, onUpdate, accentClass = 'text-blue-300' }
   };
 
   const handleDeleteContact = async () => {
+    const isConfirmed = await confirm({
+      type: 'warning',
+      title: 'Delete Contact?',
+      message: 'Are you sure you want to delete your contact details?',
+      confirmText: 'Yes',
+      cancelText: 'No',
+    });
+    if (!isConfirmed) return;
+
     try {
       await onUpdate({ contact: { email: '', phone: '', location: '', website: '' } });
       setContactDraft({ email: '', phone: '', location: '', website: '' });

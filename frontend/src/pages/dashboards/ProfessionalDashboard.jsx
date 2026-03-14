@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { BarChart3, BriefcaseBusiness, Code2, ExternalLink, Network, PlusCircle, UserCircle } from 'lucide-react';
+import { BarChart3, BriefcaseBusiness, Code2, ExternalLink, Network, PlusCircle, Settings, UserCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { ROLES } from '../../utils/constants';
 import DashboardShell from '../../components/DashboardShell';
@@ -10,11 +10,15 @@ import PortfolioBuilder from '../../components/PortfolioBuilder';
 import { portfolioApi } from '../../services/portfolioApi';
 import { authApi } from '../../services/authApi';
 import { getDashboardAccent } from '../../utils/dashboardAccent';
+import { useModal } from '../../hooks/useModal';
+import ProfileSettingsPanel from '../../components/ProfileSettingsPanel';
+import SettingsPanel from '../../components/SettingsPanel';
 
 const UPGRADE_PROMPT = 'Upgrade to a better plan to access your portfolio.';
 
 const ProfessionalDashboard = () => {
   const { loading, isAuthenticated, user, getDashboardPath, updateProfile } = useAuth();
+  const { showSuccess, showError: showErrorModal, confirm } = useModal();
   const displayName = user?.fullName || user?.username || 'Professional';
   const menuStorageKey = user?.role === ROLES.ORGANIZATION ? 'organization' : 'professional';
   const [activeMenuKey, setActiveMenuKey] = useState('overview');
@@ -27,12 +31,14 @@ const ProfessionalDashboard = () => {
   const [portfolio, setPortfolio] = useState(null);
   const [portfolioError, setPortfolioError] = useState('');
   const [portfolioUpgradeRequired, setPortfolioUpgradeRequired] = useState(false);
+  const [accentKey, setAccentKey] = useState(() => LocalStorageService.getDashboardAccent(user?.id));
   const portfolioUpdateQueueRef = useRef(Promise.resolve());
   const lastPortfolioMutationAtRef = useRef(0);
   const accentIntentRef = useRef('');
   const activeAccent = getDashboardAccent(
     portfolio?.accent ||
     LocalStorageService.getDashboardAccentIntent(user?.id) ||
+    accentKey ||
     LocalStorageService.getDashboardAccent(user?.id)
   );
   const hasPortfolio = Boolean(portfolio);
@@ -41,6 +47,7 @@ const ProfessionalDashboard = () => {
     : null;
   const menuItems = [
     { key: 'overview', label: 'Overview', icon: BarChart3, badge: 'Now' },
+    { key: 'profile', label: 'Profile', icon: UserCircle, badge: 'Now' },
     { key: 'experience', label: 'Experience', icon: BriefcaseBusiness, badge: 'Soon' },
     { key: 'network', label: 'Network', icon: Network, badge: 'Soon' },
     portfolioUpgradeRequired && !hasPortfolio
@@ -61,6 +68,7 @@ const ProfessionalDashboard = () => {
         ]
       : []),
     { key: 'code-lab', label: 'Code Lab', icon: Code2, badge: 'Now' },
+    { key: 'settings', label: 'Settings', icon: Settings, badge: 'Now', position: 'bottom' },
   ];
   useEffect(() => {
     const savedMenuKey = user?.dashboardMenu?.[menuStorageKey];
@@ -151,6 +159,14 @@ const ProfessionalDashboard = () => {
     return () => {
       isMounted = false;
     };
+  }, [user?.id]);
+
+  useEffect(() => {
+    const handleAccentChanged = (event) => {
+      setAccentKey(event?.detail?.accent || LocalStorageService.getDashboardAccent(user?.id));
+    };
+    window.addEventListener('devportix:accent-changed', handleAccentChanged);
+    return () => window.removeEventListener('devportix:accent-changed', handleAccentChanged);
   }, [user?.id]);
 
   if (loading) {
@@ -283,8 +299,10 @@ const ProfessionalDashboard = () => {
       const updatedUser = await updateProfile({ skills: nextSkills });
       setSkills(Array.isArray(updatedUser?.skills) ? updatedUser.skills : nextSkills);
       setSkillInput('');
+      showSuccess('Profile Updated', 'Your skills were updated successfully.');
     } catch {
       setSkillsError('Unable to save skills right now.');
+      showErrorModal('Update Failed', 'Unable to save skills right now.');
     } finally {
       setSkillsBusy(false);
     }
@@ -298,14 +316,25 @@ const ProfessionalDashboard = () => {
   };
 
   const handleRemoveSkill = async (skillToRemove) => {
+    const isConfirmed = await confirm({
+      type: 'warning',
+      title: 'Delete Skill?',
+      message: 'Are you sure you want to delete this skill?',
+      confirmText: 'Yes',
+      cancelText: 'No',
+    });
+    if (!isConfirmed) return;
+
     const nextSkills = skills.filter((skill) => skill !== skillToRemove);
     setSkillsBusy(true);
     setSkillsError('');
     try {
       const updatedUser = await updateProfile({ skills: nextSkills });
       setSkills(Array.isArray(updatedUser?.skills) ? updatedUser.skills : nextSkills);
+      showSuccess('Profile Updated', 'Your skills were updated successfully.');
     } catch {
       setSkillsError('Unable to update skills right now.');
+      showErrorModal('Update Failed', 'Unable to update skills right now.');
     } finally {
       setSkillsBusy(false);
     }
@@ -337,10 +366,23 @@ const ProfessionalDashboard = () => {
       const updatedUser = await updateProfile({ skills: dedupedSkills });
       setSkills(Array.isArray(updatedUser?.skills) ? updatedUser.skills : dedupedSkills);
       cancelEditingSkill();
+      showSuccess('Profile Updated', 'Your skills were updated successfully.');
     } catch {
       setSkillsError('Unable to update skills right now.');
+      showErrorModal('Update Failed', 'Unable to update skills right now.');
     } finally {
       setSkillsBusy(false);
+    }
+  };
+
+  const handlePortfolioDeleted = async () => {
+    setPortfolio(null);
+    setPortfolioUpgradeRequired(false);
+    setPortfolioError('');
+    LocalStorageService.setDashboardAccentIntent('', user?.id);
+    if (activeMenuKey === 'portfolio') {
+      setActiveMenuKey('profile');
+      await persistMenuSelection('profile');
     }
   };
 
@@ -448,6 +490,14 @@ const ProfessionalDashboard = () => {
             )}
           </div>
         </div>
+      )}
+
+      {activeMenuKey === 'profile' && (
+        <ProfileSettingsPanel accent={activeAccent} onPortfolioDeleted={handlePortfolioDeleted} />
+      )}
+
+      {activeMenuKey === 'settings' && (
+        <SettingsPanel accent={activeAccent} />
       )}
 
       {activeMenuKey === 'experience' && (

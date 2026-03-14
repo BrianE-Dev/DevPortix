@@ -34,10 +34,13 @@ export const quizApi = {
     });
   },
 
-  async getCertificate(token, track) {
-    return request(`/api/quizzes/certificate/${encodeURIComponent(track)}`, {
+  async getCertificate(token, track, format = 'png') {
+    return request(
+      `/api/quizzes/certificate/${encodeURIComponent(track)}?format=${encodeURIComponent(format)}`,
+      {
       method: 'GET',
       headers: authHeaders(token),
-    });
+      }
+    );
   },
 };

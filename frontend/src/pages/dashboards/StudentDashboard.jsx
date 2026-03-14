@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { BookOpen, Code2, ExternalLink, FolderGit2, PlusCircle, Trophy, UserCircle } from 'lucide-react';
+import { BookOpen, Code2, ExternalLink, FolderGit2, PlusCircle, Settings, Trophy, UserCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { ROLES } from '../../utils/constants';
 import DashboardShell from '../../components/DashboardShell';
@@ -12,13 +12,23 @@ import { portfolioApi } from '../../services/portfolioApi';
 import { authApi } from '../../services/authApi';
 import { getDashboardAccent } from '../../utils/dashboardAccent';
 import { mentorshipApi } from '../../services/mentorshipApi';
+import { useModal } from '../../hooks/useModal';
+import ProfileSettingsPanel from '../../components/ProfileSettingsPanel';
+import SettingsPanel from '../../components/SettingsPanel';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5500';
 const resolveMedia = (url) => (!url ? '' : url.startsWith('http') ? url : `${API_BASE_URL}${url}`);
+const isImageAttachment = (attachment) => {
+  const mimeType = String(attachment?.mimeType || '').toLowerCase();
+  const fileName = String(attachment?.originalName || attachment?.url || '').toLowerCase();
+  if (mimeType.startsWith('image/')) return true;
+  return /\.(png|jpe?g|gif|webp|bmp|svg)$/.test(fileName);
+};
 const UPGRADE_PROMPT = 'Upgrade to a better plan to access your portfolio.';
 
 const StudentDashboard = () => {
   const { loading, isAuthenticated, user, getDashboardPath, updateProfile } = useAuth();
+  const { showSuccess, showError: showErrorModal, confirm } = useModal();
   const displayName = user?.fullName || user?.username || 'Student';
   const [activeMenuKey, setActiveMenuKey] = useState('overview');
   const [skillInput, setSkillInput] = useState('');
@@ -39,12 +49,16 @@ const StudentDashboard = () => {
   const [mentorshipBusy, setMentorshipBusy] = useState(false);
   const [mentorshipError, setMentorshipError] = useState('');
   const [submissionDrafts, setSubmissionDrafts] = useState({});
+  const [submissionImagePreviews, setSubmissionImagePreviews] = useState({});
   const [submissionBusyAssignmentId, setSubmissionBusyAssignmentId] = useState('');
   const [submissionErrors, setSubmissionErrors] = useState({});
+  const submissionImagePreviewsRef = useRef({});
   const [portfolioUpgradeRequired, setPortfolioUpgradeRequired] = useState(false);
+  const [accentKey, setAccentKey] = useState(() => LocalStorageService.getDashboardAccent(user?.id));
   const activeAccent = getDashboardAccent(
     portfolio?.accent ||
     LocalStorageService.getDashboardAccentIntent(user?.id) ||
+    accentKey ||
     LocalStorageService.getDashboardAccent(user?.id)
   );
   const hasPortfolio = Boolean(portfolio);
@@ -53,6 +67,7 @@ const StudentDashboard = () => {
     : null;
   const menuItems = [
     { key: 'overview', label: 'Overview', icon: BookOpen, badge: 'Now' },
+    { key: 'profile', label: 'Profile', icon: UserCircle, badge: 'Now' },
     { key: 'quiz-center', label: 'Quiz Center', icon: Trophy, badge: 'Now' },
     { key: 'projects', label: 'My Projects', icon: FolderGit2, badge: 'Soon' },
     { key: 'mentorship', label: 'Mentorship', icon: BookOpen, badge: 'Now' },
@@ -74,6 +89,7 @@ const StudentDashboard = () => {
         ]
       : []),
     { key: 'code-lab', label: 'Code Lab', icon: Code2, badge: 'Now' },
+    { key: 'settings', label: 'Settings', icon: Settings, badge: 'Now', position: 'bottom' },
   ];
   useEffect(() => {
     const savedMenuKey = user?.dashboardMenu?.student;
@@ -143,6 +159,14 @@ const StudentDashboard = () => {
       }
     };
     loadPortfolio();
+  }, [user?.id]);
+
+  useEffect(() => {
+    const handleAccentChanged = (event) => {
+      setAccentKey(event?.detail?.accent || LocalStorageService.getDashboardAccent(user?.id));
+    };
+    window.addEventListener('devportix:accent-changed', handleAccentChanged);
+    return () => window.removeEventListener('devportix:accent-changed', handleAccentChanged);
   }, [user?.id]);
 
   useEffect(() => {
@@ -217,6 +241,16 @@ const StudentDashboard = () => {
     loadMentorship();
   }, [user?.id]);
 
+  useEffect(() => {
+    submissionImagePreviewsRef.current = submissionImagePreviews;
+  }, [submissionImagePreviews]);
+
+  useEffect(() => () => {
+    Object.values(submissionImagePreviewsRef.current).forEach((url) => {
+      if (url) URL.revokeObjectURL(url);
+    });
+  }, []);
+
   if (loading) {
     return null;
   }
@@ -228,6 +262,8 @@ const StudentDashboard = () => {
   if (user?.role !== ROLES.STUDENT) {
     return <Navigate to={getDashboardPath()} replace />;
   }
+
+  const isInstructorSelectionLocked = Boolean(selectedInstructor?.id);
 
   const persistMenuSelection = async (key) => {
     try {
@@ -347,8 +383,10 @@ const StudentDashboard = () => {
       const updatedUser = await updateProfile({ skills: nextSkills });
       setSkills(Array.isArray(updatedUser?.skills) ? updatedUser.skills : nextSkills);
       setSkillInput('');
+      showSuccess('Profile Updated', 'Your skills were updated successfully.');
     } catch {
       setSkillsError('Unable to save skills right now.');
+      showErrorModal('Update Failed', 'Unable to save skills right now.');
     } finally {
       setSkillsBusy(false);
     }
@@ -362,14 +400,25 @@ const StudentDashboard = () => {
   };
 
   const handleRemoveSkill = async (skillToRemove) => {
+    const isConfirmed = await confirm({
+      type: 'warning',
+      title: 'Delete Skill?',
+      message: 'Are you sure you want to delete this skill?',
+      confirmText: 'Yes',
+      cancelText: 'No',
+    });
+    if (!isConfirmed) return;
+
     const nextSkills = skills.filter((skill) => skill !== skillToRemove);
     setSkillsBusy(true);
     setSkillsError('');
     try {
       const updatedUser = await updateProfile({ skills: nextSkills });
       setSkills(Array.isArray(updatedUser?.skills) ? updatedUser.skills : nextSkills);
+      showSuccess('Profile Updated', 'Your skills were updated successfully.');
     } catch {
       setSkillsError('Unable to update skills right now.');
+      showErrorModal('Update Failed', 'Unable to update skills right now.');
     } finally {
       setSkillsBusy(false);
     }
@@ -401,14 +450,21 @@ const StudentDashboard = () => {
       const updatedUser = await updateProfile({ skills: dedupedSkills });
       setSkills(Array.isArray(updatedUser?.skills) ? updatedUser.skills : dedupedSkills);
       cancelEditingSkill();
+      showSuccess('Profile Updated', 'Your skills were updated successfully.');
     } catch {
       setSkillsError('Unable to update skills right now.');
+      showErrorModal('Update Failed', 'Unable to update skills right now.');
     } finally {
       setSkillsBusy(false);
     }
   };
 
   const handleSelectInstructor = async () => {
+    if (selectedInstructor?.id) {
+      setMentorshipError('Instructor selection is locked. Only your instructor can remove you.');
+      return;
+    }
+
     if (!selectedInstructorId) {
       setMentorshipError('Please choose an instructor first.');
       return;
@@ -447,6 +503,18 @@ const StudentDashboard = () => {
         submissionAttachment: file || null,
       },
     }));
+    setSubmissionImagePreviews((current) => {
+      const next = { ...current };
+      if (next[assignmentId]) {
+        URL.revokeObjectURL(next[assignmentId]);
+      }
+      if (file && String(file.type || '').startsWith('image/')) {
+        next[assignmentId] = URL.createObjectURL(file);
+      } else {
+        delete next[assignmentId];
+      }
+      return next;
+    });
   };
 
   const handleSubmitAssignment = async (assignmentId) => {
@@ -485,13 +553,34 @@ const StudentDashboard = () => {
           submissionAttachment: null,
         },
       }));
+      setSubmissionImagePreviews((current) => {
+        const next = { ...current };
+        if (next[assignmentId]) {
+          URL.revokeObjectURL(next[assignmentId]);
+          delete next[assignmentId];
+        }
+        return next;
+      });
+      showSuccess('Submission Saved', 'Assignment submission uploaded successfully.');
     } catch (error) {
       setSubmissionErrors((current) => ({
         ...current,
         [assignmentId]: error?.message || 'Unable to submit assignment right now.',
       }));
+      showErrorModal('Submission Failed', error?.message || 'Unable to submit assignment right now.');
     } finally {
       setSubmissionBusyAssignmentId('');
+    }
+  };
+
+  const handlePortfolioDeleted = async () => {
+    setPortfolio(null);
+    setPortfolioUpgradeRequired(false);
+    setPortfolioError('');
+    LocalStorageService.setDashboardAccentIntent('', user?.id);
+    if (activeMenuKey === 'portfolio') {
+      setActiveMenuKey('profile');
+      await persistMenuSelection('profile');
     }
   };
 
@@ -617,6 +706,14 @@ const StudentDashboard = () => {
         </>
       )}
 
+      {activeMenuKey === 'profile' && (
+        <ProfileSettingsPanel accent={activeAccent} onPortfolioDeleted={handlePortfolioDeleted} />
+      )}
+
+      {activeMenuKey === 'settings' && (
+        <SettingsPanel accent={activeAccent} />
+      )}
+
       {activeMenuKey === 'projects' && (
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
           <h3 className="text-xl font-semibold text-white mb-2">My Projects</h3>
@@ -637,13 +734,16 @@ const StudentDashboard = () => {
           <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
             <h3 className="text-xl font-semibold text-white mb-2">Choose Instructor</h3>
             <p className="text-gray-300 mb-4">
-              Select an instructor. You will be added automatically to that instructor&apos;s dashboard.
+              {isInstructorSelectionLocked
+                ? 'Your instructor selection is locked. Only instructors can remove students.'
+                : 'Select an instructor. You will be added automatically to that instructor&apos;s dashboard.'}
             </p>
 
             <div className="grid md:grid-cols-[1fr_auto] gap-3">
               <select
                 value={selectedInstructorId}
                 onChange={(event) => setSelectedInstructorId(event.target.value)}
+                disabled={isInstructorSelectionLocked}
                 className={`rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 ${activeAccent.focusRingClass}`}
               >
                 <option value="">Select an instructor</option>
@@ -656,10 +756,10 @@ const StudentDashboard = () => {
               <button
                 type="button"
                 onClick={handleSelectInstructor}
-                disabled={mentorshipBusy}
+                disabled={mentorshipBusy || isInstructorSelectionLocked}
                 className={`px-4 py-2 rounded-lg text-white transition ${activeAccent.primaryButtonClass}`}
               >
-                {mentorshipBusy ? 'Saving...' : 'Select Instructor'}
+                {isInstructorSelectionLocked ? 'Selection Locked' : mentorshipBusy ? 'Saving...' : 'Select Instructor'}
               </button>
             </div>
             {mentorshipError && <p className="text-sm text-red-300 mt-3">{mentorshipError}</p>}
@@ -677,18 +777,32 @@ const StudentDashboard = () => {
                     <p className="text-sm text-gray-300 mt-1">{assignment.question}</p>
                     {assignment.details && <p className="text-sm text-gray-400 mt-1">{assignment.details}</p>}
                     {assignment.attachment?.url && (
-                      <a
-                        href={resolveMedia(assignment.attachment.url)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={`text-sm mt-2 inline-block ${activeAccent.linkClass}`}
-                      >
-                        Open attachment ({assignment.attachment.originalName || 'file'})
-                      </a>
+                      <>
+                        {isImageAttachment(assignment.attachment) && (
+                          <div className="mt-2 w-fit rounded-lg border border-white/20 p-2 bg-black/20">
+                            <img
+                              src={resolveMedia(assignment.attachment.url)}
+                              alt="Assignment attachment preview"
+                              className="h-24 w-24 rounded object-cover"
+                            />
+                          </div>
+                        )}
+                        <a
+                          href={resolveMedia(assignment.attachment.url)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={`text-sm mt-2 inline-block ${activeAccent.linkClass}`}
+                        >
+                          Open attachment ({assignment.attachment.originalName || 'file'})
+                        </a>
+                      </>
                     )}
                     <p className="text-xs text-gray-400 mt-2">
                       Score: {Number.isFinite(assignment.score) ? assignment.score : 'Not scored'} | Due:{' '}
                       {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'No due date'}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Remark: {assignment.remark ? assignment.remark : 'No remark yet'}
                     </p>
                     {assignment.submission?.submittedAt && (
                       <p className={`text-xs mt-2 ${activeAccent.textClass}`}>
@@ -720,15 +834,35 @@ const StudentDashboard = () => {
                           {submissionBusyAssignmentId === assignment.id ? 'Submitting...' : 'Submit Assignment'}
                         </button>
                       </div>
+                      {submissionImagePreviews[assignment.id] && (
+                        <div className="w-fit rounded-lg border border-white/20 p-2 bg-black/20">
+                          <img
+                            src={submissionImagePreviews[assignment.id]}
+                            alt="Submission preview"
+                            className="h-24 w-24 rounded object-cover"
+                          />
+                        </div>
+                      )}
                       {assignment.submission?.attachment?.url && (
-                        <a
-                          href={resolveMedia(assignment.submission.attachment.url)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={`text-sm inline-block ${activeAccent.linkClass}`}
-                        >
-                          View submitted file ({assignment.submission.attachment.originalName || 'file'})
-                        </a>
+                        <>
+                          {isImageAttachment(assignment.submission.attachment) && (
+                            <div className="w-fit rounded-lg border border-white/20 p-2 bg-black/20">
+                              <img
+                                src={resolveMedia(assignment.submission.attachment.url)}
+                                alt="Submitted assignment preview"
+                                className="h-24 w-24 rounded object-cover"
+                              />
+                            </div>
+                          )}
+                          <a
+                            href={resolveMedia(assignment.submission.attachment.url)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={`text-sm inline-block ${activeAccent.linkClass}`}
+                          >
+                            View submitted file ({assignment.submission.attachment.originalName || 'file'})
+                          </a>
+                        </>
                       )}
                       {submissionErrors[assignment.id] && (
                         <p className="text-sm text-red-300">{submissionErrors[assignment.id]}</p>

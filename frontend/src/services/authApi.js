@@ -33,4 +33,13 @@ export const authApi = {
       body: JSON.stringify(payload),
     });
   },
+
+  async deleteAccount(token) {
+    return request('/api/users/me', {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
 };

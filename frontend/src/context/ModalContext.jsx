@@ -12,6 +12,7 @@ const initialState = {
   cancelText: 'Cancel',
   showCancel: false,
   mode: 'message',
+  confirmDelaySeconds: 0,
 };
 
 export const ModalProvider = ({ children }) => {
@@ -32,11 +33,12 @@ export const ModalProvider = ({ children }) => {
       cancelText: 'Cancel',
       showCancel: false,
       mode: 'message',
+      confirmDelaySeconds: 0,
     });
   }, []);
 
   const confirm = useCallback(
-    ({ type = 'warning', title, message, confirmText = 'Confirm', cancelText = 'Cancel' }) =>
+    ({ type = 'warning', title, message, confirmText = 'Confirm', cancelText = 'Cancel', confirmDelaySeconds = 0 }) =>
       new Promise((resolve) => {
         resolverRef.current = resolve;
         setModalState({
@@ -48,6 +50,7 @@ export const ModalProvider = ({ children }) => {
           cancelText,
           showCancel: true,
           mode: 'confirm',
+          confirmDelaySeconds: Math.max(0, Number(confirmDelaySeconds) || 0),
         });
       }),
     []
@@ -91,6 +94,7 @@ export const ModalProvider = ({ children }) => {
         confirmText={modalState.confirmText}
         cancelText={modalState.cancelText}
         showCancel={modalState.showCancel}
+        confirmDelaySeconds={modalState.confirmDelaySeconds}
         onConfirm={handleConfirm}
         onCancel={handleCancel}
       />

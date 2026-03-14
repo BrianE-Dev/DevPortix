@@ -9,6 +9,9 @@ const {
   selectInstructor,
   getMyMentorship,
   listMyStudents,
+  addMyStudent,
+  removeMyStudent,
+  createAssignments,
   createAssignment,
   updateAssignment,
   deleteAssignment,
@@ -41,6 +44,15 @@ router.post('/select-instructor', validateUser, requireRole(['student']), select
 router.get('/my-mentorship', validateUser, requireRole(['student']), getMyMentorship);
 
 router.get('/my-students', validateUser, requireRole(['instructor']), listMyStudents);
+router.post('/my-students', validateUser, requireRole(['instructor']), addMyStudent);
+router.delete('/my-students/:studentId', validateUser, requireRole(['instructor']), removeMyStudent);
+router.post(
+  '/assignments',
+  validateUser,
+  requireRole(['instructor']),
+  upload.single('attachment'),
+  createAssignments
+);
 router.post(
   '/my-students/:studentId/assignments',
   validateUser,

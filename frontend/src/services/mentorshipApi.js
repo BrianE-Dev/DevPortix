@@ -8,6 +8,10 @@ const toFormData = (payload = {}) => {
   const formData = new FormData();
   Object.entries(payload).forEach(([key, value]) => {
     if (value === undefined || value === null) return;
+    if (Array.isArray(value)) {
+      formData.append(key, JSON.stringify(value));
+      return;
+    }
     if (value instanceof File) {
       formData.append(key, value);
       return;
@@ -47,9 +51,33 @@ export const mentorshipApi = {
     });
   },
 
+  async addMyStudent(token, studentEmail) {
+    return request('/api/mentorship/my-students', {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify({ studentEmail }),
+    });
+  },
+
+  async removeMyStudent(token, studentId) {
+    return request(`/api/mentorship/my-students/${encodeURIComponent(studentId)}`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    });
+  },
+
   async createAssignment(token, studentId, payload) {
     const hasFile = payload?.attachment instanceof File;
     return request(`/api/mentorship/my-students/${encodeURIComponent(studentId)}/assignments`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: hasFile ? toFormData(payload) : JSON.stringify(payload),
+    });
+  },
+
+  async createAssignments(token, payload) {
+    const hasFile = payload?.attachment instanceof File;
+    return request('/api/mentorship/assignments', {
       method: 'POST',
       headers: authHeaders(token),
       body: hasFile ? toFormData(payload) : JSON.stringify(payload),

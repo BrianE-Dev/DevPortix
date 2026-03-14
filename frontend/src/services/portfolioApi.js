@@ -29,6 +29,15 @@ export const portfolioApi = {
     });
   },
 
+  async deleteMine(token) {
+    return request('/api/portfolios/me', {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
   async getShareAssets(token) {
     return request('/api/portfolios/me/share', {
       method: 'GET',

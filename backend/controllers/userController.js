@@ -1,5 +1,12 @@
 const User = require('../modules/userSchema');
 const Subscription = require('../modules/subscription');
+const PortfolioSettings = require('../modules/portfolioSettings');
+const Portfolio = require('../modules/portfolio');
+const Project = require('../modules/project');
+const { MentorshipLink, MentorshipAssignment } = require('../modules/mentorship');
+const { CommunityPost, CommunityComment, CommunityPostLike } = require('../modules/community');
+const CommunityMessage = require('../modules/communityMessage');
+const FriendRequest = require('../modules/friendRequest');
 
 const BASIC_ROLES = new Set(['student', 'instructor', 'organization', 'professional']);
 const ALL_ROLES = new Set(['student', 'instructor', 'organization', 'professional', 'super_admin']);
@@ -11,6 +18,7 @@ const toPublicUser = (userDoc) => ({
   role: userDoc.role,
   githubUsername: userDoc.githubUsername,
   avatar: userDoc.avatar,
+  bio: userDoc.bio || '',
   subscription: userDoc.subscription,
   skills: Array.isArray(userDoc.skills) ? userDoc.skills : [],
   dashboardMenu: userDoc.dashboardMenu || {},
@@ -39,7 +47,7 @@ const updateProfile = async (req, res) => {
     }
 
     const requesterRole = String(requester.role || '').trim().toLowerCase();
-    const allowedFields = ['fullName', 'githubUsername', 'avatar', 'role', 'skills', 'dashboardMenu'];
+    const allowedFields = ['fullName', 'githubUsername', 'avatar', 'bio', 'role', 'skills', 'dashboardMenu'];
     const updates = Object.fromEntries(
       Object.entries(req.body || {}).filter(([key]) => allowedFields.includes(key))
     );
@@ -124,7 +132,43 @@ const updateProfile = async (req, res) => {
   }
 };
 
+const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const user = await User.findById(userId).select('_id');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    await Promise.all([
+      Subscription.deleteOne({ ownerId: userId }),
+      PortfolioSettings.deleteOne({ ownerId: userId }),
+      Portfolio.deleteOne({ ownerId: userId }),
+      Project.deleteMany({ ownerId: userId }),
+      MentorshipLink.deleteMany({
+        $or: [{ instructorId: userId }, { studentId: userId }],
+      }),
+      MentorshipAssignment.deleteMany({
+        $or: [{ instructorId: userId }, { studentId: userId }],
+      }),
+      CommunityPost.deleteMany({ ownerId: userId }),
+      CommunityComment.deleteMany({ ownerId: userId }),
+      CommunityPostLike.deleteMany({ ownerId: userId }),
+      CommunityMessage.deleteMany({ ownerId: userId }),
+      FriendRequest.deleteMany({
+        $or: [{ requesterId: userId }, { recipientId: userId }],
+      }),
+      User.deleteOne({ _id: userId }),
+    ]);
+
+    return res.status(200).json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to delete account', error: error.message });
+  }
+};
+
 module.exports = {
   me,
   updateProfile,
+  deleteAccount,
 };

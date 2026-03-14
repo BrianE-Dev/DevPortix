@@ -97,6 +97,14 @@ export const AuthProvider = ({ children }) => {
     return updatedUser;
   };
 
+  const deleteAccount = async () => {
+    const token = LocalStorageService.getToken();
+    if (!token) return;
+    await authApi.deleteAccount(token);
+    LocalStorageService.clearUser();
+    setUser(null);
+  };
+
   const value = {
     user,
     loading,
@@ -104,6 +112,7 @@ export const AuthProvider = ({ children }) => {
     signup,
     logout,
     updateProfile,
+    deleteAccount,
     getDashboardPath,
     isAuthenticated: !!user,
   };

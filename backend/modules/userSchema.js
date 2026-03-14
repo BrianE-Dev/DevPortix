@@ -40,10 +40,21 @@ const userSchema = new Schema(
       default: null,
       trim: true,
     },
+    bio: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: 4000,
+    },
     subscription: {
       type: String,
       enum: ['free', 'basic', 'standard', 'premium', 'pro'],
       default: 'free',
+    },
+    freePngCertificatesIssued: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
     skills: {
       type: [String],

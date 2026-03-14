@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react';
 
 const modalStyles = {
@@ -31,9 +32,31 @@ const AppModal = ({
   confirmText = 'OK',
   cancelText = 'Cancel',
   showCancel = false,
+  confirmDelaySeconds = 0,
   onConfirm,
   onCancel,
 }) => {
+  const [secondsLeft, setSecondsLeft] = useState(0);
+
+  useEffect(() => {
+    if (!isOpen || !showCancel) return undefined;
+
+    const initial = Math.max(0, Number(confirmDelaySeconds) || 0);
+    if (initial <= 0) return undefined;
+
+    const deadline = Date.now() + initial * 1000;
+
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      setSecondsLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [confirmDelaySeconds, isOpen, showCancel]);
+
   if (!isOpen) return null;
 
   const style = modalStyles[type] || modalStyles.info;
@@ -63,9 +86,10 @@ const AppModal = ({
           <button
             type="button"
             onClick={onConfirm}
+            disabled={confirmDelaySeconds > 0 && secondsLeft > 0}
             className={`px-4 py-2 rounded-lg text-white transition ${style.confirmClass}`}
           >
-            {confirmText}
+            {confirmDelaySeconds > 0 && secondsLeft > 0 ? `${confirmText} (${secondsLeft}s)` : confirmText}
           </button>
         </div>
       </div>

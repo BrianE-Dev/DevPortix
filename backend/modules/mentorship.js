@@ -89,6 +89,12 @@ const mentorshipAssignmentSchema = new Schema(
       max: 100,
       default: null,
     },
+    remark: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: 2000,
+    },
     dueDate: {
       type: Date,
       default: null,

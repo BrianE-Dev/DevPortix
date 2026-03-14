@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { jsPDF } from 'jspdf';
 import LocalStorageService from '../services/localStorageService';
 import { quizApi } from '../services/quizApi';
@@ -11,7 +11,7 @@ const TRACKS = [
 ];
 
 const FREE_PLAN_UPGRADE_MESSAGE =
-  'Upgrade to a better plan to view your quiz score and generate certificates.';
+  'Upgrade to a better plan to generate certificates.';
 
 const formatTrack = (track) => {
   const found = TRACKS.find((item) => item.id === track);
@@ -28,6 +28,15 @@ const sanitizeFilePart = (value) =>
 const downloadDataUrl = (fileName, dataUrl) => {
   const anchor = document.createElement('a');
   anchor.href = dataUrl;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+};
+
+const downloadBlobUrl = (fileName, blobUrl) => {
+  const anchor = document.createElement('a');
+  anchor.href = blobUrl;
   anchor.download = fileName;
   document.body.appendChild(anchor);
   anchor.click();
@@ -120,6 +129,8 @@ const QuizCenter = ({ accent, userSubscription: _userSubscription, userFullName 
   const [questionsLoading, setQuestionsLoading] = useState(false);
   const [busyAction, setBusyAction] = useState('');
   const [passPercentage, setPassPercentage] = useState(60);
+  const [certificatePreview, setCertificatePreview] = useState(null);
+  const pdfPreviewUrlRef = useRef('');
 
   const answeredCount = useMemo(
     () => Object.keys(answers).filter((questionId) => Number.isInteger(answers[questionId])).length,
@@ -159,6 +170,21 @@ const QuizCenter = ({ accent, userSubscription: _userSubscription, userFullName 
       mounted = false;
     };
   }, [activeTrack]);
+
+  useEffect(() => {
+    if (pdfPreviewUrlRef.current) {
+      URL.revokeObjectURL(pdfPreviewUrlRef.current);
+      pdfPreviewUrlRef.current = '';
+    }
+    setCertificatePreview(null);
+  }, [activeTrack]);
+
+  useEffect(() => () => {
+    if (pdfPreviewUrlRef.current) {
+      URL.revokeObjectURL(pdfPreviewUrlRef.current);
+      pdfPreviewUrlRef.current = '';
+    }
+  }, []);
 
   const onAnswerSelect = (questionId, selectedIndex) => {
     setAnswers((current) => ({
@@ -203,11 +229,7 @@ const QuizCenter = ({ accent, userSubscription: _userSubscription, userFullName 
       setPassPercentage(Number(response.passPercentage) || 60);
       setScore(response);
     } catch (error) {
-      if (error?.status === 403) {
-        setActionNotice(FREE_PLAN_UPGRADE_MESSAGE);
-      } else {
-        setActionNotice(error?.message || 'Unable to fetch your score right now.');
-      }
+      setActionNotice(error?.message || 'Unable to fetch your score right now.');
     } finally {
       setBusyAction('');
     }
@@ -220,7 +242,7 @@ const QuizCenter = ({ accent, userSubscription: _userSubscription, userFullName 
     try {
       setBusyAction(type);
       setActionNotice('');
-      const response = await quizApi.getCertificate(token, activeTrack);
+      const response = await quizApi.getCertificate(token, activeTrack, type);
       const certificate = {
         ...response.certificate,
         studentName: response.certificate?.studentName || userFullName || 'DevPortix Student',
@@ -231,6 +253,15 @@ const QuizCenter = ({ accent, userSubscription: _userSubscription, userFullName 
       const fileBase = `devportix-${trackPart}-certificate`;
 
       if (type === 'png') {
+        if (pdfPreviewUrlRef.current) {
+          URL.revokeObjectURL(pdfPreviewUrlRef.current);
+          pdfPreviewUrlRef.current = '';
+        }
+        setCertificatePreview({
+          type: 'png',
+          source: imageDataUrl,
+          fileName: `${fileBase}.png`,
+        });
         downloadDataUrl(`${fileBase}.png`, imageDataUrl);
         setActionNotice('Certificate PNG downloaded successfully.');
         return;
@@ -242,14 +273,25 @@ const QuizCenter = ({ accent, userSubscription: _userSubscription, userFullName 
         format: [1100, 1600],
       });
       pdf.addImage(imageDataUrl, 'PNG', 0, 0, 1600, 1100);
-      pdf.save(`${fileBase}.pdf`);
+      const pdfBlob = pdf.output('blob');
+      const pdfBlobUrl = URL.createObjectURL(pdfBlob);
+      if (pdfPreviewUrlRef.current) {
+        URL.revokeObjectURL(pdfPreviewUrlRef.current);
+      }
+      pdfPreviewUrlRef.current = pdfBlobUrl;
+      setCertificatePreview({
+        type: 'pdf',
+        source: pdfBlobUrl,
+        fileName: `${fileBase}.pdf`,
+      });
+      downloadBlobUrl(`${fileBase}.pdf`, pdfBlobUrl);
       setActionNotice('Certificate PDF downloaded successfully.');
     } catch (error) {
       if (error?.status === 403) {
-        setActionNotice(FREE_PLAN_UPGRADE_MESSAGE);
-      } else {
-        setActionNotice(error?.message || 'Unable to generate certificate right now.');
+        setActionNotice(error?.message || FREE_PLAN_UPGRADE_MESSAGE);
+        return;
       }
+      setActionNotice(error?.message || 'Unable to generate certificate right now.');
     } finally {
       setBusyAction('');
     }
@@ -378,6 +420,45 @@ const QuizCenter = ({ accent, userSubscription: _userSubscription, userFullName 
                 ? 'Passed: eligible for certificate generation.'
                 : `Not passed yet: you need above ${score.passPercentage || 60}%.`}
             </p>
+          </div>
+        )}
+
+        {certificatePreview && (
+          <div className="mt-5 rounded-lg border border-white/10 bg-black/20 p-4">
+            <p className="text-white font-semibold mb-3">
+              Certificate Preview ({certificatePreview.type.toUpperCase()})
+            </p>
+            {certificatePreview.type === 'png' ? (
+              <div className="space-y-3">
+                <img
+                  src={certificatePreview.source}
+                  alt="Certificate preview"
+                  className="w-full max-w-3xl rounded-lg border border-white/10"
+                />
+                <button
+                  type="button"
+                  onClick={() => downloadDataUrl(certificatePreview.fileName, certificatePreview.source)}
+                  className={`px-4 py-2 rounded-lg text-white transition ${activeAccent.primaryButtonClass}`}
+                >
+                  Download PNG Again
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <iframe
+                  title="Certificate PDF Preview"
+                  src={certificatePreview.source}
+                  className="w-full h-[420px] rounded-lg border border-white/10 bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => downloadBlobUrl(certificatePreview.fileName, certificatePreview.source)}
+                  className={`px-4 py-2 rounded-lg text-white transition ${activeAccent.primaryButtonClass}`}
+                >
+                  Download PDF Again
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
