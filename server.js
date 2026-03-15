@@ -12,10 +12,12 @@ const communityRoutes = require('./backend/routes/communityRoutes');
 const paymentRoutes = require('./backend/routes/paymentRoutes');
 const orderRoutes = require('./backend/order/order.router');
 const mentorshipRoutes = require('./backend/routes/mentorshipRoutes');
+const portfolioRoutes = require('./backend/routes/portfolioRoutes');
+const quizRoutes = require('./backend/routes/quizRoutes');
 
 const EXPRESSPORT = Number(process.env.PORT) || 5500;
-const PORTFOLIO_SERVICE_URL = process.env.PORTFOLIO_SERVICE_URL || 'http://localhost:5601';
-const QUIZ_SERVICE_URL = process.env.QUIZ_SERVICE_URL || 'http://localhost:5602';
+const PORTFOLIO_SERVICE_URL = String(process.env.PORTFOLIO_SERVICE_URL || '').trim();
+const QUIZ_SERVICE_URL = String(process.env.QUIZ_SERVICE_URL || '').trim();
 const app = express();
 app.set('etag', false);
 
@@ -68,19 +70,28 @@ const createProxyHandler = (baseUrl, serviceName) => async (req, res) => {
   }
 };
 
-const proxyPortfolioRequest = createProxyHandler(PORTFOLIO_SERVICE_URL, 'Portfolio service');
-const proxyQuizRequest = createProxyHandler(QUIZ_SERVICE_URL, 'Quiz service');
-
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
-app.use('/api/portfolios', proxyPortfolioRequest);
 app.use('/api/admin', adminRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/mentorship', mentorshipRoutes);
-app.use('/api/quizzes', proxyQuizRequest);
+
+if (PORTFOLIO_SERVICE_URL) {
+  const proxyPortfolioRequest = createProxyHandler(PORTFOLIO_SERVICE_URL, 'Portfolio service');
+  app.use('/api/portfolios', proxyPortfolioRequest);
+} else {
+  app.use('/api/portfolios', portfolioRoutes);
+}
+
+if (QUIZ_SERVICE_URL) {
+  const proxyQuizRequest = createProxyHandler(QUIZ_SERVICE_URL, 'Quiz service');
+  app.use('/api/quizzes', proxyQuizRequest);
+} else {
+  app.use('/api/quizzes', quizRoutes);
+}
 
 connectDB();
 
