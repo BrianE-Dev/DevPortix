@@ -6,6 +6,7 @@ const connectDB = require('./database/dbconnection');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const portfolioRoutes = require('./routes/portfolioRoutes');
+const quizRoutes = require('./routes/quizRoutes');
 
 const PORTFOLIO_SERVICE_PORT = Number(process.env.PORTFOLIO_SERVICE_PORT) || 5601;
 const app = express();
@@ -50,6 +51,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/portfolios', portfolioRoutes);
+app.use('/api/quizzes', quizRoutes);
 
 connectDB();
 

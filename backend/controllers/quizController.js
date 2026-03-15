@@ -171,42 +171,17 @@ const getCertificateData = async (req, res) => {
       });
     }
 
-    const user = await User.findById(req.userId).select('fullName subscription freePngCertificatesIssued');
+    const user = await User.findById(req.userId).select('fullName subscription');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
     const userPlan = normalizePlan(user.subscription);
     const isFreePlan = userPlan === 'free';
 
-    if (isFreePlan && requestedFormat === 'pdf') {
+    if (isFreePlan) {
       return res.status(403).json({
-        message: 'PDF certificates are available on paid plans only.',
+        message: 'Certificates are available on basic, standard, and premium plans only.',
       });
-    }
-
-    if (isFreePlan && requestedFormat === 'png') {
-      const claimedUsage = await User.findOneAndUpdate(
-        {
-          _id: req.userId,
-          $or: [
-            { freePngCertificatesIssued: { $exists: false } },
-            { freePngCertificatesIssued: { $lt: 1 } },
-          ],
-        },
-        {
-          $inc: { freePngCertificatesIssued: 1 },
-        },
-        {
-          new: true,
-          projection: { freePngCertificatesIssued: 1 },
-        }
-      ).lean();
-
-      if (!claimedUsage) {
-        return res.status(403).json({
-          message: 'Free plan allows only one PNG certificate. Upgrade to generate more certificates.',
-        });
-      }
     }
 
     const studentName = user?.fullName || 'DevPortix Student';

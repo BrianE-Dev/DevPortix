@@ -12,7 +12,7 @@ export const PRICING_PLANS = [
       'Take HTML, CSS, JavaScript, and React quizzes (10 questions each)',
       'Instructor workspace and basic student tracking',
       'Quiz score visibility included',
-      'One PNG certificate only (no PDF)',
+      'No certificates',
       'Portfolio access requires upgrade',
       'Email support',
     ],
@@ -29,7 +29,7 @@ export const PRICING_PLANS = [
     features: [
       'Up to 20 students',
       'Quiz score visibility included',
-      'Unlimited DevPortix certificates (PNG + PDF)',
+      'Certificates included (PNG + PDF)',
       'Portfolio access and customization unlocked',
       'Progress tracking and review tools',
       'Email support',
@@ -47,7 +47,7 @@ export const PRICING_PLANS = [
     features: [
       'Up to 100 students',
       'Everything in Basic',
-      'Full quiz score visibility and certificates',
+      'Certificates included (PNG + PDF)',
       'Portfolio access for all enrolled paid users',
       'Advanced analytics and reporting',
       'Priority support',
@@ -65,7 +65,7 @@ export const PRICING_PLANS = [
     features: [
       'Up to 250 students',
       'Everything in Standard',
-      'Unlimited quiz result and certificate workflows',
+      'Certificates included (PNG + PDF)',
       'Advanced portfolio collaboration controls',
       'Advanced organization controls',
       'Priority support with faster response times',
