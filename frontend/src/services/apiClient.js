@@ -1,4 +1,11 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5500';
+const rawApiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5500';
+const shouldForceHttps =
+  typeof window !== 'undefined' &&
+  window.location.protocol === 'https:' &&
+  /^http:\/\//i.test(rawApiBaseUrl);
+const API_BASE_URL = shouldForceHttps
+  ? rawApiBaseUrl.replace(/^http:\/\//i, 'https://')
+  : rawApiBaseUrl;
 
 const parseError = async (response) => {
   try {
