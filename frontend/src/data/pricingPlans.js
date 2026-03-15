@@ -2,7 +2,7 @@ export const PRICING_PLANS = [
   {
     id: 'free',
     name: 'Free',
-    price: '$0',
+    price: 'NGN 0',
     description: 'For individual instructors getting started',
     buttonText: 'Get Started Free',
     popular: false,
@@ -20,7 +20,7 @@ export const PRICING_PLANS = [
   {
     id: 'basic',
     name: 'Basic',
-    price: '$10',
+    price: 'NGN 5000',
     period: '/month',
     description: 'For active instructors with growing cohorts',
     buttonText: 'Choose Basic',
@@ -38,7 +38,7 @@ export const PRICING_PLANS = [
   {
     id: 'standard',
     name: 'Standard',
-    price: '$30',
+    price: 'NGN 9500',
     period: '/month',
     description: 'For structured training programs and schools',
     buttonText: 'Choose Standard',
@@ -56,7 +56,7 @@ export const PRICING_PLANS = [
   {
     id: 'premium',
     name: 'Premium',
-    price: '$60',
+    price: 'NGN 14000',
     period: '/month',
     description: 'For professionals operating at scale',
     buttonText: 'Choose Premium',
