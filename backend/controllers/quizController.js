@@ -98,11 +98,15 @@ const submitQuiz = async (req, res) => {
     });
 
     return res.status(201).json({
-      message: 'Quiz submitted successfully. Click "See Score" to view your result.',
+      message: 'Quiz submitted successfully. Your score is now available.',
       attemptId: String(attempt._id),
       track: toTrackPayload(trackKey),
+      score: attempt.score,
       totalQuestions,
+      percentage: attempt.percentage,
+      passed: attempt.passed,
       submittedAt: attempt.createdAt,
+      completedAt: attempt.createdAt,
       passPercentage: PASS_PERCENTAGE,
     });
   } catch (error) {

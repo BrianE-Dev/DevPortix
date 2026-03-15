@@ -207,10 +207,30 @@ const QuizCenter = ({ accent, userSubscription: _userSubscription, userFullName 
       setLoadError('');
       setActionNotice('');
       setSubmitNotice('');
-      await quizApi.submit(token, activeTrack, answers);
-      setSubmitNotice(
-        `Quiz submitted for ${formatTrack(activeTrack)}. Click "See Score" to check your result.`
-      );
+      const response = await quizApi.submit(token, activeTrack, answers);
+      setPassPercentage(Number(response?.passPercentage) || 60);
+
+      const hasInlineScore =
+        Number.isFinite(Number(response?.score)) &&
+        Number.isFinite(Number(response?.totalQuestions)) &&
+        Number.isFinite(Number(response?.percentage));
+
+      if (hasInlineScore) {
+        setScore({
+          score: Number(response.score),
+          totalQuestions: Number(response.totalQuestions),
+          percentage: Number(response.percentage),
+          passed: Boolean(response.passed),
+          passPercentage: Number(response.passPercentage) || 60,
+          completedAt: response.completedAt || response.submittedAt || new Date().toISOString(),
+        });
+        setSubmitNotice(`Quiz submitted for ${formatTrack(activeTrack)}. Your score is shown below.`);
+      } else {
+        const latest = await quizApi.getScore(token, activeTrack);
+        setPassPercentage(Number(latest?.passPercentage) || 60);
+        setScore(latest);
+        setSubmitNotice(`Quiz submitted for ${formatTrack(activeTrack)}. Your score is shown below.`);
+      }
     } catch (error) {
       setActionNotice(error?.message || 'Unable to submit quiz right now.');
     } finally {
