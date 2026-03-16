@@ -1,8 +1,9 @@
 // src/pages/Signup.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, User, Mail, Lock, Github, Code2 } from 'lucide-react';
+import { UserPlus, User, Mail, Lock, Github, Code2, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { authApi } from '../services/authApi';
 import { ROLES } from '../utils/constants';
 
 const Signup = () => {
@@ -15,16 +16,81 @@ const Signup = () => {
     role: ''
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpValue, setOtpValue] = useState('');
+  const [registrationToken, setRegistrationToken] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+
+    if (name === 'email') {
+      setOtpSent(false);
+      setEmailVerified(false);
+      setRegistrationToken('');
+      setOtpValue('');
+    }
+  };
+
+  const handleSendOtp = async () => {
+    setError('');
+    setSuccess('');
+
+    if (!formData.email) {
+      setError('Enter your email first.');
+      return;
+    }
+
+    setOtpLoading(true);
+    try {
+      await authApi.requestRegistrationOtp(formData.email);
+      setOtpSent(true);
+      setEmailVerified(false);
+      setRegistrationToken('');
+      setSuccess('OTP sent to your email.');
+    } catch (err) {
+      setError(err.message || 'Failed to send OTP.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setError('');
+    setSuccess('');
+
+    if (!formData.email || !otpValue) {
+      setError('Enter your email and OTP.');
+      return;
+    }
+
+    setOtpLoading(true);
+    try {
+      const response = await authApi.verifyRegistrationOtp(formData.email, otpValue);
+      const token = response?.data?.registrationToken || '';
+      if (!token) {
+        throw new Error('OTP verified but no registration token returned.');
+      }
+      setRegistrationToken(token);
+      setEmailVerified(true);
+      setSuccess('Email verified. You can now create your account.');
+    } catch (err) {
+      setEmailVerified(false);
+      setRegistrationToken('');
+      setError(err.message || 'Failed to verify OTP.');
+    } finally {
+      setOtpLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -54,12 +120,17 @@ const Signup = () => {
         throw new Error('Please accept the terms and conditions');
       }
 
+      if (!emailVerified || !registrationToken) {
+        throw new Error('Verify your email OTP before creating an account.');
+      }
+
       await signup({
         email: formData.email,
         fullName: formData.fullName || 'New User',
         password: formData.password,
         githubUsername: formData.githubUsername || '',
         role: formData.role,
+        registrationToken,
       });
       navigate('/dashboard');
       
@@ -86,6 +157,11 @@ const Signup = () => {
           {error && (
             <div className="p-3 mb-4 text-sm text-red-700 bg-red-100 rounded-lg dark:text-red-400 dark:bg-red-900/20">
               {error}
+            </div>
+          )}
+          {success && (
+            <div className="p-3 mb-4 text-sm text-green-700 bg-green-100 rounded-lg dark:text-green-300 dark:bg-green-900/20">
+              {success}
             </div>
           )}
 
@@ -123,6 +199,39 @@ const Signup = () => {
                   required
                 />
               </div>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={otpLoading}
+                  className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg disabled:opacity-50"
+                >
+                  {otpLoading ? 'Sending...' : otpSent ? 'Resend OTP' : 'Send OTP'}
+                </button>
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={otpValue}
+                    onChange={(e) => setOtpValue(e.target.value)}
+                    className="block w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter 6-digit OTP"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleVerifyOtp}
+                  disabled={otpLoading || !otpSent}
+                  className="px-3 py-2 text-sm bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg disabled:opacity-50"
+                >
+                  Verify
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-gray-400 flex items-center gap-1">
+                <ShieldCheck className="w-4 h-4" />
+                {emailVerified ? 'Email verified for registration' : 'Verify email to continue registration'}
+              </p>
             </div>
             
             <div>

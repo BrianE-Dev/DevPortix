@@ -18,6 +18,7 @@ const quizRoutes = require('./backend/routes/quizRoutes');
 const EXPRESSPORT = Number(process.env.PORT) || 5500;
 const PORTFOLIO_SERVICE_URL = String(process.env.PORTFOLIO_SERVICE_URL || '').trim();
 const QUIZ_SERVICE_URL = String(process.env.QUIZ_SERVICE_URL || '').trim();
+const EMAIL_SERVICE_URL = String(process.env.EMAIL_SERVICE_URL || '').trim();
 const app = express();
 app.set('etag', false);
 
@@ -91,6 +92,19 @@ if (QUIZ_SERVICE_URL) {
   app.use('/api/quizzes', proxyQuizRequest);
 } else {
   app.use('/api/quizzes', quizRoutes);
+}
+
+if (EMAIL_SERVICE_URL) {
+  const proxyEmailRequest = createProxyHandler(EMAIL_SERVICE_URL, 'Email service');
+  app.use('/api/mailer', proxyEmailRequest);
+  app.use('/api/v1/mailer', proxyEmailRequest);
+} else {
+  app.use('/api/mailer', (_req, res) => {
+    res.status(503).json({ message: 'Email service unavailable' });
+  });
+  app.use('/api/v1/mailer', (_req, res) => {
+    res.status(503).json({ message: 'Email service unavailable' });
+  });
 }
 
 connectDB();

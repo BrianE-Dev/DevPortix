@@ -1,0 +1,43 @@
+{
+  "name": "msgmicroservices",
+  "version": "1.0.0",
+  "description": "Handles reception and delivery of messages",
+  "keywords": [
+    "server",
+    "setup"
+  ],
+  "license": "ISC",
+  "author": "brian-e-dev",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "express-rate-limiter": "^1.3.1",
+    "helmet": "^8.1.0",
+    "http-proxy-middleware": "^3.0.5",
+    "joi": "^18.0.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.0.0",
+    "mongoose": "^9.1.5",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "nodemailer": "^8.0.1",
+    "nodemon": "^3.1.11",
+    "paystack": "^2.0.1",
+    "paystack-api": "^2.0.6",
+    "slugify": "^1.6.6",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^13.0.0",
+    "validator": "^13.15.26",
+    "yamljs": "^0.3.0"
+  }
+}

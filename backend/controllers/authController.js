@@ -5,6 +5,7 @@ const Subscription = require('../modules/subscription');
 const PortfolioSettings = require('../modules/portfolioSettings');
 
 const TOKEN_TTL = '7d';
+const REGISTRATION_TOKEN_TTL_ERROR = 'Registration verification expired. Request a new OTP and try again.';
 const PUBLIC_SIGNUP_ROLES = new Set(['student', 'instructor', 'organization', 'professional']);
 const DEFAULT_SUBSCRIPTION_BY_ROLE = {
   organization: 'basic',
@@ -14,6 +15,31 @@ const signToken = (userId) =>
   jwt.sign({ sub: String(userId) }, process.env.JWT_SECRET || 'devportix_dev_secret', {
     expiresIn: TOKEN_TTL,
   });
+
+const verifyRegistrationToken = (rawToken, normalizedEmail) => {
+  if (!rawToken) {
+    throw new Error('Please verify your email with OTP before registration.');
+  }
+
+  try {
+    const decoded = jwt.verify(rawToken, process.env.JWT_SECRET || 'devportix_dev_secret');
+    const tokenEmail = String(decoded?.email || '').trim().toLowerCase();
+    const purpose = String(decoded?.purpose || '').trim().toLowerCase();
+
+    if (!decoded?.emailVerified || purpose !== 'registration') {
+      throw new Error('Invalid registration verification token.');
+    }
+
+    if (tokenEmail !== normalizedEmail) {
+      throw new Error('Verification token does not match this email.');
+    }
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      throw new Error(REGISTRATION_TOKEN_TTL_ERROR);
+    }
+    throw new Error(error.message || 'Invalid registration verification token.');
+  }
+};
 
 const toPublicUser = (userDoc) => ({
   id: String(userDoc._id),
@@ -32,7 +58,7 @@ const toPublicUser = (userDoc) => ({
 
 const register = async (req, res) => {
   try {
-    const { fullName, email, password, role, githubUsername } = req.body;
+    const { fullName, email, password, role, githubUsername, registrationToken } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
@@ -43,6 +69,12 @@ const register = async (req, res) => {
     }
 
     const normalizedEmail = String(email).trim().toLowerCase();
+    try {
+      verifyRegistrationToken(registrationToken, normalizedEmail);
+    } catch (verificationError) {
+      return res.status(400).json({ message: verificationError.message });
+    }
+
     const existing = await User.findOne({ email: normalizedEmail }).lean();
     if (existing) {
       return res.status(409).json({ message: 'An account with this email already exists' });
