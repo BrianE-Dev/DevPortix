@@ -8,7 +8,7 @@ const userRoutes = require('./routes/userRoutes');
 const portfolioRoutes = require('./routes/portfolioRoutes');
 const quizRoutes = require('./routes/quizRoutes');
 
-const PORTFOLIO_SERVICE_PORT = Number(process.env.PORTFOLIO_SERVICE_PORT) || 5601;
+const PORTFOLIO_SERVICE_PORT = Number(process.env.PORT || process.env.PORTFOLIO_SERVICE_PORT) || 5601;
 const app = express();
 app.set('etag', false);
 
@@ -36,7 +36,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+app.options('/{*any}', cors(corsOptions));
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.use('/api', (_req, res, next) => {
