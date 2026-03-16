@@ -42,6 +42,11 @@ const createProxyHandler = (baseUrl, serviceName) => async (req, res) => {
     delete headers.host;
     delete headers.connection;
     delete headers['content-length'];
+    delete headers.origin;
+    delete headers.referer;
+    delete headers['sec-fetch-site'];
+    delete headers['sec-fetch-mode'];
+    delete headers['sec-fetch-dest'];
 
     const method = req.method.toUpperCase();
     const canHaveBody = method !== 'GET' && method !== 'HEAD';
@@ -64,6 +69,7 @@ const createProxyHandler = (baseUrl, serviceName) => async (req, res) => {
     const payload = await response.text();
     return res.send(payload);
   } catch (error) {
+    console.error(`[proxy:${serviceName}] ${req.method} ${req.originalUrl} -> ${baseUrl} failed:`, error.message);
     return res.status(502).json({
       message: `${serviceName} unavailable`,
       error: error.message,
