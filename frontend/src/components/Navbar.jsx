@@ -11,7 +11,8 @@ const ACCENT_NAV_STYLES = {
     navDark: 'bg-gradient-to-r from-gray-900/95 via-violet-950/95 to-blue-950/95 border-white/10',
     navLight: 'bg-gradient-to-r from-slate-100/95 via-cyan-50/95 to-blue-100/95 border-slate-200',
     activeDesktopLink: 'text-blue-500',
-    activeMobileLink: 'text-blue-400 bg-gray-800',
+    activeMobileLinkDark: 'text-blue-400 bg-gray-800',
+    activeMobileLinkLight: 'text-blue-700 bg-blue-100',
     avatarBg: 'bg-blue-600/20 border-blue-500/30',
     avatarIcon: 'text-blue-400',
     ctaGradient: 'bg-gradient-to-r from-blue-600 to-purple-600',
@@ -20,7 +21,8 @@ const ACCENT_NAV_STYLES = {
     navDark: 'bg-gradient-to-r from-gray-900/95 via-emerald-950/95 to-teal-950/95 border-white/10',
     navLight: 'bg-gradient-to-r from-emerald-50/95 via-teal-50/95 to-cyan-100/95 border-slate-200',
     activeDesktopLink: 'text-emerald-500',
-    activeMobileLink: 'text-emerald-300 bg-gray-800',
+    activeMobileLinkDark: 'text-emerald-300 bg-gray-800',
+    activeMobileLinkLight: 'text-emerald-700 bg-emerald-100',
     avatarBg: 'bg-emerald-600/20 border-emerald-500/30',
     avatarIcon: 'text-emerald-400',
     ctaGradient: 'bg-gradient-to-r from-emerald-600 to-teal-600',
@@ -29,7 +31,8 @@ const ACCENT_NAV_STYLES = {
     navDark: 'bg-gradient-to-r from-gray-900/95 via-rose-950/95 to-pink-950/95 border-white/10',
     navLight: 'bg-gradient-to-r from-rose-50/95 via-pink-50/95 to-orange-50/95 border-slate-200',
     activeDesktopLink: 'text-rose-500',
-    activeMobileLink: 'text-rose-300 bg-gray-800',
+    activeMobileLinkDark: 'text-rose-300 bg-gray-800',
+    activeMobileLinkLight: 'text-rose-700 bg-rose-100',
     avatarBg: 'bg-rose-600/20 border-rose-500/30',
     avatarIcon: 'text-rose-400',
     ctaGradient: 'bg-gradient-to-r from-rose-600 to-pink-600',
@@ -38,7 +41,8 @@ const ACCENT_NAV_STYLES = {
     navDark: 'bg-gradient-to-r from-gray-900/95 via-amber-950/95 to-orange-950/95 border-white/10',
     navLight: 'bg-gradient-to-r from-amber-50/95 via-orange-50/95 to-yellow-100/95 border-slate-200',
     activeDesktopLink: 'text-amber-500',
-    activeMobileLink: 'text-amber-300 bg-gray-800',
+    activeMobileLinkDark: 'text-amber-300 bg-gray-800',
+    activeMobileLinkLight: 'text-amber-700 bg-amber-100',
     avatarBg: 'bg-amber-600/20 border-amber-500/30',
     avatarIcon: 'text-amber-400',
     ctaGradient: 'bg-gradient-to-r from-amber-600 to-orange-600',
@@ -47,7 +51,8 @@ const ACCENT_NAV_STYLES = {
     navDark: 'bg-gradient-to-r from-gray-900/95 via-violet-950/95 to-fuchsia-950/95 border-white/10',
     navLight: 'bg-gradient-to-r from-violet-50/95 via-fuchsia-50/95 to-indigo-100/95 border-slate-200',
     activeDesktopLink: 'text-violet-500',
-    activeMobileLink: 'text-violet-300 bg-gray-800',
+    activeMobileLinkDark: 'text-violet-300 bg-gray-800',
+    activeMobileLinkLight: 'text-violet-700 bg-violet-100',
     avatarBg: 'bg-violet-600/20 border-violet-500/30',
     avatarIcon: 'text-violet-400',
     ctaGradient: 'bg-gradient-to-r from-violet-600 to-fuchsia-600',
@@ -132,7 +137,7 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`navbar-theme-preserve sticky top-0 w-full backdrop-blur-lg z-50 border-b ${
+      className={`sticky top-0 w-full backdrop-blur-lg z-50 border-b ${
         isDark
           ? accentStyles.navDark
           : accentStyles.navLight
@@ -148,7 +153,7 @@ const Navbar = () => {
                   <img src={logo} alt="DEVPORTIX Logo" className="w-28 h-10 lg:w-40 lg:h-12" />
                 </div>
                 {!isPortfolioPage && (
-                  <span className={`text-xs mt-1 sm:text-sm group-hover:text-cyan-600 ${isDark ? 'text-white/90' : 'text-white/90'}`}>
+                  <span className={`text-xs mt-1 sm:text-sm group-hover:text-cyan-600 ${isDark ? 'text-white/90' : 'text-slate-700'}`}>
                     <p> ... your code, your story.</p>
                   </span>
                 )}
@@ -165,7 +170,9 @@ const Navbar = () => {
                     key={link.name}
                     type="button"
                     onClick={() => handleLinkClick(link.path)}
-                    className="px-3 py-2 text-sm font-medium transition text-gray-300 hover:text-white"
+                    className={`px-3 py-2 text-sm font-medium transition ${
+                      isDark ? 'text-gray-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'
+                    }`}
                   >
                     {link.name}
                   </button>
@@ -183,7 +190,9 @@ const Navbar = () => {
                       location.pathname === (link.path.startsWith('/#') ? '/' : link.path) ||
                       location.hash === link.path.substring(1)
                         ? accentStyles.activeDesktopLink
-                        : 'text-gray-300 hover:text-white'
+                        : isDark
+                          ? 'text-gray-300 hover:text-white'
+                          : 'text-slate-700 hover:text-slate-950'
                     }`}
                   >
                     {link.name}
@@ -196,7 +205,9 @@ const Navbar = () => {
                   className={`px-3 py-2 text-sm font-medium transition ${
                     location.pathname === dashboardPath
                       ? accentStyles.activeDesktopLink
-                      : 'text-gray-300 hover:text-white'
+                      : isDark
+                        ? 'text-gray-300 hover:text-white'
+                        : 'text-slate-700 hover:text-slate-950'
                   }`}
                 >
                   Dashboard
@@ -229,7 +240,7 @@ const Navbar = () => {
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${accentStyles.avatarBg}`}>
                     <User className={`w-4 h-4 ${accentStyles.avatarIcon}`} />
                   </div>
-                  <span className="text-sm font-medium text-gray-300">
+                  <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-slate-800'}`}>
                     {user?.username}
                   </span>
                 </div>
@@ -245,7 +256,9 @@ const Navbar = () => {
               <>
                 <Link
                   to="/login"
-                  className="px-4 py-2 text-sm font-medium transition flex items-center text-gray-300 hover:text-white"
+                  className={`px-4 py-2 text-sm font-medium transition flex items-center ${
+                    isDark ? 'text-gray-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'
+                  }`}
                 >
                   <LogIn className="w-5 h-5 mr-2" />
                   Login
@@ -277,7 +290,11 @@ const Navbar = () => {
             </button>
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md focus:outline-none text-gray-400 hover:text-white hover:bg-gray-800"
+              className={`inline-flex items-center justify-center p-2 rounded-md focus:outline-none ${
+                isDark
+                  ? 'text-gray-400 hover:text-white hover:bg-gray-800'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+              }`}
             >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -287,7 +304,7 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       {isOpen && (
-        <div className="md:hidden border-b bg-gray-900 border-gray-800">
+        <div className={`md:hidden border-b ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200'}`}>
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             {currentNavLinks.map((link) => (
               isPortfolioPage ? (
@@ -298,7 +315,11 @@ const Navbar = () => {
                     handleLinkClick(link.path);
                     setIsOpen(false);
                   }}
-                  className="block w-full text-left px-3 py-2 text-base font-medium text-gray-300 hover:text-white hover:bg-gray-800"
+                  className={`block w-full text-left px-3 py-2 text-base font-medium ${
+                    isDark
+                      ? 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
+                  }`}
                 >
                   {link.name}
                 </button>
@@ -316,8 +337,10 @@ const Navbar = () => {
                   className={`block px-3 py-2 text-base font-medium ${
                     location.pathname === (link.path.startsWith('/#') ? '/' : link.path) ||
                     location.hash === link.path.substring(1)
-                      ? accentStyles.activeMobileLink
-                      : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      ? (isDark ? accentStyles.activeMobileLinkDark : accentStyles.activeMobileLinkLight)
+                      : isDark
+                        ? 'text-gray-300 hover:text-white hover:bg-gray-800'
+                        : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
                   }`}
                 >
                   {link.name}
@@ -329,15 +352,17 @@ const Navbar = () => {
                 to={dashboardPath}
                 className={`block px-3 py-2 text-base font-medium ${
                   location.pathname === dashboardPath
-                    ? accentStyles.activeMobileLink
-                    : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                    ? (isDark ? accentStyles.activeMobileLinkDark : accentStyles.activeMobileLinkLight)
+                    : isDark
+                      ? 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
                 }`}
                 onClick={() => setIsOpen(false)}
               >
                 Dashboard
               </Link>
             )}
-            {!isPortfolioPage && <div className="pt-4 border-t border-gray-800">
+            {!isPortfolioPage && <div className={`pt-4 border-t ${isDark ? 'border-gray-800' : 'border-slate-200'}`}>
               {isAuthenticated ? (
                 <div className="space-y-2">
                   <div className="flex items-center px-3 py-2">
@@ -345,10 +370,10 @@ const Navbar = () => {
                       <User className={`w-4 h-4 ${accentStyles.avatarIcon}`} />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-white">
+                      <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
                         {user?.username}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
                         {user?.email}
                       </p>
                     </div>
@@ -365,7 +390,11 @@ const Navbar = () => {
                 <div className="space-y-2">
                   <Link
                     to="/login"
-                    className="flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-300 hover:text-white hover:bg-gray-800"
+                    className={`flex items-center px-3 py-2 text-base font-medium rounded-md ${
+                      isDark
+                        ? 'text-gray-300 hover:text-white hover:bg-gray-800'
+                        : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
+                    }`}
                     onClick={() => setIsOpen(false)}
                   >
                     <LogIn className="w-5 h-5 mr-3" />

@@ -1,20 +1,6 @@
 import { request } from './apiClient';
 
 export const authApi = {
-  async requestRegistrationOtp(email) {
-    return request('/api/mailer/send-otp', {
-      method: 'POST',
-      body: JSON.stringify({ email, purpose: 'registration' }),
-    });
-  },
-
-  async verifyRegistrationOtp(email, otp) {
-    return request('/api/mailer/verify-otp', {
-      method: 'POST',
-      body: JSON.stringify({ email, otp, purpose: 'registration' }),
-    });
-  },
-
   async register(payload) {
     return request('/api/auth/register', {
       method: 'POST',
