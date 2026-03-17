@@ -1,5 +1,5 @@
 // src/components/Hero.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   ChevronDownCircle,
@@ -12,11 +12,13 @@ import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { useNavigate } from "react-router-dom";
 import { codeExamples, floatingCards } from "../data/CodeExample";
 import { useAuth } from "../hooks/useAuth";
+import demoVideo from "../assets/demo/DevP-Demo.mp4";
 
 const Hero = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [activeTab, setActiveTab] = useState("App.jsx");
   const [showDemo, setShowDemo] = useState(false);
+  const demoVideoRef = useRef(null);
   const navigate = useNavigate();
   const { isAuthenticated, getDashboardPath, loading } = useAuth();
 
@@ -34,10 +36,21 @@ const Hero = () => {
       if (rafId) cancelAnimationFrame(rafId);
     };
   }, []);
-
   const currentFloatingCards = floatingCards[activeTab];
-  const demoGifUrl =
-    "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExN3ZoN2x0dnhwNml4Ynd3ZjN4cHQ3NzYzd2JjZ2NlMWN4d3B2cG5xYiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/13HgwGsXF0aiGY/giphy.gif";
+
+  useEffect(() => {
+    if (!showDemo || !demoVideoRef.current) return;
+    demoVideoRef.current.currentTime = 0;
+    demoVideoRef.current.play().catch(() => {});
+  }, [showDemo]);
+
+  const handleCloseDemo = () => {
+    if (demoVideoRef.current) {
+      demoVideoRef.current.pause();
+      demoVideoRef.current.currentTime = 0;
+    }
+    setShowDemo(false);
+  };
 
   const handleStartBuilding = () => {
     if (loading) return;
@@ -230,18 +243,23 @@ const Hero = () => {
               <h3 className="text-white text-lg font-semibold">Sample Projects Demo</h3>
               <button
                 type="button"
-                onClick={() => setShowDemo(false)}
+                onClick={handleCloseDemo}
                 className="p-2 text-gray-300 hover:text-white transition-colors"
                 aria-label="Close demo"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <img
-              src={demoGifUrl}
-              alt="Sample developer projects demo"
-              className="w-full h-auto max-h-[70vh] object-cover"
-            />
+            <video
+              ref={demoVideoRef}
+              src={demoVideo}
+              controls
+              playsInline
+              preload="metadata"
+              className="w-full h-auto max-h-[70vh] bg-black"
+            >
+              Your browser does not support the demo video.
+            </video>
           </div>
         </div>
       )}
