@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken');
+const validator = require('validator');
 const User = require('./user.schema');
 const EmailOtp = require('./otp.schema');
 
@@ -9,8 +10,21 @@ const OTP_EXPIRY_MS = Number(process.env.OTP_EXPIRY_MS) || 10 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS) || 3;
 const OTP_RESEND_COOLDOWN_MS = Number(process.env.OTP_RESEND_COOLDOWN_MS) || 45 * 1000;
 
-const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
-const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+const normalizeEmail = (value) =>
+  String(value || '')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .trim()
+    .toLowerCase();
+const isValidEmail = (value) => validator.isEmail(value);
+const extractEmailFromBody = (body) => {
+  if (!body || typeof body !== 'object') return '';
+  if (typeof body.email === 'string') return body.email;
+  if (body.email && typeof body.email === 'object' && typeof body.email.value === 'string') {
+    return body.email.value;
+  }
+  if (typeof body.userEmail === 'string') return body.userEmail;
+  return '';
+};
 
 const smtpUser = String(process.env.EMAIL || process.env.MAIL_USER || '').trim();
 const smtpPass = String(process.env.EMAILSECRET || process.env.MAIL_PASS || '').trim();
@@ -69,7 +83,7 @@ async function sendOTP(req, res) {
       });
     }
 
-    const email = normalizeEmail(req.body?.email);
+    const email = normalizeEmail(extractEmailFromBody(req.body));
     const purpose = String(req.body?.purpose || 'registration').trim().toLowerCase();
 
     if (purpose !== 'registration') {
@@ -152,7 +166,7 @@ async function verifyOTP(req, res) {
       });
     }
 
-    const email = normalizeEmail(req.body?.email);
+    const email = normalizeEmail(extractEmailFromBody(req.body));
     const otp = String(req.body?.otp || '').trim();
     const purpose = String(req.body?.purpose || 'registration').trim().toLowerCase();
 
