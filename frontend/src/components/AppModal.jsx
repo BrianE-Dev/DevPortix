@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 
 const modalStyles = {
   success: {
@@ -37,6 +38,8 @@ const AppModal = ({
   onCancel,
 }) => {
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     if (!isOpen || !showCancel) return undefined;
@@ -65,12 +68,18 @@ const AppModal = ({
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative w-full max-w-md rounded-xl border border-white/10 bg-slate-950 p-6 shadow-2xl">
+      <div
+        className={`relative w-full max-w-md rounded-xl p-6 shadow-2xl ${
+          isDark
+            ? 'border border-white/10 bg-slate-950'
+            : 'border border-slate-200 bg-white text-slate-900 shadow-slate-300/50'
+        }`}
+      >
         <div className="flex items-start gap-3">
           <Icon className={`w-6 h-6 mt-0.5 ${style.iconClass}`} />
           <div>
-            <h3 className="text-lg font-semibold text-white">{title}</h3>
-            <p className="mt-2 text-sm text-gray-300">{message}</p>
+            <h3 className={isDark ? 'text-lg font-semibold text-white' : 'text-lg font-semibold text-slate-900'}>{title}</h3>
+            <p className={isDark ? 'mt-2 text-sm text-gray-300' : 'mt-2 text-sm text-slate-600'}>{message}</p>
           </div>
         </div>
         <div className="mt-6 flex justify-end gap-2">
@@ -78,7 +87,11 @@ const AppModal = ({
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 rounded-lg border border-white/20 text-gray-200 hover:bg-white/10 transition"
+              className={`px-4 py-2 rounded-lg border transition ${
+                isDark
+                  ? 'border-white/20 text-gray-200 hover:bg-white/10'
+                  : 'border-slate-300 text-slate-700 hover:bg-slate-100'
+              }`}
             >
               {cancelText}
             </button>

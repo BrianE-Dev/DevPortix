@@ -140,6 +140,24 @@ pre::-webkit-scrollbar-thumb:hover {
   }
 }
 
+/* Preserve readable white text on genuinely dark or saturated controls in light mode */
+@layer utilities {
+  html:not(.dark) :is(button, a, span, div, label)[class*="bg-blue-600"].text-white,
+  html:not(.dark) :is(button, a, span, div, label)[class*="bg-emerald-600"].text-white,
+  html:not(.dark) :is(button, a, span, div, label)[class*="bg-red-500"].text-white,
+  html:not(.dark) :is(button, a, span, div, label)[class*="bg-red-600"].text-white,
+  html:not(.dark) :is(button, a, span, div, label)[class*="bg-amber-600"].text-white,
+  html:not(.dark) :is(button, a, span, div, label)[class*="bg-rose-600"].text-white,
+  html:not(.dark) :is(button, a, span, div, label)[class*="bg-violet-500"].text-white,
+  html:not(.dark) :is(button, a, span, div, label)[class*="bg-violet-600"].text-white,
+  html:not(.dark) :is(button, a, span, div, label)[class*="from-blue-600"][class*="to-purple-600"].text-white,
+  html:not(.dark) :is(button, a, span, div, label)[class*="from-blue-600"][class*="to-purple-600"] .text-white,
+  html:not(.dark) :is(button, a, span, div, label)[class*="from-blue-600"][class*="to-purple-600"] .text-gray-300,
+  html:not(.dark) :is(button, a, span, div, label)[class*="from-blue-600"][class*="to-purple-600"] .text-gray-400 {
+    color: rgb(255 255 255) !important;
+  }
+}
+
 /* Keep Hero's original bright text treatment in light mode */
 @layer utilities {
   html:not(.dark) .hero-theme-preserve .text-white {
@@ -272,9 +290,21 @@ pre::-webkit-scrollbar-thumb:hover {
 /* Global light-mode surface overrides for components still using dark utility classes */
 @layer utilities {
   .theme-light .bg-slate-950,
+  .theme-light .bg-slate-900,
+  .theme-light .bg-slate-900\/80,
+  .theme-light .bg-slate-800\/50,
   .theme-light .bg-gray-950,
-  .theme-light .bg-gray-900 {
+  .theme-light .bg-gray-900,
+  .theme-light .bg-gray-900\/60,
+  .theme-light .bg-gray-800\/50 {
     background-color: rgb(248 250 252) !important;
+  }
+
+  .theme-light .bg-white\/5,
+  .theme-light .bg-white\/10,
+  .theme-light .bg-white\/15,
+  .theme-light .bg-white\/20 {
+    background-color: rgb(255 255 255 / 0.85) !important;
   }
 
   .theme-light .bg-black\/20,
@@ -290,6 +320,26 @@ pre::-webkit-scrollbar-thumb:hover {
 
   .theme-light .hover\:bg-gray-800:hover {
     background-color: rgb(226 232 240) !important;
+  }
+
+  .theme-light .hover\:bg-gray-700:hover,
+  .theme-light .hover\:bg-slate-800:hover,
+  .theme-light .hover\:bg-white\/10:hover,
+  .theme-light .hover\:bg-white\/20:hover {
+    background-color: rgb(226 232 240 / 0.95) !important;
+  }
+
+  .theme-light .placeholder\:text-gray-400::placeholder {
+    color: rgb(100 116 139) !important;
+  }
+
+  .theme-light .file\:bg-white\/20::file-selector-button,
+  .theme-light .file\:bg-white\/30::file-selector-button {
+    background-color: rgb(71 85 105) !important;
+  }
+
+  .theme-light .file\:text-white::file-selector-button {
+    color: rgb(255 255 255) !important;
   }
 }
 
