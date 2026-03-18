@@ -102,6 +102,7 @@ const Testimonials = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [stepSize, setStepSize] = useState(0);
+  const [visibleCardCount, setVisibleCardCount] = useState(1);
   const [isTransitionEnabled, setIsTransitionEnabled] = useState(true);
   const activeUsersRef = useRef(null);
   const trackRef = useRef(null);
@@ -109,13 +110,16 @@ const Testimonials = () => {
   const cycleStartedAtRef = useRef(performance.now());
   const hasIncrementedThisVisitRef = useRef(false);
 
-  const carouselItems = useMemo(() => [...TESTIMONIALS, TESTIMONIALS[0]], []);
+  const carouselItems = useMemo(() => TESTIMONIALS, []);
 
   useEffect(() => {
     const measure = () => {
       const firstCard = trackRef.current?.querySelector('[data-testimonial-card="true"]');
       if (!firstCard) return;
-      setStepSize(firstCard.getBoundingClientRect().width);
+      const nextStepSize = firstCard.getBoundingClientRect().width;
+      const trackWidth = trackRef.current?.parentElement?.getBoundingClientRect().width || nextStepSize;
+      setStepSize(nextStepSize);
+      setVisibleCardCount(Math.max(1, Math.floor(trackWidth / nextStepSize)));
     };
 
     measure();
@@ -130,7 +134,17 @@ const Testimonials = () => {
       setProgress(nextProgress);
 
       if (nextProgress >= 1) {
-        setActiveIndex((current) => current + 1);
+        setActiveIndex((current) => {
+          const maxStartIndex = Math.max(TESTIMONIALS.length - visibleCardCount, 0);
+          if (current >= maxStartIndex) {
+            setIsTransitionEnabled(false);
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => setIsTransitionEnabled(true));
+            });
+            return 0;
+          }
+          return current + 1;
+        });
         cycleStartedAtRef.current = now;
         setProgress(0);
       }
@@ -203,15 +217,6 @@ const Testimonials = () => {
     return () => observer.disconnect();
   }, [hasAnimated]);
 
-  const handleTransitionEnd = () => {
-    if (activeIndex !== TESTIMONIALS.length) return;
-    setIsTransitionEnabled(false);
-    setActiveIndex(0);
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => setIsTransitionEnabled(true));
-    });
-  };
-
   const currentProfile = TESTIMONIALS[activeIndex % TESTIMONIALS.length];
 
   return (
@@ -240,7 +245,6 @@ const Testimonials = () => {
           <div className="mt-8 overflow-hidden">
             <div
               ref={trackRef}
-              onTransitionEnd={handleTransitionEnd}
               className={`flex ${isTransitionEnabled ? 'transition-transform duration-1000 ease-out' : ''}`}
               style={{ transform: `translateX(-${activeIndex * stepSize}px)` }}
             >
