@@ -8,8 +8,8 @@ import LocalStorageService from '../services/localStorageService';
 
 const ACCENT_NAV_STYLES = {
   blue: {
-    navDark: 'bg-gradient-to-r from-gray-900/95 via-violet-950/95 to-blue-950/95 border-white/10',
-    navLight: 'bg-gradient-to-r from-slate-100/95 via-cyan-50/95 to-blue-100/95 border-slate-200',
+    navDark: 'bg-gradient-to-r from-slate-950/95 via-slate-900/95 to-blue-950/95 border-white/10',
+    navLight: 'bg-gradient-to-r from-gray-900/95 via-violet-950/95 to-blue-950/95 border-slate-700/60',
     activeDesktopLink: 'text-blue-500',
     activeMobileLinkDark: 'text-blue-400 bg-gray-800',
     activeMobileLinkLight: 'text-blue-700 bg-blue-100',
@@ -18,8 +18,8 @@ const ACCENT_NAV_STYLES = {
     ctaGradient: 'bg-gradient-to-r from-blue-600 to-purple-600',
   },
   emerald: {
-    navDark: 'bg-gradient-to-r from-gray-900/95 via-emerald-950/95 to-teal-950/95 border-white/10',
-    navLight: 'bg-gradient-to-r from-emerald-50/95 via-teal-50/95 to-cyan-100/95 border-slate-200',
+    navDark: 'bg-gradient-to-r from-slate-950/95 via-slate-900/95 to-blue-950/95 border-white/10',
+    navLight: 'bg-gradient-to-r from-gray-900/95 via-emerald-950/95 to-teal-950/95 border-slate-700/60',
     activeDesktopLink: 'text-emerald-500',
     activeMobileLinkDark: 'text-emerald-300 bg-gray-800',
     activeMobileLinkLight: 'text-emerald-700 bg-emerald-100',
@@ -28,8 +28,8 @@ const ACCENT_NAV_STYLES = {
     ctaGradient: 'bg-gradient-to-r from-emerald-600 to-teal-600',
   },
   rose: {
-    navDark: 'bg-gradient-to-r from-gray-900/95 via-rose-950/95 to-pink-950/95 border-white/10',
-    navLight: 'bg-gradient-to-r from-rose-50/95 via-pink-50/95 to-orange-50/95 border-slate-200',
+    navDark: 'bg-gradient-to-r from-slate-950/95 via-slate-900/95 to-blue-950/95 border-white/10',
+    navLight: 'bg-gradient-to-r from-gray-900/95 via-rose-950/95 to-pink-950/95 border-slate-700/60',
     activeDesktopLink: 'text-rose-500',
     activeMobileLinkDark: 'text-rose-300 bg-gray-800',
     activeMobileLinkLight: 'text-rose-700 bg-rose-100',
@@ -38,8 +38,8 @@ const ACCENT_NAV_STYLES = {
     ctaGradient: 'bg-gradient-to-r from-rose-600 to-pink-600',
   },
   amber: {
-    navDark: 'bg-gradient-to-r from-gray-900/95 via-amber-950/95 to-orange-950/95 border-white/10',
-    navLight: 'bg-gradient-to-r from-amber-50/95 via-orange-50/95 to-yellow-100/95 border-slate-200',
+    navDark: 'bg-gradient-to-r from-slate-950/95 via-slate-900/95 to-blue-950/95 border-white/10',
+    navLight: 'bg-gradient-to-r from-gray-900/95 via-amber-950/95 to-orange-950/95 border-slate-700/60',
     activeDesktopLink: 'text-amber-500',
     activeMobileLinkDark: 'text-amber-300 bg-gray-800',
     activeMobileLinkLight: 'text-amber-700 bg-amber-100',
@@ -48,8 +48,8 @@ const ACCENT_NAV_STYLES = {
     ctaGradient: 'bg-gradient-to-r from-amber-600 to-orange-600',
   },
   violet: {
-    navDark: 'bg-gradient-to-r from-gray-900/95 via-violet-950/95 to-fuchsia-950/95 border-white/10',
-    navLight: 'bg-gradient-to-r from-violet-50/95 via-fuchsia-50/95 to-indigo-100/95 border-slate-200',
+    navDark: 'bg-gradient-to-r from-slate-950/95 via-slate-900/95 to-blue-950/95 border-white/10',
+    navLight: 'bg-gradient-to-r from-gray-900/95 via-violet-950/95 to-fuchsia-950/95 border-slate-700/60',
     activeDesktopLink: 'text-violet-500',
     activeMobileLinkDark: 'text-violet-300 bg-gray-800',
     activeMobileLinkLight: 'text-violet-700 bg-violet-100',
