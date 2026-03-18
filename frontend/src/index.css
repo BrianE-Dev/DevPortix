@@ -193,6 +193,13 @@
     animation: dashboardCardGlow 4.4s ease-in-out infinite, dashboardFloatC 7.4s ease-in-out infinite;
   }
 
+  .landing-breathe-card {
+    animation: landingCardBreathe 6.8s ease-in-out infinite;
+    animation-delay: var(--breathe-delay, 0s);
+    transform-origin: center center;
+    will-change: transform, box-shadow, border-color;
+  }
+
   /* Global card hover lift for the shared frosted card pattern */
   :is(div, section, article, li)[class*="bg-white/5"][class*="border-white/10"][class*="rounded-"] {
     @apply transition-transform duration-300;
@@ -207,6 +214,10 @@
     .dashboard-panel::after,
     .dashboard-stat-card,
     .dashboard-sidebar-accent {
+      animation: none !important;
+    }
+
+    .landing-breathe-card {
       animation: none !important;
     }
 
@@ -296,6 +307,21 @@
   }
   .delay-2000{
     animation-delay: 2000ms;
+  }
+}
+
+@keyframes landingCardBreathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 18px 50px rgba(2, 6, 23, 0.28);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  50% {
+    transform: translateY(-6px) scale(1.012);
+    box-shadow: 0 28px 65px rgba(30, 41, 59, 0.34);
+    border-color: rgba(255, 255, 255, 0.18);
   }
 }
 
@@ -517,12 +543,14 @@ pre::-webkit-scrollbar-thumb:hover {
     color: rgb(255 255 255) !important;
   }
 
+  html:not(.dark) .navbar-theme-preserve .text-gray-100,
+  html:not(.dark) .navbar-theme-preserve .text-gray-200,
   html:not(.dark) .navbar-theme-preserve .text-gray-300 {
-    color: rgb(209 213 219) !important;
+    color: rgb(255 255 255) !important;
   }
 
   html:not(.dark) .navbar-theme-preserve .text-gray-400 {
-    color: rgb(156 163 175) !important;
+    color: rgb(255 255 255) !important;
   }
 
   html:not(.dark) .navbar-theme-preserve .text-blue-400 {
@@ -531,6 +559,76 @@ pre::-webkit-scrollbar-thumb:hover {
 
   html:not(.dark) .navbar-theme-preserve .text-red-300 {
     color: rgb(252 165 165) !important;
+  }
+
+  html:not(.dark) .navbar-theme-preserve a,
+  html:not(.dark) .navbar-theme-preserve button,
+  html:not(.dark) .navbar-theme-preserve span,
+  html:not(.dark) .navbar-theme-preserve p {
+    color: rgb(255 255 255);
+  }
+}
+
+/* Make muted gray text black on genuinely light surfaces in light mode */
+@layer utilities {
+  html:not(.dark) :is(
+    div,
+    section,
+    article,
+    nav,
+    form,
+    aside,
+    main,
+    header,
+    footer,
+    li
+  )[class*="bg-white"] :is(
+    .text-gray-300,
+    .text-gray-400,
+    .text-gray-500,
+    .text-slate-300,
+    .text-slate-400,
+    .text-slate-500
+  ),
+  html:not(.dark) :is(
+    div,
+    section,
+    article,
+    nav,
+    form,
+    aside,
+    main,
+    header,
+    footer,
+    li
+  )[class*="bg-gray-50"] :is(
+    .text-gray-300,
+    .text-gray-400,
+    .text-gray-500,
+    .text-slate-300,
+    .text-slate-400,
+    .text-slate-500
+  ),
+  html:not(.dark) :is(
+    div,
+    section,
+    article,
+    nav,
+    form,
+    aside,
+    main,
+    header,
+    footer,
+    li
+  )[class*="bg-slate-50"] :is(
+    .text-gray-300,
+    .text-gray-400,
+    .text-gray-500,
+    .text-slate-300,
+    .text-slate-400,
+    .text-slate-500
+  ) {
+    color: rgb(15 23 42) !important;
   }
 }
 

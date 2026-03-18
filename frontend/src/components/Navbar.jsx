@@ -171,7 +171,7 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`sticky top-0 w-full backdrop-blur-lg z-50 border-b ${
+      className={`navbar-theme-preserve sticky top-0 w-full backdrop-blur-lg z-50 border-b ${
         isDark
           ? accentStyles.navDark
           : accentStyles.navLight
