@@ -64,7 +64,7 @@ const Navbar = () => {
   const [accent, setAccent] = useState(() => LocalStorageService.getDashboardAccent());
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout, isAuthenticated, getDashboardPath } = useAuth();
+  const { user, logout, isAuthenticated, getDashboardPath, updateProfile } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const dashboardPath = getDashboardPath();
   const isDark = theme === 'dark';
@@ -118,6 +118,40 @@ const Navbar = () => {
     setIsOpen(false);
   };
 
+  const getProfileMenuKey = () => {
+    const role = String(user?.role || '').toLowerCase();
+    if (role === 'student') return { storageKey: 'student', menuKey: 'profile' };
+    if (role === 'instructor') return { storageKey: 'instructor', menuKey: 'profile' };
+    if (role === 'professional') return { storageKey: 'professional', menuKey: 'profile' };
+    if (role === 'organization') return { storageKey: 'organization', menuKey: 'profile' };
+    return null;
+  };
+
+  const handleProfileNavigation = async () => {
+    if (!isAuthenticated) return;
+
+    const profileMenu = getProfileMenuKey();
+    if (!profileMenu) {
+      navigate(dashboardPath);
+      setIsOpen(false);
+      return;
+    }
+
+    try {
+      await updateProfile({
+        dashboardMenu: {
+          ...(user?.dashboardMenu || {}),
+          [profileMenu.storageKey]: profileMenu.menuKey,
+        },
+      });
+    } catch {
+      // Navigate anyway even if persistence fails.
+    }
+
+    navigate(dashboardPath);
+    setIsOpen(false);
+  };
+
   const handleLinkClick = (path) => {
     setIsOpen(false);
     if (path.startsWith('/#')) {
@@ -153,7 +187,7 @@ const Navbar = () => {
                   <img src={logo} alt="DEVPORTIX Logo" className="w-28 h-10 lg:w-40 lg:h-12" />
                 </div>
                 {!isPortfolioPage && (
-                  <span className={`text-xs mt-1 sm:text-sm group-hover:text-cyan-600 ${isDark ? 'text-white/90' : 'text-slate-700'}`}>
+                  <span className={`text-xs mt-1 sm:text-sm group-hover:text-violet-300 ${isDark ? 'text-white/90' : 'text-white/90'}`}>
                     <p> ... your code, your story.</p>
                   </span>
                 )}
@@ -171,7 +205,7 @@ const Navbar = () => {
                     type="button"
                     onClick={() => handleLinkClick(link.path)}
                     className={`px-3 py-2 text-sm font-medium transition ${
-                      isDark ? 'text-gray-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'
+                      isDark ? 'text-gray-300 hover:text-white' : 'text-white/90 hover:text-white'
                     }`}
                   >
                     {link.name}
@@ -192,7 +226,7 @@ const Navbar = () => {
                         ? accentStyles.activeDesktopLink
                         : isDark
                           ? 'text-gray-300 hover:text-white'
-                          : 'text-slate-700 hover:text-slate-950'
+                          : 'text-white/90 hover:text-white'
                     }`}
                   >
                     {link.name}
@@ -207,7 +241,7 @@ const Navbar = () => {
                       ? accentStyles.activeDesktopLink
                       : isDark
                         ? 'text-gray-300 hover:text-white'
-                        : 'text-slate-700 hover:text-slate-950'
+                        : 'text-white/90 hover:text-white'
                   }`}
                 >
                   Dashboard
@@ -222,14 +256,14 @@ const Navbar = () => {
             <button
               onClick={toggleTheme}
               className={`p-2 rounded-lg transition-colors ${
-                isDark ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'
+                isDark ? 'bg-gray-800 hover:bg-gray-700' : 'bg-transparent hover:bg-white/10 border border-white/10'
               }`}
               aria-label="Toggle theme"
             >
               {isDark ? (
                 <Sun className="w-5 h-5 text-yellow-500" />
               ) : (
-                <Moon className="w-5 h-5 text-gray-700" />
+                <Moon className="w-5 h-5 text-white" />
               )}
             </button>
 
@@ -237,10 +271,16 @@ const Navbar = () => {
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${accentStyles.avatarBg}`}>
+                  <button
+                    type="button"
+                    onClick={handleProfileNavigation}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center border transition hover:scale-105 ${accentStyles.avatarBg}`}
+                    aria-label="Open profile in dashboard"
+                    title="Open profile"
+                  >
                     <User className={`w-4 h-4 ${accentStyles.avatarIcon}`} />
-                  </div>
-                  <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-slate-800'}`}>
+                  </button>
+                  <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-white'}`}>
                     {user?.username}
                   </span>
                 </div>
@@ -257,7 +297,7 @@ const Navbar = () => {
                 <Link
                   to="/login"
                   className={`px-4 py-2 text-sm font-medium transition flex items-center ${
-                    isDark ? 'text-gray-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'
+                    isDark ? 'text-gray-300 hover:text-white' : 'text-white/90 hover:text-white'
                   }`}
                 >
                   <LogIn className="w-5 h-5 mr-2" />
@@ -278,14 +318,14 @@ const Navbar = () => {
             <button
               onClick={toggleTheme}
               className={`p-2 rounded-lg transition-colors ${
-                isDark ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'
+                isDark ? 'bg-gray-800 hover:bg-gray-700' : 'bg-transparent hover:bg-white/10 border border-white/10'
               }`}
               aria-label="Toggle theme"
             >
               {isDark ? (
                 <Sun className="w-5 h-5 text-yellow-500" />
               ) : (
-                <Moon className="w-5 h-5 text-gray-700" />
+                <Moon className="w-5 h-5 text-white" />
               )}
             </button>
             <button
@@ -293,7 +333,7 @@ const Navbar = () => {
               className={`inline-flex items-center justify-center p-2 rounded-md focus:outline-none ${
                 isDark
                   ? 'text-gray-400 hover:text-white hover:bg-gray-800'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+                  : 'text-white/90 hover:text-white hover:bg-white/10'
               }`}
             >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -304,7 +344,7 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       {isOpen && (
-        <div className={`md:hidden border-b ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200'}`}>
+        <div className={`md:hidden border-b ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-slate-950/95 border-slate-700/60'}`}>
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             {currentNavLinks.map((link) => (
               isPortfolioPage ? (
@@ -318,7 +358,7 @@ const Navbar = () => {
                   className={`block w-full text-left px-3 py-2 text-base font-medium ${
                     isDark
                       ? 'text-gray-300 hover:text-white hover:bg-gray-800'
-                      : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
+                      : 'text-white/90 hover:text-white hover:bg-white/10'
                   }`}
                 >
                   {link.name}
@@ -340,7 +380,7 @@ const Navbar = () => {
                       ? (isDark ? accentStyles.activeMobileLinkDark : accentStyles.activeMobileLinkLight)
                       : isDark
                         ? 'text-gray-300 hover:text-white hover:bg-gray-800'
-                        : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
+                        : 'text-white/90 hover:text-white hover:bg-white/10'
                   }`}
                 >
                   {link.name}
@@ -352,28 +392,33 @@ const Navbar = () => {
                 to={dashboardPath}
                 className={`block px-3 py-2 text-base font-medium ${
                   location.pathname === dashboardPath
-                    ? (isDark ? accentStyles.activeMobileLinkDark : accentStyles.activeMobileLinkLight)
-                    : isDark
-                      ? 'text-gray-300 hover:text-white hover:bg-gray-800'
-                      : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
+                  ? (isDark ? accentStyles.activeMobileLinkDark : accentStyles.activeMobileLinkLight)
+                  : isDark
+                    ? 'text-gray-300 hover:text-white hover:bg-gray-800'
+                    : 'text-white/90 hover:text-white hover:bg-white/10'
                 }`}
                 onClick={() => setIsOpen(false)}
               >
                 Dashboard
               </Link>
             )}
-            {!isPortfolioPage && <div className={`pt-4 border-t ${isDark ? 'border-gray-800' : 'border-slate-200'}`}>
+            {!isPortfolioPage && <div className={`pt-4 border-t ${isDark ? 'border-gray-800' : 'border-slate-700/60'}`}>
               {isAuthenticated ? (
                 <div className="space-y-2">
                   <div className="flex items-center px-3 py-2">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 border ${accentStyles.avatarBg}`}>
+                    <button
+                      type="button"
+                      onClick={handleProfileNavigation}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 border transition hover:scale-105 ${accentStyles.avatarBg}`}
+                      aria-label="Open profile in dashboard"
+                    >
                       <User className={`w-4 h-4 ${accentStyles.avatarIcon}`} />
-                    </div>
+                    </button>
                     <div>
-                      <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                      <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-white'}`}>
                         {user?.username}
                       </p>
-                      <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
+                      <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-slate-300'}`}>
                         {user?.email}
                       </p>
                     </div>
@@ -393,7 +438,7 @@ const Navbar = () => {
                     className={`flex items-center px-3 py-2 text-base font-medium rounded-md ${
                       isDark
                         ? 'text-gray-300 hover:text-white hover:bg-gray-800'
-                        : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
+                        : 'text-white/90 hover:text-white hover:bg-white/10'
                     }`}
                     onClick={() => setIsOpen(false)}
                   >

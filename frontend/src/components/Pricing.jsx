@@ -192,6 +192,20 @@ const Pricing = () => {
               ? 'Organization accounts start from Basic and can upgrade anytime.'
               : 'Start free and upgrade anytime as your student base grows.'}
           </p>
+          <div className="mx-auto mt-6 grid max-w-5xl gap-4 text-left md:grid-cols-2">
+            <p className="rounded-2xl border border-white/8 bg-slate-900/55 px-5 py-4 text-sm leading-7 text-slate-300">
+              Instructors can start with the plan that fits their current student size, then upgrade smoothly as cohorts, assessments, and review workflows expand.
+            </p>
+            <p className="rounded-2xl border border-white/8 bg-slate-900/55 px-5 py-4 text-sm leading-7 text-slate-300">
+              Organizations and training schools can choose structured plans built for larger enrollments, cleaner reporting, and stronger operational visibility.
+            </p>
+            <p className="rounded-2xl border border-white/8 bg-slate-900/55 px-5 py-4 text-sm leading-7 text-slate-300">
+              Students benefit from plans that unlock portfolio access, progress tracking, certificates, and a more complete learning experience across the platform.
+            </p>
+            <p className="rounded-2xl border border-white/8 bg-slate-900/55 px-5 py-4 text-sm leading-7 text-slate-300">
+              Professionals can move to higher tiers when they need advanced portfolio controls, collaboration tools, and stronger support as their work grows.
+            </p>
+          </div>
           {notice && <p className="text-green-300 mt-3">{notice}</p>}
           {error && <p className="text-red-300 mt-3">{error}</p>}
         </div>

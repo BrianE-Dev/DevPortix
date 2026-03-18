@@ -36,6 +36,20 @@ const Hero = () => {
       if (rafId) cancelAnimationFrame(rafId);
     };
   }, []);
+
+  useEffect(() => {
+    const tabs = ["App.jsx", "Hero.jsx", "Navbar.jsx"];
+    const intervalId = window.setInterval(() => {
+      setActiveTab((currentTab) => {
+        const currentIndex = tabs.indexOf(currentTab);
+        const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % tabs.length;
+        return tabs[nextIndex];
+      });
+    }, 3200);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   const currentFloatingCards = floatingCards[activeTab];
 
   useEffect(() => {

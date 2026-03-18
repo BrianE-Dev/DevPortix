@@ -52,12 +52,52 @@ const TESTIMONIALS = [
       'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80',
     rating: 5,
   },
+  {
+    id: 6,
+    name: 'Elena Brooks',
+    role: 'Product Designer',
+    company: 'Northgrid',
+    content: 'The carousel, layout polish, and portfolio structure made the whole product feel far more premium.',
+    avatar:
+      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=800&q=80',
+    rating: 5,
+  },
 ];
 
 const SLIDE_DURATION_MS = 7000;
+const STATS_STORAGE_KEY = 'devportix_testimonial_stats';
+const DEFAULT_STATS = {
+  activeUsers: 7152,
+  averageRating: 4.9,
+  countries: 50,
+  satisfaction: 98,
+};
+
+const readStoredStats = () => {
+  if (typeof window === 'undefined') return DEFAULT_STATS;
+
+  try {
+    const raw = window.localStorage.getItem(STATS_STORAGE_KEY);
+    if (!raw) return DEFAULT_STATS;
+    const parsed = JSON.parse(raw);
+    return {
+      activeUsers: Number(parsed?.activeUsers) || DEFAULT_STATS.activeUsers,
+      averageRating: Number(parsed?.averageRating) || DEFAULT_STATS.averageRating,
+      countries: Number(parsed?.countries) || DEFAULT_STATS.countries,
+      satisfaction: Number(parsed?.satisfaction) || DEFAULT_STATS.satisfaction,
+    };
+  } catch {
+    return DEFAULT_STATS;
+  }
+};
+
+const formatCount = (value) => `${Math.floor(value).toLocaleString()}+`;
+const formatRating = (value) => `${value.toFixed(1)}/5`;
+const formatCountries = (value) => `${Math.floor(value)}+`;
+const formatSatisfaction = (value) => `${Math.round(value)}%`;
 
 const Testimonials = () => {
-  const [activeUsersCount, setActiveUsersCount] = useState(0);
+  const [stats, setStats] = useState(() => readStoredStats());
   const [hasAnimated, setHasAnimated] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -67,6 +107,7 @@ const Testimonials = () => {
   const trackRef = useRef(null);
   const frameRef = useRef(null);
   const cycleStartedAtRef = useRef(performance.now());
+  const hasIncrementedThisVisitRef = useRef(false);
 
   const carouselItems = useMemo(() => [...TESTIMONIALS, TESTIMONIALS[0]], []);
 
@@ -74,8 +115,7 @@ const Testimonials = () => {
     const measure = () => {
       const firstCard = trackRef.current?.querySelector('[data-testimonial-card="true"]');
       if (!firstCard) return;
-      const gap = 20;
-      setStepSize(firstCard.getBoundingClientRect().width + gap);
+      setStepSize(firstCard.getBoundingClientRect().width);
     };
 
     measure();
@@ -105,26 +145,50 @@ const Testimonials = () => {
   }, []);
 
   useEffect(() => {
-    const target = 7152;
-    const durationMs = 1600;
     const node = activeUsersRef.current;
     if (!node || hasAnimated) return undefined;
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (!entry.isIntersecting || hasAnimated) return;
+          if (!entry.isIntersecting || hasIncrementedThisVisitRef.current) return;
 
+          hasIncrementedThisVisitRef.current = true;
           setHasAnimated(true);
+
+          const currentStats = readStoredStats();
+          const nextStats = {
+            activeUsers: currentStats.activeUsers + 37,
+            averageRating: Math.min(5, currentStats.averageRating + 0.03),
+            countries: currentStats.countries + 1,
+            satisfaction: Math.min(100, currentStats.satisfaction + 1),
+          };
+
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(nextStats));
+          }
+
+          const durationMs = 1600;
           const start = performance.now();
 
           const tick = (now) => {
             const progressValue = Math.min((now - start) / durationMs, 1);
             const eased = 1 - Math.pow(1 - progressValue, 3);
-            setActiveUsersCount(Math.floor(target * eased));
+
+            setStats({
+              activeUsers:
+                currentStats.activeUsers + (nextStats.activeUsers - currentStats.activeUsers) * eased,
+              averageRating:
+                currentStats.averageRating + (nextStats.averageRating - currentStats.averageRating) * eased,
+              countries: currentStats.countries + (nextStats.countries - currentStats.countries) * eased,
+              satisfaction:
+                currentStats.satisfaction + (nextStats.satisfaction - currentStats.satisfaction) * eased,
+            });
 
             if (progressValue < 1) {
               requestAnimationFrame(tick);
+            } else {
+              setStats(nextStats);
             }
           };
 
@@ -177,7 +241,7 @@ const Testimonials = () => {
             <div
               ref={trackRef}
               onTransitionEnd={handleTransitionEnd}
-              className={`flex gap-5 ${isTransitionEnabled ? 'transition-transform duration-1000 ease-out' : ''}`}
+              className={`flex ${isTransitionEnabled ? 'transition-transform duration-1000 ease-out' : ''}`}
               style={{ transform: `translateX(-${activeIndex * stepSize}px)` }}
             >
               {carouselItems.map((testimonial, index) => (
@@ -204,7 +268,7 @@ const Testimonials = () => {
                     </div>
                     <h4 className="mt-3 text-sm font-semibold text-white">{testimonial.name}</h4>
                     <p className="mt-1 text-[11px] text-slate-300">
-                      {testimonial.role} • {testimonial.company}
+                      {testimonial.role} {'•'} {testimonial.company}
                     </p>
                     <blockquote className="mt-3 text-sm leading-6 text-slate-100/95">
                       "{testimonial.content}"
@@ -227,19 +291,19 @@ const Testimonials = () => {
 
         <div className="mt-12 grid grid-cols-2 gap-6 md:grid-cols-4">
           <div ref={activeUsersRef} className="text-center">
-            <div className="text-3xl font-bold text-white">{activeUsersCount.toLocaleString()}+</div>
+            <div className="text-3xl font-bold text-white">{formatCount(stats.activeUsers)}</div>
             <div className="mt-2 text-sm text-slate-400">Active Users</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-white">4.9/5</div>
+            <div className="text-3xl font-bold text-white">{formatRating(stats.averageRating)}</div>
             <div className="mt-2 text-sm text-slate-400">Average Rating</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-white">50+</div>
+            <div className="text-3xl font-bold text-white">{formatCountries(stats.countries)}</div>
             <div className="mt-2 text-sm text-slate-400">Countries</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-white">98%</div>
+            <div className="text-3xl font-bold text-white">{formatSatisfaction(stats.satisfaction)}</div>
             <div className="mt-2 text-sm text-slate-400">Satisfaction</div>
           </div>
         </div>
