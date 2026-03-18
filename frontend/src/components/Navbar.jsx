@@ -268,7 +268,7 @@ const Navbar = () => {
               {isDark ? (
                 <Sun className="w-5 h-5 text-yellow-500" />
               ) : (
-                <Moon className="w-5 h-5 text-white" />
+                <Moon className="w-5 h-5 text-white [filter:drop-shadow(0_0_1px_rgba(255,255,255,0.95))]" strokeWidth={2.5} />
               )}
             </button>
 
@@ -330,7 +330,7 @@ const Navbar = () => {
               {isDark ? (
                 <Sun className="w-5 h-5 text-yellow-500" />
               ) : (
-                <Moon className="w-5 h-5 text-white" />
+                <Moon className="w-5 h-5 text-white [filter:drop-shadow(0_0_1px_rgba(255,255,255,0.95))]" strokeWidth={2.5} />
               )}
             </button>
             <button
