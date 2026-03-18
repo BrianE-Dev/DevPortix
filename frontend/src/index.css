@@ -18,7 +18,7 @@
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background:
-      radial-gradient(circle at top, rgba(56, 189, 248, 0.12), transparent 34%),
+      radial-gradient(circle at top, rgba(99, 102, 241, 0.16), transparent 34%),
       linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
       linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px),
       linear-gradient(180deg, rgba(7, 17, 31, 0.98), rgba(7, 17, 31, 0.94));
@@ -40,7 +40,7 @@
     top: -8rem;
     width: 20rem;
     height: 20rem;
-    background: rgba(34, 211, 238, 0.14);
+    background: rgba(99, 102, 241, 0.18);
   }
 
   .dashboard-platform::after {
@@ -48,7 +48,7 @@
     bottom: -12rem;
     width: 24rem;
     height: 24rem;
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(139, 92, 246, 0.16);
   }
 
   .dashboard-sidebar {
@@ -97,7 +97,7 @@
     width: 320px;
     height: 320px;
     border-radius: 9999px;
-    background: radial-gradient(circle, rgba(56, 189, 248, 0.14), transparent 70%);
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.18), transparent 70%);
     pointer-events: none;
   }
 
@@ -116,7 +116,7 @@
     position: absolute;
     inset: -18%;
     border-radius: inherit;
-    background: radial-gradient(circle, rgba(56, 189, 248, 0.14), transparent 58%);
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.14), transparent 58%);
     opacity: 0.28;
     filter: blur(22px);
     animation: dashboardGlowPulse 3.4s ease-in-out infinite;
@@ -143,7 +143,7 @@
     align-items: center;
     gap: 0.5rem;
     border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(56, 189, 248, 0.1);
+    background: rgba(99, 102, 241, 0.12);
     padding: 0.5rem 0.875rem;
     border-radius: 9999px;
     font-size: 0.75rem;
@@ -179,9 +179,9 @@
 
   .dashboard-nav-active {
     border-color: transparent;
-    background-image: linear-gradient(to right, rgb(34 211 238), rgb(14 165 233), rgb(37 99 235));
+    background-image: linear-gradient(to right, rgb(37 99 235), rgb(79 70 229), rgb(139 92 246));
     color: white;
-    box-shadow: 0 14px 40px rgba(56, 189, 248, 0.28);
+    box-shadow: 0 14px 40px rgba(79, 70, 229, 0.3);
   }
 
   .dashboard-sidebar-accent {
@@ -220,7 +220,7 @@
   .theme-light .dashboard-platform {
     border-color: rgb(203 213 225 / 0.9);
     background:
-      radial-gradient(circle at top, rgba(14, 165, 233, 0.14), transparent 38%),
+      radial-gradient(circle at top, rgba(99, 102, 241, 0.14), transparent 38%),
       linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
       linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
       linear-gradient(180deg, rgba(244, 248, 252, 0.98), rgba(244, 248, 252, 0.96));
@@ -251,7 +251,7 @@
   }
 
   .theme-light .dashboard-panel::after {
-    background: radial-gradient(circle, rgba(14, 165, 233, 0.12), transparent 58%);
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.12), transparent 58%);
   }
 }
 
@@ -308,11 +308,11 @@
   }
 
   50% {
-    border-color: rgba(56, 189, 248, 0.28);
+    border-color: rgba(99, 102, 241, 0.28);
     box-shadow:
       0 28px 78px rgba(2, 6, 23, 0.38),
-      0 0 0 1px rgba(56, 189, 248, 0.08),
-      0 0 30px rgba(56, 189, 248, 0.12);
+      0 0 0 1px rgba(99, 102, 241, 0.1),
+      0 0 30px rgba(139, 92, 246, 0.12);
     opacity: 1;
   }
 }

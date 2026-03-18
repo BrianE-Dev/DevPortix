@@ -56,10 +56,10 @@ const StudentDashboard = () => {
   const [portfolioUpgradeRequired, setPortfolioUpgradeRequired] = useState(false);
   const [accentKey, setAccentKey] = useState(() => LocalStorageService.getDashboardAccent(user?.id));
   const activeAccent = getDashboardAccent(
-    portfolio?.accent ||
     LocalStorageService.getDashboardAccentIntent(user?.id) ||
     accentKey ||
-    LocalStorageService.getDashboardAccent(user?.id)
+    LocalStorageService.getDashboardAccent(user?.id) ||
+    portfolio?.accent
   );
   const hasPortfolio = Boolean(portfolio);
   const portfolioPath = hasPortfolio

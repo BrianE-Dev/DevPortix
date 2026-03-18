@@ -36,10 +36,10 @@ const ProfessionalDashboard = () => {
   const lastPortfolioMutationAtRef = useRef(0);
   const accentIntentRef = useRef('');
   const activeAccent = getDashboardAccent(
-    portfolio?.accent ||
     LocalStorageService.getDashboardAccentIntent(user?.id) ||
     accentKey ||
-    LocalStorageService.getDashboardAccent(user?.id)
+    LocalStorageService.getDashboardAccent(user?.id) ||
+    portfolio?.accent
   );
   const hasPortfolio = Boolean(portfolio);
   const portfolioPath = hasPortfolio

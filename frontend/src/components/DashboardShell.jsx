@@ -39,7 +39,7 @@ const DashboardShell = ({
   }, [user?.subscription]);
 
   const activeHighlightClass = activeTabClass
-    ? 'dashboard-nav-active text-white'
+    ? `${activeTabClass} border-transparent text-white shadow-[0_14px_40px_rgba(15,23,42,0.28)]`
     : theme === 'dark'
       ? 'dashboard-nav-active text-white'
       : 'dashboard-nav-active text-white';
@@ -60,7 +60,7 @@ const DashboardShell = ({
             </span>
           </span>
         </span>
-        <span className={`text-lg leading-none ${isActive ? 'text-white' : 'text-gray-500'}`}>›</span>
+        <span className={`text-lg leading-none ${isActive ? 'text-white' : 'text-gray-500'}`}>{'>'}</span>
       </>
     );
 
@@ -106,13 +106,13 @@ const DashboardShell = ({
           <div className="dashboard-sidebar-accent rounded-[28px] p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className={`text-[11px] uppercase tracking-[0.34em] font-semibold ${accentClass}`}>DevPort Workspace</p>
+                <p className={`text-[11px] uppercase tracking-[0.34em] font-semibold ${accentClass}`}>DevPortix Workspace</p>
                 <h2 className="mt-5 text-3xl font-semibold text-white">{role}</h2>
                 <p className="mt-4 text-sm leading-7 text-gray-400">
                   A cleaner command center for portfolio growth, learning, and day-to-day progress.
                 </p>
               </div>
-              <div className="shrink-0 rounded-[24px] border border-cyan-400/25 bg-cyan-400/10 p-4 text-cyan-200">
+              <div className="shrink-0 rounded-[24px] border border-violet-400/25 bg-indigo-500/10 p-4 text-indigo-200">
                 <Circle className="h-5 w-5 fill-current" />
               </div>
             </div>
@@ -133,7 +133,7 @@ const DashboardShell = ({
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-gray-400">Profile</span>
-                <span className={`rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-semibold ${accentClass}`}>
+                <span className={`rounded-full border border-violet-400/20 bg-indigo-500/10 px-3 py-1 text-xs font-semibold ${accentClass}`}>
                   Active
                 </span>
               </div>
@@ -151,7 +151,7 @@ const DashboardShell = ({
             <div className="flex flex-wrap items-start justify-between gap-5">
               <div>
                 <div className={`dashboard-metric-chip ${accentClass}`}>
-                  <span className={`inline-block h-2.5 w-2.5 rounded-full ${theme === 'dark' ? 'bg-cyan-300' : 'bg-cyan-600'}`} />
+                  <span className={`inline-block h-2.5 w-2.5 rounded-full ${theme === 'dark' ? 'bg-violet-300' : 'bg-indigo-600'}`} />
                   Report-style workspace
                 </div>
                 <h1 className="mt-4 text-3xl md:text-4xl font-bold text-white">{title}</h1>

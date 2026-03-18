@@ -15,7 +15,7 @@ const SuperAdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [error, setError] = useState('');
   const [busyUserId, setBusyUserId] = useState('');
-  const [accentKey, setAccentKey] = useState(() => LocalStorageService.getDashboardAccent());
+  const [accentKey, setAccentKey] = useState(() => LocalStorageService.getDashboardAccent(user?.id));
   const activeAccent = getDashboardAccent(accentKey);
 
   const menuItems = useMemo(
@@ -45,14 +45,14 @@ const SuperAdminDashboard = () => {
 
   useEffect(() => {
     const handleAccentChanged = (event) => {
-      setAccentKey(event?.detail?.accent || LocalStorageService.getDashboardAccent());
+      setAccentKey(event?.detail?.accent || LocalStorageService.getDashboardAccent(user?.id));
     };
 
     window.addEventListener('devportix:accent-changed', handleAccentChanged);
     return () => {
       window.removeEventListener('devportix:accent-changed', handleAccentChanged);
     };
-  }, []);
+  }, [user?.id]);
 
   const handleRoleChange = async (targetUserId, nextRole) => {
     try {

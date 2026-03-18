@@ -30,6 +30,7 @@ const SettingsPanel = ({ accent }) => {
   );
 
   const changeAccent = (accentKey) => {
+    LocalStorageService.setDashboardAccentIntent(accentKey, user?.id);
     const nextAccent = LocalStorageService.setDashboardAccent(accentKey, user?.id);
     setSelectedAccent(nextAccent);
     showSuccess('Settings Updated', `Dashboard accent changed to ${accentKey}.`);

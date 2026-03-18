@@ -49,7 +49,7 @@ const InstructorDashboard = () => {
   const [editingAssignmentId, setEditingAssignmentId] = useState('');
   const [removeExistingAttachment, setRemoveExistingAttachment] = useState(false);
   const assignmentPreviewRef = useRef('');
-  const [accentKey, setAccentKey] = useState(() => LocalStorageService.getDashboardAccent());
+  const [accentKey, setAccentKey] = useState(() => LocalStorageService.getDashboardAccent(user?.id));
   const activeAccent = getDashboardAccent(accentKey);
 
   const menuItems = [
@@ -143,14 +143,14 @@ const InstructorDashboard = () => {
 
   useEffect(() => {
     const handleAccentChanged = (event) => {
-      setAccentKey(event?.detail?.accent || LocalStorageService.getDashboardAccent());
+      setAccentKey(event?.detail?.accent || LocalStorageService.getDashboardAccent(user?.id));
     };
 
     window.addEventListener('devportix:accent-changed', handleAccentChanged);
     return () => {
       window.removeEventListener('devportix:accent-changed', handleAccentChanged);
     };
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     assignmentPreviewRef.current = assignmentAttachmentPreviewUrl;
