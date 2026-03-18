@@ -83,13 +83,13 @@ const SuperAdminDashboard = () => {
       activeMenuKey="users"
       onMenuSelect={() => {}}
     >
-      <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+      <div className="dashboard-panel rounded-[1.5rem] p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold text-white">User Role Management</h3>
           <button
             type="button"
             onClick={loadUsers}
-            className="px-3 py-2 rounded-lg border border-white/20 text-white hover:bg-white/10 transition"
+            className="dashboard-soft-button px-3 py-2 rounded-xl text-white"
           >
             Refresh
           </button>
@@ -98,7 +98,7 @@ const SuperAdminDashboard = () => {
         {error && <p className="text-sm text-red-300 mb-4">{error}</p>}
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="dashboard-table w-full text-sm">
             <thead>
               <tr className="text-left border-b border-white/10">
                 <th className="py-3 pr-4 text-gray-300 font-medium">Name</th>
@@ -118,7 +118,7 @@ const SuperAdminDashboard = () => {
                       value={userItem.role}
                       disabled={busyUserId === userItem.id}
                       onChange={(event) => handleRoleChange(userItem.id, event.target.value)}
-                      className="px-3 py-2 rounded-lg border border-white/20 bg-black/30 text-white disabled:opacity-60"
+                      className="dashboard-input px-3 py-2 rounded-xl text-white disabled:opacity-60"
                     >
                       {ROLE_OPTIONS.map((role) => (
                         <option key={role} value={role}>

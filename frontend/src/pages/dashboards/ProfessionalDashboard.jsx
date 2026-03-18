@@ -399,26 +399,30 @@ const ProfessionalDashboard = () => {
     >
       {activeMenuKey === 'overview' && (
         <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
-            <h3 className="font-semibold text-lg mb-2 text-white">Experience</h3>
-            <p className="text-gray-300 mb-4">Showcase your work history</p>
-            <div className={`text-sm ${activeAccent.textClass}`}>Coming Soon</div>
+          <div className="dashboard-panel dashboard-stat-card rounded-[1.5rem] p-6">
+            <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Career</p>
+            <h3 className="font-semibold text-xl mt-3 mb-2 text-white">Experience</h3>
+            <p className="text-gray-300 mb-4">Showcase your work history with cleaner story-driven sections.</p>
+            <div className={`text-sm font-semibold ${activeAccent.textClass}`}>Coming Soon</div>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
-            <h3 className="font-semibold text-lg mb-2 text-white">Projects</h3>
-            <p className="text-gray-300 mb-4">Highlight professional projects</p>
-            <div className={`text-sm ${activeAccent.textClass}`}>Coming Soon</div>
+          <div className="dashboard-panel dashboard-stat-card rounded-[1.5rem] p-6">
+            <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Work</p>
+            <h3 className="font-semibold text-xl mt-3 mb-2 text-white">Projects</h3>
+            <p className="text-gray-300 mb-4">Highlight professional projects and measurable outcomes.</p>
+            <div className={`text-sm font-semibold ${activeAccent.textClass}`}>Coming Soon</div>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
-            <h3 className="font-semibold text-lg mb-2 text-white">Network</h3>
-            <p className="text-gray-300 mb-4">Connect with other professionals</p>
-            <div className={`text-sm ${activeAccent.textClass}`}>Coming Soon</div>
+          <div className="dashboard-panel dashboard-stat-card rounded-[1.5rem] p-6">
+            <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Community</p>
+            <h3 className="font-semibold text-xl mt-3 mb-2 text-white">Network</h3>
+            <p className="text-gray-300 mb-4">Connect with other professionals through a cleaner hub layout.</p>
+            <div className={`text-sm font-semibold ${activeAccent.textClass}`}>Coming Soon</div>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
-            <h3 className="font-semibold text-lg mb-2 text-white">Skills</h3>
+          <div className="dashboard-panel dashboard-stat-card rounded-[1.5rem] p-6">
+            <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Identity</p>
+            <h3 className="font-semibold text-xl mt-3 mb-2 text-white">Skills</h3>
             <p className="text-gray-300 mb-4">Add and save the skills you want to showcase.</p>
             <div className="flex gap-2 mb-4">
               <input
@@ -427,7 +431,7 @@ const ProfessionalDashboard = () => {
                 onChange={(event) => setSkillInput(event.target.value)}
                 onKeyDown={handleSkillKeyDown}
                 placeholder="Type a skill (e.g. React)"
-                className={`flex-1 rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 ${activeAccent.focusRingClass}`}
+                className={`dashboard-input flex-1 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 ${activeAccent.focusRingClass}`}
               />
               <button
                 type="button"
@@ -501,7 +505,7 @@ const ProfessionalDashboard = () => {
       )}
 
       {activeMenuKey === 'experience' && (
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+        <div className="dashboard-panel rounded-[1.5rem] p-6">
           <h3 className="font-semibold text-lg mb-4 text-white">Professional Features</h3>
           <ul className="space-y-3 text-gray-300">
             <li>1. Detailed work experience with metrics.</li>
@@ -512,14 +516,14 @@ const ProfessionalDashboard = () => {
       )}
 
       {activeMenuKey === 'network' && (
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+        <div className="dashboard-panel rounded-[1.5rem] p-6">
           <h3 className="font-semibold text-lg mb-2 text-white">Network</h3>
           <p className="text-gray-300">Professional networking tools are coming soon.</p>
         </div>
       )}
 
       {activeMenuKey === 'create-portfolio' && !hasPortfolio && (
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+        <div className="dashboard-panel rounded-[1.5rem] p-6">
           <h3 className="text-xl font-semibold text-white mb-2">Create Portfolio</h3>
           <p className="text-gray-300">
             Generate your professional portfolio page to start customizing it.
@@ -536,7 +540,7 @@ const ProfessionalDashboard = () => {
       )}
 
       {activeMenuKey === 'portfolio-upgrade' && portfolioUpgradeRequired && (
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+        <div className="dashboard-panel rounded-[1.5rem] p-6">
           <h3 className="text-xl font-semibold text-white mb-2">Portfolio Access Locked</h3>
           <p className="text-gray-300">{UPGRADE_PROMPT}</p>
           <a

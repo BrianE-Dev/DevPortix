@@ -388,9 +388,10 @@ const InstructorDashboard = () => {
       {activeMenuKey === 'overview' && (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {kpiCards.map((card) => (
-            <div key={card.title} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
-              <h3 className="font-semibold text-lg text-white">{card.title}</h3>
-              <p className="text-3xl font-bold text-white mt-3">{card.value}</p>
+            <div key={card.title} className="dashboard-panel dashboard-stat-card rounded-[1.5rem] p-6">
+              <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Overview</p>
+              <h3 className="font-semibold text-lg text-white mt-3">{card.title}</h3>
+              <p className="text-3xl font-bold text-white mt-4">{card.value}</p>
               <p className={`text-sm mt-2 ${card.detailColor}`}>{card.detail}</p>
             </div>
           ))}
@@ -407,7 +408,7 @@ const InstructorDashboard = () => {
 
       {activeMenuKey === 'students' && (
         <div className="space-y-4">
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+          <div className="dashboard-panel rounded-[1.5rem] p-6">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold text-lg text-white">Assigned Students</h3>
               <button
@@ -426,7 +427,7 @@ const InstructorDashboard = () => {
                 value={studentEmailDraft}
                 onChange={(event) => setStudentEmailDraft(event.target.value)}
                 placeholder="Add student by email"
-                className="rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white"
+                className="dashboard-input rounded-xl px-3 py-2.5 text-sm text-white"
               />
               <button
                 type="button"
@@ -440,12 +441,12 @@ const InstructorDashboard = () => {
           </div>
 
           {students.length === 0 ? (
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+            <div className="dashboard-panel rounded-[1.5rem] p-6">
               <p className="text-gray-300">No students assigned yet.</p>
             </div>
           ) : (
             students.map((student) => (
-              <div key={student.id} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4">
+              <div key={student.id} className="dashboard-panel rounded-[1.25rem] p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold text-white">{student.fullName}</p>
@@ -469,7 +470,7 @@ const InstructorDashboard = () => {
 
       {activeMenuKey === 'assignments' && (
         <div className="space-y-6">
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+          <div className="dashboard-panel rounded-[1.5rem] p-6">
             <h3 className="font-semibold text-lg text-white mb-4">
               {editingAssignmentId ? 'Edit Assignment' : 'Create Assignment'}
             </h3>
@@ -478,7 +479,7 @@ const InstructorDashboard = () => {
               <select
                 value={selectedStudentId}
                 onChange={(event) => setSelectedStudentId(event.target.value)}
-                className="rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white"
+                className="dashboard-input rounded-xl px-3 py-2.5 text-sm text-white"
               >
                 <option value="">All students (filter)</option>
                 {students.map((student) => (
@@ -492,7 +493,7 @@ const InstructorDashboard = () => {
                 value={assignmentDraft.title}
                 onChange={(event) => setAssignmentDraft((prev) => ({ ...prev, title: event.target.value }))}
                 placeholder="Assignment title"
-                className="rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white"
+                className="dashboard-input rounded-xl px-3 py-2.5 text-sm text-white"
               />
               <input
                 type="number"
@@ -501,13 +502,13 @@ const InstructorDashboard = () => {
                 value={assignmentDraft.score}
                 onChange={(event) => setAssignmentDraft((prev) => ({ ...prev, score: event.target.value }))}
                 placeholder="Score (optional)"
-                className="rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white"
+                className="dashboard-input rounded-xl px-3 py-2.5 text-sm text-white"
               />
               <input
                 type="date"
                 value={assignmentDraft.dueDate}
                 onChange={(event) => setAssignmentDraft((prev) => ({ ...prev, dueDate: event.target.value }))}
-                className="rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white"
+                className="dashboard-input rounded-xl px-3 py-2.5 text-sm text-white"
               />
             </div>
             {!editingAssignmentId && (
@@ -516,7 +517,7 @@ const InstructorDashboard = () => {
                 <select
                   value={assignmentTarget}
                   onChange={(event) => setAssignmentTarget(event.target.value)}
-                  className="w-full rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white"
+                  className="dashboard-input w-full rounded-xl px-3 py-2.5 text-sm text-white"
                 >
                   <option value="selected">Selected students</option>
                   <option value="all">All my students</option>
@@ -553,21 +554,21 @@ const InstructorDashboard = () => {
               value={assignmentDraft.question}
               onChange={(event) => setAssignmentDraft((prev) => ({ ...prev, question: event.target.value }))}
               placeholder="Assignment question"
-              className="mt-3 w-full rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white"
+              className="dashboard-input mt-3 w-full rounded-xl px-3 py-2.5 text-sm text-white"
             />
             <textarea
               rows={3}
               value={assignmentDraft.details}
               onChange={(event) => setAssignmentDraft((prev) => ({ ...prev, details: event.target.value }))}
               placeholder="Extra instructions (optional)"
-              className="mt-3 w-full rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white"
+              className="dashboard-input mt-3 w-full rounded-xl px-3 py-2.5 text-sm text-white"
             />
             <textarea
               rows={2}
               value={assignmentDraft.remark}
               onChange={(event) => setAssignmentDraft((prev) => ({ ...prev, remark: event.target.value }))}
               placeholder="Instructor remark (optional)"
-              className="mt-3 w-full rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white"
+              className="dashboard-input mt-3 w-full rounded-xl px-3 py-2.5 text-sm text-white"
             />
 
             <div className="mt-3 grid md:grid-cols-[1fr_auto_auto] gap-3 items-center">
@@ -600,7 +601,7 @@ const InstructorDashboard = () => {
                   <button
                     type="button"
                     onClick={resetAssignmentForm}
-                    className="px-4 py-2 rounded-lg border border-white/20 text-white"
+                    className="dashboard-soft-button px-4 py-2 rounded-xl text-white"
                   >
                     Cancel
                   </button>
@@ -617,7 +618,7 @@ const InstructorDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+          <div className="dashboard-panel rounded-[1.5rem] p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-lg text-white">Assignments</h3>
               <span className="text-sm text-gray-400">{filteredAssignments.length} item(s)</span>
@@ -630,7 +631,7 @@ const InstructorDashboard = () => {
                 {filteredAssignments.map((assignment) => {
                   const student = students.find((item) => item.id === assignment.studentId);
                   return (
-                    <div key={assignment.id} className="border border-white/10 rounded-lg p-4 bg-black/10">
+                    <div key={assignment.id} className="dashboard-panel rounded-[1.25rem] p-4 bg-black/10">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-white font-semibold">{assignment.title}</p>
@@ -640,7 +641,7 @@ const InstructorDashboard = () => {
                           <button
                             type="button"
                             onClick={() => handleEditAssignment(assignment)}
-                            className="px-2 py-1 text-xs border border-white/20 rounded text-white"
+                            className="dashboard-soft-button px-2 py-1 text-xs rounded text-white"
                           >
                             Edit
                           </button>
@@ -727,7 +728,7 @@ const InstructorDashboard = () => {
       )}
 
       {activeMenuKey === 'reviews' && (
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+        <div className="dashboard-panel rounded-[1.5rem] p-6">
           <h3 className="font-semibold text-lg text-white mb-4">Recent Assignment Activity</h3>
           {allAssignments.length === 0 ? (
             <p className="text-gray-300">No activity yet.</p>

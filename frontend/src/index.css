@@ -13,6 +13,186 @@
     @apply max-w-7xl;
   }
 
+  .dashboard-platform {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background:
+      radial-gradient(circle at top, rgba(56, 189, 248, 0.12), transparent 34%),
+      linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(7, 17, 31, 0.98), rgba(7, 17, 31, 0.94));
+    background-size: auto, 32px 32px, 32px 32px, auto;
+    box-shadow: 0 24px 80px rgba(2, 6, 23, 0.45);
+  }
+
+  .dashboard-platform::before,
+  .dashboard-platform::after {
+    content: "";
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(64px);
+    pointer-events: none;
+  }
+
+  .dashboard-platform::before {
+    left: -11rem;
+    top: -8rem;
+    width: 20rem;
+    height: 20rem;
+    background: rgba(34, 211, 238, 0.14);
+  }
+
+  .dashboard-platform::after {
+    right: -10rem;
+    bottom: -12rem;
+    width: 24rem;
+    height: 24rem;
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  .dashboard-sidebar {
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 24px 80px rgba(2, 6, 23, 0.45);
+    backdrop-filter: blur(24px);
+  }
+
+  .dashboard-sidebar-item {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(20px);
+  }
+
+  .dashboard-sidebar-item::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), transparent 45%);
+    opacity: 0;
+    transition: opacity 200ms ease;
+    pointer-events: none;
+  }
+
+  .dashboard-sidebar-item:hover::after,
+  .dashboard-sidebar-item[data-active="true"]::after {
+    opacity: 1;
+  }
+
+  .dashboard-hero {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.04));
+    backdrop-filter: blur(24px);
+    box-shadow: 0 24px 70px rgba(2, 6, 23, 0.35);
+  }
+
+  .dashboard-hero::before {
+    content: "";
+    position: absolute;
+    inset: auto -8% -35% auto;
+    width: 320px;
+    height: 320px;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.14), transparent 70%);
+    pointer-events: none;
+  }
+
+  .dashboard-panel {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 24px 70px rgba(2, 6, 23, 0.35);
+    animation: dashboardCardGlow 3.8s ease-in-out infinite, dashboardFloatA 5.8s ease-in-out infinite;
+  }
+
+  .dashboard-panel::after {
+    content: "";
+    position: absolute;
+    inset: -18%;
+    border-radius: inherit;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.14), transparent 58%);
+    opacity: 0.28;
+    filter: blur(22px);
+    animation: dashboardGlowPulse 3.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .dashboard-stat-card {
+    position: relative;
+    overflow: hidden;
+    animation: dashboardFloatB 6.8s ease-in-out infinite;
+  }
+
+  .dashboard-stat-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.45), transparent 60%);
+  }
+
+  .dashboard-metric-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(56, 189, 248, 0.1);
+    padding: 0.5rem 0.875rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .dashboard-input {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(2, 12, 30, 0.72);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .dashboard-soft-button {
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+    transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+  }
+
+  .dashboard-soft-button:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.22);
+    transform: translateY(-1px);
+  }
+
+  .dashboard-table thead {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .dashboard-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.035);
+  }
+
+  .dashboard-nav-active {
+    border-color: transparent;
+    background-image: linear-gradient(to right, rgb(34 211 238), rgb(14 165 233), rgb(37 99 235));
+    color: white;
+    box-shadow: 0 14px 40px rgba(56, 189, 248, 0.28);
+  }
+
+  .dashboard-sidebar-accent {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 24px 70px rgba(2, 6, 23, 0.3);
+    animation: dashboardCardGlow 4.4s ease-in-out infinite, dashboardFloatC 7.4s ease-in-out infinite;
+  }
+
   /* Global card hover lift for the shared frosted card pattern */
   :is(div, section, article, li)[class*="bg-white/5"][class*="border-white/10"][class*="rounded-"] {
     @apply transition-transform duration-300;
@@ -23,9 +203,55 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .dashboard-panel,
+    .dashboard-panel::after,
+    .dashboard-stat-card,
+    .dashboard-sidebar-accent {
+      animation: none !important;
+    }
+
     :is(div, section, article, li)[class*="bg-white/5"][class*="border-white/10"][class*="rounded-"]:hover {
       transform: none;
     }
+  }
+}
+
+@layer utilities {
+  .theme-light .dashboard-platform {
+    border-color: rgb(203 213 225 / 0.9);
+    background:
+      radial-gradient(circle at top, rgba(14, 165, 233, 0.14), transparent 38%),
+      linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(244, 248, 252, 0.98), rgba(244, 248, 252, 0.96));
+    background-size: auto, 32px 32px, 32px 32px, auto;
+    box-shadow: 0 24px 60px rgba(148, 163, 184, 0.22);
+  }
+
+  .theme-light .dashboard-sidebar,
+  .theme-light .dashboard-hero,
+  .theme-light .dashboard-panel,
+  .theme-light .dashboard-sidebar-item,
+  .theme-light .dashboard-sidebar-accent {
+    border-color: rgb(203 213 225 / 0.9);
+    background: rgba(255, 255, 255, 0.75);
+    box-shadow: 0 16px 38px rgba(148, 163, 184, 0.14);
+  }
+
+  .theme-light .dashboard-metric-chip,
+  .theme-light .dashboard-soft-button {
+    border-color: rgb(203 213 225 / 0.9);
+    background: rgba(248, 250, 252, 0.88);
+  }
+
+  .theme-light .dashboard-input {
+    border-color: rgb(203 213 225 / 0.95);
+    background: rgba(255, 255, 255, 0.9);
+    color: rgb(15 23 42);
+  }
+
+  .theme-light .dashboard-panel::after {
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.12), transparent 58%);
   }
 }
 
@@ -70,6 +296,70 @@
   }
   .delay-2000{
     animation-delay: 2000ms;
+  }
+}
+
+@keyframes dashboardCardGlow {
+  0%,
+  100% {
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 24px 70px rgba(2, 6, 23, 0.3);
+    opacity: 0.96;
+  }
+
+  50% {
+    border-color: rgba(56, 189, 248, 0.28);
+    box-shadow:
+      0 28px 78px rgba(2, 6, 23, 0.38),
+      0 0 0 1px rgba(56, 189, 248, 0.08),
+      0 0 30px rgba(56, 189, 248, 0.12);
+    opacity: 1;
+  }
+}
+
+@keyframes dashboardGlowPulse {
+  0%,
+  100% {
+    opacity: 0.18;
+    transform: scale(0.98);
+  }
+
+  50% {
+    opacity: 0.42;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes dashboardFloatA {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes dashboardFloatB {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes dashboardFloatC {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-6px);
   }
 }
 

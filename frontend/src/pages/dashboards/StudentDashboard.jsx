@@ -598,20 +598,26 @@ const StudentDashboard = () => {
       {activeMenuKey === 'overview' && (
         <>
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
-              <h3 className="font-semibold text-lg mb-2 text-white">Portfolio Status</h3>
-              <p className="text-gray-300 mb-4">Your portfolio is ready to be built</p>
-              <div className={`text-sm ${activeAccent.textClass}`}>0% complete</div>
+            <div className="dashboard-panel dashboard-stat-card rounded-[1.5rem] p-6">
+              <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Portfolio</p>
+              <h3 className="font-semibold text-xl mt-3 mb-2 text-white">Portfolio Status</h3>
+              <p className="text-gray-300 mb-6">Your portfolio is ready to be built and published when you are.</p>
+              <div className="flex items-end justify-between gap-3">
+                <div className={`text-3xl font-bold ${activeAccent.textClass}`}>0%</div>
+                <span className="dashboard-metric-chip text-gray-200">Ready to start</span>
+              </div>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
-              <h3 className="font-semibold text-lg mb-2 text-white">Projects</h3>
-              <p className="text-gray-300 mb-4">Showcase your coding projects</p>
-              <div className={`text-sm ${activeAccent.textClass}`}>Coming Soon</div>
+            <div className="dashboard-panel dashboard-stat-card rounded-[1.5rem] p-6">
+              <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Build</p>
+              <h3 className="font-semibold text-xl mt-3 mb-2 text-white">Projects</h3>
+              <p className="text-gray-300 mb-6">Showcase your coding projects and present them like case studies.</p>
+              <div className={`text-sm font-semibold ${activeAccent.textClass}`}>Coming Soon</div>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
-              <h3 className="font-semibold text-lg mb-2 text-white">Skills</h3>
+            <div className="dashboard-panel dashboard-stat-card rounded-[1.5rem] p-6">
+              <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Profile</p>
+              <h3 className="font-semibold text-xl mt-3 mb-2 text-white">Skills</h3>
               <p className="text-gray-300 mb-4">Add and save the skills you want to showcase.</p>
               <div className="flex gap-2 mb-4">
                 <input
@@ -620,7 +626,7 @@ const StudentDashboard = () => {
                   onChange={(event) => setSkillInput(event.target.value)}
                   onKeyDown={handleSkillKeyDown}
                   placeholder="Type a skill (e.g. React)"
-                  className={`flex-1 rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 ${activeAccent.focusRingClass}`}
+                  className={`dashboard-input flex-1 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 ${activeAccent.focusRingClass}`}
                 />
                 <button
                   type="button"
@@ -637,7 +643,7 @@ const StudentDashboard = () => {
                   {skills.map((skill) => (
                     <div
                       key={skill}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white"
+                      className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs text-white"
                     >
                       {editingSkill === skill ? (
                         <>
@@ -684,7 +690,7 @@ const StudentDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6 mb-8">
+          <div className="dashboard-panel rounded-[1.5rem] p-6 mb-8">
             <h3 className="font-semibold text-lg mb-2 text-white">My Instructor</h3>
             {selectedInstructor ? (
               <p className="text-gray-300">
@@ -695,7 +701,7 @@ const StudentDashboard = () => {
             )}
           </div>
 
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6 mb-8">
+          <div className="dashboard-panel rounded-[1.5rem] p-6 mb-8">
             <h3 className="font-semibold text-lg mb-4 text-white">Getting Started</h3>
             <ul className="space-y-3 text-gray-300">
               <li>1. Complete your profile information.</li>
@@ -715,7 +721,7 @@ const StudentDashboard = () => {
       )}
 
       {activeMenuKey === 'projects' && (
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+        <div className="dashboard-panel rounded-[1.5rem] p-6">
           <h3 className="text-xl font-semibold text-white mb-2">My Projects</h3>
           <p className="text-gray-300">Project management tools are coming soon. Use Code Lab to prototype components now.</p>
         </div>
@@ -731,7 +737,7 @@ const StudentDashboard = () => {
 
       {activeMenuKey === 'mentorship' && (
         <div className="space-y-6">
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+          <div className="dashboard-panel rounded-[1.5rem] p-6">
             <h3 className="text-xl font-semibold text-white mb-2">Choose Instructor</h3>
             <p className="text-gray-300 mb-4">
               {isInstructorSelectionLocked
@@ -744,7 +750,7 @@ const StudentDashboard = () => {
                 value={selectedInstructorId}
                 onChange={(event) => setSelectedInstructorId(event.target.value)}
                 disabled={isInstructorSelectionLocked}
-                className={`rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 ${activeAccent.focusRingClass}`}
+                className={`dashboard-input rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 ${activeAccent.focusRingClass}`}
               >
                 <option value="">Select an instructor</option>
                 {instructors.map((instructor) => (
@@ -765,14 +771,14 @@ const StudentDashboard = () => {
             {mentorshipError && <p className="text-sm text-red-300 mt-3">{mentorshipError}</p>}
           </div>
 
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+          <div className="dashboard-panel rounded-[1.5rem] p-6">
             <h3 className="text-xl font-semibold text-white mb-2">Assignments & Scores</h3>
             {(mentorAssignments || []).length === 0 ? (
               <p className="text-gray-300">No assignments yet. Your instructor assignments will appear here.</p>
             ) : (
               <div className="space-y-3">
                 {mentorAssignments.map((assignment) => (
-                  <div key={assignment.id} className="border border-white/10 rounded-lg p-4 bg-black/10">
+                  <div key={assignment.id} className="dashboard-panel rounded-[1.25rem] p-4 bg-black/10">
                     <p className="text-white font-semibold">{assignment.title}</p>
                     <p className="text-sm text-gray-300 mt-1">{assignment.question}</p>
                     {assignment.details && <p className="text-sm text-gray-400 mt-1">{assignment.details}</p>}
@@ -815,7 +821,7 @@ const StudentDashboard = () => {
                         onChange={(event) => handleSubmissionAnswerChange(assignment.id, event.target.value)}
                         placeholder="Write your answer"
                         rows={4}
-                        className={`w-full rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 ${activeAccent.focusRingClass}`}
+                        className={`dashboard-input w-full rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 ${activeAccent.focusRingClass}`}
                       />
                       <div className="flex flex-col md:flex-row md:items-center gap-3">
                         <input
@@ -877,7 +883,7 @@ const StudentDashboard = () => {
       )}
 
       {activeMenuKey === 'create-portfolio' && !hasPortfolio && (
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+        <div className="dashboard-panel rounded-[1.5rem] p-6">
           <h3 className="text-xl font-semibold text-white mb-2">Create Portfolio</h3>
           <p className="text-gray-300">
             Generate your portfolio page to start customizing it.
@@ -894,7 +900,7 @@ const StudentDashboard = () => {
       )}
 
       {activeMenuKey === 'portfolio-upgrade' && portfolioUpgradeRequired && (
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+        <div className="dashboard-panel rounded-[1.5rem] p-6">
           <h3 className="text-xl font-semibold text-white mb-2">Portfolio Access Locked</h3>
           <p className="text-gray-300">{UPGRADE_PROMPT}</p>
           <a
