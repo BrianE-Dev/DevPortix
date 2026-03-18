@@ -45,7 +45,7 @@ const Features = () => {
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-4xl font-bold text-white sm:text-5xl">Powerful Features for Developers</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-sm text-slate-400 sm:text-base">
+          <p className="mx-auto mt-4 max-w-2xl text-sm text-slate-300 sm:text-base">
             Everything you need to showcase your skills and grow your career with our developer-centric toolkit.
           </p>
         </div>
@@ -62,7 +62,7 @@ const Features = () => {
                   <Icon className="h-5 w-5" />
                 </div>
                 <h3 className="text-base font-semibold text-white">{feature.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-400">{feature.description}</p>
+                <p className="mt-3 text-sm leading-6 text-slate-300">{feature.description}</p>
               </article>
             );
           })}

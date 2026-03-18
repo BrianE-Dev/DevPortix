@@ -156,7 +156,7 @@ const Testimonials = () => {
     return () => {
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
     };
-  }, []);
+  }, [visibleCardCount]);
 
   useEffect(() => {
     const node = activeUsersRef.current;
@@ -232,12 +232,12 @@ const Testimonials = () => {
               <h2 className="mt-5 text-3xl font-bold text-white sm:text-4xl">
                 Don&apos;t just take our word for it
               </h2>
-              <p className="mt-3 max-w-xl text-sm leading-7 text-slate-400 sm:text-base">
+              <p className="mt-3 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
                 Hear from some amazing developers and teams who are shipping faster with DevPortix.
               </p>
             </div>
 
-            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
+            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200">
               Now showing: <span className="font-medium text-white">{currentProfile.name}</span>
             </div>
           </div>
@@ -271,8 +271,8 @@ const Testimonials = () => {
                       ))}
                     </div>
                     <h4 className="mt-3 text-sm font-semibold text-white">{testimonial.name}</h4>
-                    <p className="mt-1 text-[11px] text-slate-300">
-                      {testimonial.role} {'•'} {testimonial.company}
+                    <p className="mt-1 text-[11px] text-slate-200">
+                      {testimonial.role} {' - '} {testimonial.company}
                     </p>
                     <blockquote className="mt-3 text-sm leading-6 text-slate-100/95">
                       "{testimonial.content}"
@@ -296,19 +296,19 @@ const Testimonials = () => {
         <div className="mt-12 grid grid-cols-2 gap-6 md:grid-cols-4">
           <div ref={activeUsersRef} className="text-center">
             <div className="text-3xl font-bold text-white">{formatCount(stats.activeUsers)}</div>
-            <div className="mt-2 text-sm text-slate-400">Active Users</div>
+            <div className="mt-2 text-sm text-slate-300">Active Users</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-white">{formatRating(stats.averageRating)}</div>
-            <div className="mt-2 text-sm text-slate-400">Average Rating</div>
+            <div className="mt-2 text-sm text-slate-300">Average Rating</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-white">{formatCountries(stats.countries)}</div>
-            <div className="mt-2 text-sm text-slate-400">Countries</div>
+            <div className="mt-2 text-sm text-slate-300">Countries</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-white">{formatSatisfaction(stats.satisfaction)}</div>
-            <div className="mt-2 text-sm text-slate-400">Satisfaction</div>
+            <div className="mt-2 text-sm text-slate-300">Satisfaction</div>
           </div>
         </div>
       </div>

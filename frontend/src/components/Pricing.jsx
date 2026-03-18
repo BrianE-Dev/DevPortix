@@ -103,7 +103,7 @@ const Pricing = () => {
           <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
             Simple, Transparent Pricing
           </h2>
-          <p className="text-lg text-slate-400 max-w-3xl mx-auto">
+          <p className="text-lg text-slate-300 max-w-3xl mx-auto">
             Choose the perfect plan for your needs. All plans include our core features.
           </p>
         </div>
@@ -154,16 +154,16 @@ const Pricing = () => {
                 <h3 className={`mb-3 text-[1.7rem] font-bold ${titleClass}`}>{plan.name}</h3>
                 <div className="mb-2 flex items-end gap-2">
                   <span className="text-5xl font-bold text-white">{plan.price}</span>
-                  {plan.period && <span className="mb-1 text-slate-500">{plan.period}</span>}
+                  {plan.period && <span className="mb-1 text-slate-300">{plan.period}</span>}
                 </div>
-                <p className="max-w-xs text-sm leading-6 text-slate-500">{plan.description}</p>
+                <p className="max-w-xs text-sm leading-6 text-slate-300">{plan.description}</p>
               </div>
 
               <ul className="space-y-4 mb-8">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start">
                     <Check className={`mt-1 mr-3 h-4 w-4 flex-shrink-0 ${iconClass}`} />
-                    <span className="text-slate-300">{feature}</span>
+                    <span className="text-slate-200">{feature}</span>
                   </li>
                 ))}
               </ul>
@@ -187,22 +187,22 @@ const Pricing = () => {
         </div>
 
         <div className="mt-12 text-center">
-          <p className="text-slate-500 italic">
+          <p className="text-slate-300 italic">
             {isOrganization
               ? 'Organization accounts start from Basic and can upgrade anytime.'
               : 'Start free and upgrade anytime as your student base grows.'}
           </p>
           <div className="mx-auto mt-6 grid max-w-5xl gap-4 text-left md:grid-cols-2">
-            <p className="rounded-2xl border border-white/8 bg-slate-900/55 px-5 py-4 text-sm leading-7 text-slate-300">
+            <p className="rounded-2xl border border-white/8 bg-slate-900/55 px-5 py-4 text-sm leading-7 text-slate-200">
               Instructors can start with the plan that fits their current student size, then upgrade smoothly as cohorts, assessments, and review workflows expand.
             </p>
-            <p className="rounded-2xl border border-white/8 bg-slate-900/55 px-5 py-4 text-sm leading-7 text-slate-300">
+            <p className="rounded-2xl border border-white/8 bg-slate-900/55 px-5 py-4 text-sm leading-7 text-slate-200">
               Organizations and training schools can choose structured plans built for larger enrollments, cleaner reporting, and stronger operational visibility.
             </p>
-            <p className="rounded-2xl border border-white/8 bg-slate-900/55 px-5 py-4 text-sm leading-7 text-slate-300">
+            <p className="rounded-2xl border border-white/8 bg-slate-900/55 px-5 py-4 text-sm leading-7 text-slate-200">
               Students benefit from plans that unlock portfolio access, progress tracking, certificates, and a more complete learning experience across the platform.
             </p>
-            <p className="rounded-2xl border border-white/8 bg-slate-900/55 px-5 py-4 text-sm leading-7 text-slate-300">
+            <p className="rounded-2xl border border-white/8 bg-slate-900/55 px-5 py-4 text-sm leading-7 text-slate-200">
               Professionals can move to higher tiers when they need advanced portfolio controls, collaboration tools, and stronger support as their work grows.
             </p>
           </div>

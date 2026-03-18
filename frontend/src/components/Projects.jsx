@@ -54,7 +54,7 @@ const Projects = () => {
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-4xl font-bold text-white sm:text-5xl">Platform Analytics</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-sm text-slate-400 sm:text-base">
+          <p className="mx-auto mt-4 max-w-2xl text-sm text-slate-300 sm:text-base">
             Real-time growth and engagement metrics across the DEVPORTIX ecosystem.
           </p>
         </div>
@@ -77,7 +77,7 @@ const Projects = () => {
                     <Icon className="h-4 w-4" />
                   </div>
                 </div>
-                <p className="mt-5 text-sm leading-6 text-slate-400">{card.description}</p>
+                <p className="mt-5 text-sm leading-6 text-slate-300">{card.description}</p>
               </article>
             );
           })}

@@ -154,15 +154,15 @@ const Hero = () => {
             <div className="grid grid-cols-3 gap-4 animate-in slide-in-from-bottom duration-700 delay-700">
               <div className="text-center p-4 bg-white/5 rounded-xl backdrop-blur-sm">
                 <div className="text-2xl font-bold text-white">100+</div>
-                <div className="text-sm text-gray-400">Templates</div>
+                <div className="text-sm text-gray-300">Templates</div>
               </div>
               <div className="text-center p-4 bg-white/5 rounded-xl backdrop-blur-sm">
                 <div className="text-2xl font-bold text-white">24/7</div>
-                <div className="text-sm text-gray-400">Support</div>
+                <div className="text-sm text-gray-300">Support</div>
               </div>
               <div className="text-center p-4 bg-white/5 rounded-xl backdrop-blur-sm">
                 <div className="text-2xl font-bold text-white">GitHub</div>
-                <div className="text-sm text-gray-400">Integration</div>
+                <div className="text-sm text-gray-300">Integration</div>
               </div>
             </div>
           </div>

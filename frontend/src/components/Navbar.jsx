@@ -181,14 +181,19 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-[5rem]">
           {/* Logo */}
           <div className="flex items-center">
-            <Link to={isPortfolioPage ? location.pathname : '/'} className="flex items-center space-x-2" onClick={() => setIsOpen(false)}>
+            <Link
+              to={isPortfolioPage ? location.pathname : '/'}
+              className="flex items-center space-x-2"
+              onClick={() => setIsOpen(false)}
+              aria-label="Go to the DevPortix home page"
+            >
               <div className="flex flex-col justify-between items-center group cursor-pointer">
                 <div>
-                  <img src={logo} alt="DEVPORTIX Logo" className="w-28 h-10 lg:w-40 lg:h-12" />
+                  <img src={logo} alt="DEVPORTIX Logo" className="w-28 h-auto lg:w-40" />
                 </div>
                 {!isPortfolioPage && (
-                  <span className={`text-xs mt-1 sm:text-sm group-hover:text-violet-300 ${isDark ? 'text-white/90' : 'text-white/90'}`}>
-                    <p> ... your code, your story.</p>
+                  <span className={`mt-1 text-xs sm:text-sm group-hover:text-violet-300 ${isDark ? 'text-white' : 'text-white/95'}`}>
+                    ... your code, your story.
                   </span>
                 )}
               </div>
@@ -205,7 +210,7 @@ const Navbar = () => {
                     type="button"
                     onClick={() => handleLinkClick(link.path)}
                     className={`px-3 py-2 text-sm font-medium transition ${
-                      isDark ? 'text-gray-300 hover:text-white' : 'text-white/90 hover:text-white'
+                      isDark ? 'text-gray-200 hover:text-white' : 'text-white hover:text-white'
                     }`}
                   >
                     {link.name}
@@ -225,8 +230,8 @@ const Navbar = () => {
                       location.hash === link.path.substring(1)
                         ? accentStyles.activeDesktopLink
                         : isDark
-                          ? 'text-gray-300 hover:text-white'
-                          : 'text-white/90 hover:text-white'
+                          ? 'text-gray-200 hover:text-white'
+                          : 'text-white hover:text-white'
                     }`}
                   >
                     {link.name}
@@ -240,8 +245,8 @@ const Navbar = () => {
                     location.pathname === dashboardPath
                       ? accentStyles.activeDesktopLink
                       : isDark
-                        ? 'text-gray-300 hover:text-white'
-                        : 'text-white/90 hover:text-white'
+                        ? 'text-gray-200 hover:text-white'
+                        : 'text-white hover:text-white'
                   }`}
                 >
                   Dashboard
@@ -280,7 +285,7 @@ const Navbar = () => {
                   >
                     <User className={`w-4 h-4 ${accentStyles.avatarIcon}`} />
                   </button>
-                  <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-white'}`}>
+                  <span className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-white'}`}>
                     {user?.username}
                   </span>
                 </div>
@@ -297,7 +302,7 @@ const Navbar = () => {
                 <Link
                   to="/login"
                   className={`px-4 py-2 text-sm font-medium transition flex items-center ${
-                    isDark ? 'text-gray-300 hover:text-white' : 'text-white/90 hover:text-white'
+                    isDark ? 'text-gray-200 hover:text-white' : 'text-white hover:text-white'
                   }`}
                 >
                   <LogIn className="w-5 h-5 mr-2" />
@@ -332,9 +337,10 @@ const Navbar = () => {
               onClick={() => setIsOpen(!isOpen)}
               className={`inline-flex items-center justify-center p-2 rounded-md focus:outline-none ${
                 isDark
-                  ? 'text-gray-400 hover:text-white hover:bg-gray-800'
-                  : 'text-white/90 hover:text-white hover:bg-white/10'
+                  ? 'text-gray-200 hover:text-white hover:bg-gray-800'
+                  : 'text-white hover:text-white hover:bg-white/10'
               }`}
+              aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
             >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -357,8 +363,8 @@ const Navbar = () => {
                   }}
                   className={`block w-full text-left px-3 py-2 text-base font-medium ${
                     isDark
-                      ? 'text-gray-300 hover:text-white hover:bg-gray-800'
-                      : 'text-white/90 hover:text-white hover:bg-white/10'
+                      ? 'text-gray-200 hover:text-white hover:bg-gray-800'
+                      : 'text-white hover:text-white hover:bg-white/10'
                   }`}
                 >
                   {link.name}
@@ -379,8 +385,8 @@ const Navbar = () => {
                     location.hash === link.path.substring(1)
                       ? (isDark ? accentStyles.activeMobileLinkDark : accentStyles.activeMobileLinkLight)
                       : isDark
-                        ? 'text-gray-300 hover:text-white hover:bg-gray-800'
-                        : 'text-white/90 hover:text-white hover:bg-white/10'
+                        ? 'text-gray-200 hover:text-white hover:bg-gray-800'
+                        : 'text-white hover:text-white hover:bg-white/10'
                   }`}
                 >
                   {link.name}
@@ -394,8 +400,8 @@ const Navbar = () => {
                   location.pathname === dashboardPath
                   ? (isDark ? accentStyles.activeMobileLinkDark : accentStyles.activeMobileLinkLight)
                   : isDark
-                    ? 'text-gray-300 hover:text-white hover:bg-gray-800'
-                    : 'text-white/90 hover:text-white hover:bg-white/10'
+                    ? 'text-gray-200 hover:text-white hover:bg-gray-800'
+                    : 'text-white hover:text-white hover:bg-white/10'
                 }`}
                 onClick={() => setIsOpen(false)}
               >
@@ -418,7 +424,7 @@ const Navbar = () => {
                       <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-white'}`}>
                         {user?.username}
                       </p>
-                      <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-slate-300'}`}>
+                      <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-slate-200'}`}>
                         {user?.email}
                       </p>
                     </div>
@@ -437,8 +443,8 @@ const Navbar = () => {
                     to="/login"
                     className={`flex items-center px-3 py-2 text-base font-medium rounded-md ${
                       isDark
-                        ? 'text-gray-300 hover:text-white hover:bg-gray-800'
-                        : 'text-white/90 hover:text-white hover:bg-white/10'
+                        ? 'text-gray-200 hover:text-white hover:bg-gray-800'
+                        : 'text-white hover:text-white hover:bg-white/10'
                     }`}
                     onClick={() => setIsOpen(false)}
                   >
