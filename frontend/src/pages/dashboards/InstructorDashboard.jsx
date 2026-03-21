@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { BarChart3, ClipboardCheck, Code2, ListTodo, Settings, UserCircle, Users } from 'lucide-react';
+import { BarChart3, BriefcaseBusiness, ClipboardCheck, Code2, Settings, UserCircle, Users } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { ROLES } from '../../utils/constants';
 import DashboardShell from '../../components/DashboardShell';
@@ -20,8 +20,10 @@ const isImageAttachment = (attachment) => {
   if (mimeType.startsWith('image/')) return true;
   return /\.(png|jpe?g|gif|webp|bmp|svg)$/.test(fileName);
 };
+const getWorkTypeLabel = (item) => (item?.type === 'project' ? 'Project' : 'Assignment');
 
 const defaultDraft = {
+  type: 'assignment',
   title: '',
   question: '',
   details: '',
@@ -45,6 +47,7 @@ const InstructorDashboard = () => {
   const [assignmentTarget, setAssignmentTarget] = useState('selected');
   const [assignmentSelectedStudentIds, setAssignmentSelectedStudentIds] = useState([]);
   const [assignmentDraft, setAssignmentDraft] = useState(defaultDraft);
+  const [workTypeFilter, setWorkTypeFilter] = useState('all');
   const [assignmentAttachmentPreviewUrl, setAssignmentAttachmentPreviewUrl] = useState('');
   const [editingAssignmentId, setEditingAssignmentId] = useState('');
   const [removeExistingAttachment, setRemoveExistingAttachment] = useState(false);
@@ -52,15 +55,15 @@ const InstructorDashboard = () => {
   const [accentKey, setAccentKey] = useState(() => LocalStorageService.getDashboardAccent(user?.id));
   const activeAccent = getDashboardAccent(accentKey);
 
-  const menuItems = [
+  const menuItems = useMemo(() => [
     { key: 'overview', label: 'Overview', icon: BarChart3, badge: 'Now' },
     { key: 'profile', label: 'Profile', icon: UserCircle, badge: 'Now' },
     { key: 'students', label: 'Students', icon: Users, badge: 'Now' },
-    { key: 'assignments', label: 'Assignments', icon: ListTodo, badge: 'Now' },
+    { key: 'assignments', label: 'Course Work', icon: BriefcaseBusiness, badge: 'Live' },
     { key: 'reviews', label: 'Activity', icon: ClipboardCheck, badge: 'Now' },
     { key: 'code-lab', label: 'Code Lab', icon: Code2, badge: 'Now' },
     { key: 'settings', label: 'Settings', icon: Settings, badge: 'Now', position: 'bottom' },
-  ];
+  ], []);
 
   const allAssignments = useMemo(
     () => students.flatMap((student) => student.assignments || []),
@@ -68,12 +71,31 @@ const InstructorDashboard = () => {
   );
 
   const filteredAssignments = useMemo(() => {
-    if (!selectedStudentId) return allAssignments;
-    return allAssignments.filter((assignment) => assignment.studentId === selectedStudentId);
-  }, [allAssignments, selectedStudentId]);
+    const studentFiltered = selectedStudentId
+      ? allAssignments.filter((assignment) => assignment.studentId === selectedStudentId)
+      : allAssignments;
+    if (workTypeFilter === 'assignment') {
+      return studentFiltered.filter((assignment) => assignment.type !== 'project');
+    }
+    if (workTypeFilter === 'project') {
+      return studentFiltered.filter((assignment) => assignment.type === 'project');
+    }
+    if (workTypeFilter === 'submitted') {
+      return studentFiltered.filter((assignment) => assignment.submission?.submittedAt);
+    }
+    return studentFiltered;
+  }, [allAssignments, selectedStudentId, workTypeFilter]);
 
   const scoredAssignments = useMemo(
     () => allAssignments.filter((assignment) => Number.isFinite(assignment.score)),
+    [allAssignments]
+  );
+  const projectCount = useMemo(
+    () => allAssignments.filter((assignment) => assignment.type === 'project').length,
+    [allAssignments]
+  );
+  const submittedCount = useMemo(
+    () => allAssignments.filter((assignment) => assignment.submission?.submittedAt).length,
     [allAssignments]
   );
   const averageScore = useMemo(() => {
@@ -91,22 +113,28 @@ const InstructorDashboard = () => {
         detailColor: activeAccent.textClass,
       },
       {
-        title: 'Assignments',
+        title: 'Course Work',
         value: String(allAssignments.length),
-        detail: 'Created from Assignments menu',
+        detail: `${projectCount} project${projectCount === 1 ? '' : 's'} included`,
+        detailColor: activeAccent.textClass,
+      },
+      {
+        title: 'Submitted Work',
+        value: String(submittedCount),
+        detail: 'Ready for scoring and remarks',
         detailColor: activeAccent.textClass,
       },
       {
         title: 'Average Score',
         value: averageScore,
-        detail: 'Across scored assignments',
+        detail: 'Across scored assignments and projects',
         detailColor: activeAccent.textClass,
       },
     ],
-    [activeAccent.textClass, allAssignments.length, averageScore, students.length]
+    [activeAccent.textClass, allAssignments.length, averageScore, projectCount, students.length, submittedCount]
   );
 
-  const loadStudents = async () => {
+  const loadStudents = useCallback(async () => {
     const token = LocalStorageService.getToken();
     if (!token) return;
     setBusy(true);
@@ -115,18 +143,19 @@ const InstructorDashboard = () => {
       const response = await mentorshipApi.listMyStudents(token);
       const nextStudents = Array.isArray(response.students) ? response.students : [];
       setStudents(nextStudents);
-      const hasSelected = nextStudents.some((student) => student.id === selectedStudentId);
-      if (nextStudents.length === 0) {
-        setSelectedStudentId('');
-      } else if (!hasSelected) {
-        setSelectedStudentId(nextStudents[0].id);
-      }
+      setSelectedStudentId((currentSelectedStudentId) => {
+        const hasSelected = nextStudents.some((student) => student.id === currentSelectedStudentId);
+        if (nextStudents.length === 0) {
+          return '';
+        }
+        return hasSelected ? currentSelectedStudentId : nextStudents[0].id;
+      });
     } catch (loadError) {
       setError(loadError?.message || 'Unable to load students right now.');
     } finally {
       setBusy(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const savedMenuKey = user?.dashboardMenu?.instructor;
@@ -134,12 +163,12 @@ const InstructorDashboard = () => {
     if (savedMenuKey && validMenuKeys.includes(savedMenuKey)) {
       setActiveMenuKey((currentKey) => (currentKey === savedMenuKey ? currentKey : savedMenuKey));
     }
-  }, [user?.dashboardMenu?.instructor]);
+  }, [menuItems, user?.dashboardMenu?.instructor]);
 
   useEffect(() => {
     if (!user?.id) return;
     loadStudents();
-  }, [user?.id]);
+  }, [loadStudents, user?.id]);
 
   useEffect(() => {
     const handleAccentChanged = (event) => {
@@ -258,16 +287,18 @@ const InstructorDashboard = () => {
   const createOrUpdateAssignment = async () => {
     const token = LocalStorageService.getToken();
     if (!token) return;
+    const workTypeLabel = assignmentDraft.type === 'project' ? 'Project' : 'Assignment';
     if (!String(assignmentDraft.title || '').trim()) {
-      setError('Assignment title is required.');
+      setError(`${workTypeLabel} title is required.`);
       return;
     }
     if (!String(assignmentDraft.question || '').trim()) {
-      setError('Assignment question is required.');
+      setError(`${workTypeLabel} brief is required.`);
       return;
     }
 
     const payload = {
+      type: assignmentDraft.type,
       title: String(assignmentDraft.title || '').trim(),
       question: String(assignmentDraft.question || '').trim(),
       details: String(assignmentDraft.details || '').trim(),
@@ -286,10 +317,10 @@ const InstructorDashboard = () => {
       if (editingAssignmentId) {
         if (removeExistingAttachment) payload.removeAttachment = 'true';
         await mentorshipApi.updateAssignment(token, editingAssignmentId, payload);
-        showSuccess('Assignment Updated', 'Assignment changes were saved successfully.');
+        showSuccess(`${workTypeLabel} Updated`, `${workTypeLabel} changes were saved successfully.`);
       } else {
         if (assignmentTarget === 'selected' && assignmentSelectedStudentIds.length === 0) {
-          setError('Select at least one student for this assignment.');
+          setError(`Select at least one student for this ${workTypeLabel.toLowerCase()}.`);
           setBusy(false);
           return;
         }
@@ -300,15 +331,15 @@ const InstructorDashboard = () => {
           studentIds: assignmentTarget === 'selected' ? assignmentSelectedStudentIds : undefined,
         });
         showSuccess(
-          'Assignment Created',
-          `Assignment created for ${Number(response?.count || 0)} student(s).`
+          `${workTypeLabel} Created`,
+          `${workTypeLabel} created for ${Number(response?.count || 0)} student(s).`
         );
       }
       resetAssignmentForm();
       await loadStudents();
     } catch (saveError) {
-      setError(saveError?.message || 'Unable to save assignment right now.');
-      showErrorModal('Save Failed', saveError?.message || 'Unable to save assignment right now.');
+      setError(saveError?.message || 'Unable to save course work right now.');
+      showErrorModal('Save Failed', saveError?.message || 'Unable to save course work right now.');
     } finally {
       setBusy(false);
     }
@@ -321,6 +352,7 @@ const InstructorDashboard = () => {
     setEditingAssignmentId(assignment.id);
     setRemoveExistingAttachment(false);
     setAssignmentDraft({
+      type: assignment.type || 'assignment',
       title: assignment.title || '',
       question: assignment.question || '',
       details: assignment.details || '',
@@ -359,10 +391,10 @@ const InstructorDashboard = () => {
       if (editingAssignmentId === assignmentId) {
         resetAssignmentForm();
       }
-      showSuccess('Assignment Deleted', 'Assignment was deleted successfully.');
+      showSuccess('Course Work Deleted', 'The selected item was deleted successfully.');
     } catch (deleteError) {
-      setError(deleteError?.message || 'Unable to delete assignment right now.');
-      showErrorModal('Delete Failed', deleteError?.message || 'Unable to delete assignment right now.');
+      setError(deleteError?.message || 'Unable to delete course work right now.');
+      showErrorModal('Delete Failed', deleteError?.message || 'Unable to delete course work right now.');
     } finally {
       setBusy(false);
     }
@@ -386,7 +418,7 @@ const InstructorDashboard = () => {
       {error && <p className="text-sm text-red-300 mb-4">{error}</p>}
 
       {activeMenuKey === 'overview' && (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
           {kpiCards.map((card) => (
             <div key={card.title} className="dashboard-panel dashboard-stat-card rounded-[1.5rem] p-6">
               <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Overview</p>
@@ -451,7 +483,7 @@ const InstructorDashboard = () => {
                   <div>
                     <p className="font-semibold text-white">{student.fullName}</p>
                     <p className="text-sm text-gray-400">{student.email}</p>
-                    <p className="text-xs text-gray-400 mt-2">{(student.assignments || []).length} assignment(s)</p>
+                    <p className="text-xs text-gray-400 mt-2">{(student.assignments || []).length} growth item(s)</p>
                   </div>
                   <button
                     type="button"
@@ -472,7 +504,9 @@ const InstructorDashboard = () => {
         <div className="space-y-6">
           <div className="dashboard-panel rounded-[1.5rem] p-6">
             <h3 className="font-semibold text-lg text-white mb-4">
-              {editingAssignmentId ? 'Edit Assignment' : 'Create Assignment'}
+              {editingAssignmentId
+                ? `Edit ${assignmentDraft.type === 'project' ? 'Project' : 'Assignment'}`
+                : 'Create Assignment or Project'}
             </h3>
 
             <div className="grid md:grid-cols-2 gap-3">
@@ -488,11 +522,19 @@ const InstructorDashboard = () => {
                   </option>
                 ))}
               </select>
+              <select
+                value={assignmentDraft.type}
+                onChange={(event) => setAssignmentDraft((prev) => ({ ...prev, type: event.target.value }))}
+                className="dashboard-input rounded-xl px-3 py-2.5 text-sm text-white"
+              >
+                <option value="assignment">Assignment</option>
+                <option value="project">Project</option>
+              </select>
               <input
                 type="text"
                 value={assignmentDraft.title}
                 onChange={(event) => setAssignmentDraft((prev) => ({ ...prev, title: event.target.value }))}
-                placeholder="Assignment title"
+                placeholder={assignmentDraft.type === 'project' ? 'Project title' : 'Assignment title'}
                 className="dashboard-input rounded-xl px-3 py-2.5 text-sm text-white"
               />
               <input
@@ -553,14 +595,14 @@ const InstructorDashboard = () => {
               rows={3}
               value={assignmentDraft.question}
               onChange={(event) => setAssignmentDraft((prev) => ({ ...prev, question: event.target.value }))}
-              placeholder="Assignment question"
+              placeholder={assignmentDraft.type === 'project' ? 'Project brief' : 'Assignment question'}
               className="dashboard-input mt-3 w-full rounded-xl px-3 py-2.5 text-sm text-white"
             />
             <textarea
               rows={3}
               value={assignmentDraft.details}
               onChange={(event) => setAssignmentDraft((prev) => ({ ...prev, details: event.target.value }))}
-              placeholder="Extra instructions (optional)"
+              placeholder={assignmentDraft.type === 'project' ? 'Deliverables, acceptance criteria, or reference links' : 'Extra instructions (optional)'}
               className="dashboard-input mt-3 w-full rounded-xl px-3 py-2.5 text-sm text-white"
             />
             <textarea
@@ -612,7 +654,9 @@ const InstructorDashboard = () => {
                   disabled={busy}
                   className={`px-4 py-2 rounded-lg text-white ${activeAccent.primaryButtonClass}`}
                 >
-                  {editingAssignmentId ? 'Update Assignment' : 'Create Assignment'}
+                  {editingAssignmentId
+                    ? `Update ${assignmentDraft.type === 'project' ? 'Project' : 'Assignment'}`
+                    : `Create ${assignmentDraft.type === 'project' ? 'Project' : 'Assignment'}`}
                 </button>
               </div>
             </div>
@@ -620,12 +664,33 @@ const InstructorDashboard = () => {
 
           <div className="dashboard-panel rounded-[1.5rem] p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg text-white">Assignments</h3>
+              <h3 className="font-semibold text-lg text-white">Assigned Course Work</h3>
               <span className="text-sm text-gray-400">{filteredAssignments.length} item(s)</span>
+            </div>
+            <div className="mb-4 flex flex-wrap gap-2">
+              {[
+                { key: 'all', label: 'All' },
+                { key: 'assignment', label: 'Assignments' },
+                { key: 'project', label: 'Projects' },
+                { key: 'submitted', label: 'Submitted' },
+              ].map((filter) => (
+                <button
+                  key={filter.key}
+                  type="button"
+                  onClick={() => setWorkTypeFilter(filter.key)}
+                  className={`rounded-full px-4 py-2 text-sm transition ${
+                    workTypeFilter === filter.key
+                      ? `${activeAccent.primaryButtonClass} text-white`
+                      : 'border border-white/10 bg-white/5 text-gray-200 hover:bg-white/10'
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              ))}
             </div>
 
             {filteredAssignments.length === 0 ? (
-              <p className="text-gray-300">No assignments found for the selected student filter.</p>
+              <p className="text-gray-300">No course work found for the selected filters.</p>
             ) : (
               <div className="space-y-3">
                 {filteredAssignments.map((assignment) => {
@@ -634,7 +699,12 @@ const InstructorDashboard = () => {
                     <div key={assignment.id} className="dashboard-panel rounded-[1.25rem] p-4 bg-black/10">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-white font-semibold">{assignment.title}</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold ${activeAccent.textClass} ${activeAccent.borderClass}`}>
+                              {assignment.typeLabel || getWorkTypeLabel(assignment)}
+                            </span>
+                            <p className="text-white font-semibold">{assignment.title}</p>
+                          </div>
                           <p className="text-xs text-gray-400 mt-1">Student: {student?.fullName || 'Unknown'}</p>
                         </div>
                         <div className="flex gap-2">
@@ -684,6 +754,9 @@ const InstructorDashboard = () => {
                       <p className="text-xs text-gray-400 mt-1">
                         Remark: {assignment.remark ? assignment.remark : 'No remark yet'}
                       </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Review state: {assignment.reviewStatus === 'reviewed' ? 'Reviewed' : 'Awaiting instructor feedback'}
+                      </p>
                       <p className={`text-xs mt-2 ${activeAccent.textClass}`}>
                         Submission status: {assignment.submission?.submittedAt ? 'Submitted' : 'Not submitted'}
                       </p>
@@ -694,7 +767,7 @@ const InstructorDashboard = () => {
                       )}
                       {assignment.submission?.answer && (
                         <p className="text-sm text-gray-300 mt-2 whitespace-pre-wrap">
-                          Student answer: {assignment.submission.answer}
+                          Student {assignment.type === 'project' ? 'delivery note' : 'answer'}: {assignment.submission.answer}
                         </p>
                       )}
                       {assignment.submission?.attachment?.url && (
@@ -729,7 +802,7 @@ const InstructorDashboard = () => {
 
       {activeMenuKey === 'reviews' && (
         <div className="dashboard-panel rounded-[1.5rem] p-6">
-          <h3 className="font-semibold text-lg text-white mb-4">Recent Assignment Activity</h3>
+          <h3 className="font-semibold text-lg text-white mb-4">Recent Assignment & Project Activity</h3>
           {allAssignments.length === 0 ? (
             <p className="text-gray-300">No activity yet.</p>
           ) : (
@@ -738,7 +811,9 @@ const InstructorDashboard = () => {
                 const student = students.find((item) => item.id === assignment.studentId);
                 return (
                   <div key={assignment.id} className={`border-l-4 ${activeAccent.borderClass} bg-white/5 rounded-r-lg p-4`}>
-                    <p className="font-medium text-white">{assignment.title}</p>
+                    <p className="font-medium text-white">
+                      {assignment.title} <span className="text-gray-400">({assignment.typeLabel || getWorkTypeLabel(assignment)})</span>
+                    </p>
                     <p className="text-sm text-gray-300 mt-1">{assignment.question}</p>
                     <p className="text-xs text-gray-400 mt-2">
                       Student: {student?.fullName || 'Unknown'} | Updated:{' '}

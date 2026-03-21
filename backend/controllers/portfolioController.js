@@ -1,8 +1,13 @@
 const Portfolio = require('../modules/portfolio');
 const User = require('../modules/userSchema');
+const { MentorshipAssignment } = require('../modules/mentorship');
 
 const ALLOWED_ACCENTS = ['blue', 'emerald', 'rose', 'amber', 'violet'];
 const ACCENT_DEBUG = String(process.env.DEBUG_ACCENT || '').trim() === '1';
+const WORK_TYPE_LABELS = {
+  assignment: 'Assignment',
+  project: 'Project',
+};
 
 const normalizeSlug = (value) =>
   String(value || '')
@@ -12,7 +17,82 @@ const normalizeSlug = (value) =>
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
 
-const toPortfolioPayload = (doc, fallbackSkills = [], fallbackOwner = {}) => {
+const normalizeWorkType = (value) => {
+  const normalized = String(value || 'assignment').trim().toLowerCase();
+  return ['assignment', 'project'].includes(normalized) ? normalized : 'assignment';
+};
+
+const buildGrowthSummary = (items = []) => {
+  const normalizedItems = Array.isArray(items) ? items : [];
+  const scoredItems = normalizedItems.filter((item) => Number.isFinite(item.score));
+  const reviewedItems = normalizedItems.filter((item) => Number.isFinite(item.score) || item.remark);
+  const submittedItems = normalizedItems.filter((item) => item.submissionStatus === 'submitted');
+
+  return {
+    totalItems: normalizedItems.length,
+    assignmentsCount: normalizedItems.filter((item) => item.type === 'assignment').length,
+    projectsCount: normalizedItems.filter((item) => item.type === 'project').length,
+    submittedCount: submittedItems.length,
+    reviewedCount: reviewedItems.length,
+    averageScore: scoredItems.length > 0
+      ? Number((scoredItems.reduce((sum, item) => sum + Number(item.score || 0), 0) / scoredItems.length).toFixed(1))
+      : null,
+  };
+};
+
+const buildGrowthRecords = async (ownerId, { publicView = false } = {}) => {
+  if (!ownerId) {
+    return {
+      growthRecords: [],
+      growthSummary: buildGrowthSummary([]),
+    };
+  }
+
+  const docs = await MentorshipAssignment.find({ studentId: ownerId })
+    .populate('instructorId', 'fullName')
+    .sort({ dueDate: 1, updatedAt: -1 })
+    .lean();
+
+  const growthRecords = docs
+    .map((doc) => {
+      const type = normalizeWorkType(doc.type);
+      const hasSubmission = Boolean(
+        doc?.submission?.submittedAt || doc?.submission?.answer || doc?.submission?.attachment?.url
+      );
+      const hasReview = Number.isFinite(doc?.score) || Boolean(String(doc?.remark || '').trim());
+
+      return {
+        id: String(doc._id),
+        type,
+        typeLabel: WORK_TYPE_LABELS[type],
+        title: doc.title,
+        question: doc.question || '',
+        details: doc.details || '',
+        score: doc.score ?? null,
+        remark: doc.remark || '',
+        dueDate: doc.dueDate || null,
+        reviewedAt: doc.reviewedAt || doc.updatedAt || null,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
+        submissionStatus: hasSubmission ? 'submitted' : 'pending',
+        reviewStatus: hasReview ? 'reviewed' : 'pending',
+        submittedAt: doc?.submission?.submittedAt || null,
+        instructorName: doc?.instructorId?.fullName || 'Instructor',
+      };
+    })
+    .filter((record) => (
+      publicView
+        ? record.submissionStatus === 'submitted' || record.reviewStatus === 'reviewed'
+        : true
+    ));
+
+  return {
+    growthRecords,
+    growthSummary: buildGrowthSummary(growthRecords),
+  };
+};
+
+const toPortfolioPayload = (doc, fallbackSkills = [], fallbackOwner = {}, growthData = {}) => {
   const owner = doc?.ownerId && typeof doc.ownerId === 'object' ? doc.ownerId : null;
   const ownerId = owner?._id || doc.ownerId;
   const ownerSkills = Array.isArray(owner?.skills) ? owner.skills : fallbackSkills;
@@ -40,6 +120,8 @@ const toPortfolioPayload = (doc, fallbackSkills = [], fallbackOwner = {}) => {
     screenshots: doc.screenshots || [],
     documents: doc.documents || [],
     codeSnippets: doc.codeSnippets || [],
+    growthRecords: Array.isArray(growthData.growthRecords) ? growthData.growthRecords : [],
+    growthSummary: growthData.growthSummary || buildGrowthSummary([]),
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
@@ -66,10 +148,11 @@ const getMyPortfolio = async (req, res) => {
     if (!portfolio) {
       return res.status(404).json({ message: 'Portfolio not found' });
     }
+    const growthData = await buildGrowthRecords(req.userId);
     if (ACCENT_DEBUG) {
       console.log(`[accent][get] owner=${req.userId} accent=${portfolio.accent}`);
     }
-    return res.status(200).json({ portfolio: toPortfolioPayload(portfolio) });
+    return res.status(200).json({ portfolio: toPortfolioPayload(portfolio, [], {}, growthData) });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to load portfolio', error: error.message });
   }
@@ -119,11 +202,14 @@ const createMyPortfolio = async (req, res) => {
       codeSnippets: [],
     });
 
+    const growthData = await buildGrowthRecords(req.userId);
+
     return res.status(201).json({
       portfolio: toPortfolioPayload(
         portfolio,
         user?.skills || [],
-        { avatar: user?.avatar || '', fullName: user?.fullName || '' }
+        { avatar: user?.avatar || '', fullName: user?.fullName || '' },
+        growthData
       ),
     });
   } catch (error) {
@@ -235,7 +321,8 @@ const updateMyPortfolio = async (req, res) => {
       console.log(`[accent][patch:result] owner=${req.userId} persisted=${updatedPortfolio?.accent}`);
     }
 
-    return res.status(200).json({ portfolio: toPortfolioPayload(updatedPortfolio) });
+    const growthData = await buildGrowthRecords(req.userId);
+    return res.status(200).json({ portfolio: toPortfolioPayload(updatedPortfolio, [], {}, growthData) });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to update portfolio', error: error.message });
   }
@@ -252,7 +339,9 @@ const getPublicPortfolio = async (req, res) => {
       return res.status(404).json({ message: 'Portfolio not found' });
     }
 
-    return res.status(200).json({ portfolio: toPortfolioPayload(portfolio) });
+    const growthData = await buildGrowthRecords(portfolio.ownerId?._id || portfolio.ownerId, { publicView: true });
+
+    return res.status(200).json({ portfolio: toPortfolioPayload(portfolio, [], {}, growthData) });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to load public portfolio', error: error.message });
   }

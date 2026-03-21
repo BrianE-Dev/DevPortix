@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { BookOpen, Code2, ExternalLink, FolderGit2, PlusCircle, Settings, Trophy, UserCircle } from 'lucide-react';
+import { BookOpen, Code2, ExternalLink, FolderGit2, LineChart, PlusCircle, Settings, Trophy, UserCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { ROLES } from '../../utils/constants';
 import DashboardShell from '../../components/DashboardShell';
@@ -25,6 +25,18 @@ const isImageAttachment = (attachment) => {
   return /\.(png|jpe?g|gif|webp|bmp|svg)$/.test(fileName);
 };
 const UPGRADE_PROMPT = 'Upgrade to a better plan to access your portfolio.';
+const EMPTY_GROWTH_SUMMARY = {
+  totalItems: 0,
+  assignmentsCount: 0,
+  projectsCount: 0,
+  submittedCount: 0,
+  reviewedCount: 0,
+  pendingCount: 0,
+  averageScore: null,
+  latestRemark: '',
+  latestReviewedAt: null,
+};
+const getWorkTypeLabel = (item) => (item?.type === 'project' ? 'Project' : 'Assignment');
 
 const StudentDashboard = () => {
   const { loading, isAuthenticated, user, getDashboardPath, updateProfile } = useAuth();
@@ -46,8 +58,10 @@ const StudentDashboard = () => {
   const [selectedInstructor, setSelectedInstructor] = useState(null);
   const [selectedInstructorId, setSelectedInstructorId] = useState('');
   const [mentorAssignments, setMentorAssignments] = useState([]);
+  const [growthSummary, setGrowthSummary] = useState(EMPTY_GROWTH_SUMMARY);
   const [mentorshipBusy, setMentorshipBusy] = useState(false);
   const [mentorshipError, setMentorshipError] = useState('');
+  const [growthFilter, setGrowthFilter] = useState('all');
   const [submissionDrafts, setSubmissionDrafts] = useState({});
   const [submissionImagePreviews, setSubmissionImagePreviews] = useState({});
   const [submissionBusyAssignmentId, setSubmissionBusyAssignmentId] = useState('');
@@ -65,12 +79,13 @@ const StudentDashboard = () => {
   const portfolioPath = hasPortfolio
     ? `/portfolio/${portfolio?.slug || portfolio?.username || ''}`
     : null;
-  const menuItems = [
+  const menuItems = useMemo(() => [
     { key: 'overview', label: 'Overview', icon: BookOpen, badge: 'Now' },
     { key: 'profile', label: 'Profile', icon: UserCircle, badge: 'Now' },
     { key: 'quiz-center', label: 'Quiz Center', icon: Trophy, badge: 'Now' },
     { key: 'projects', label: 'My Projects', icon: FolderGit2, badge: 'Soon' },
     { key: 'mentorship', label: 'Mentorship', icon: BookOpen, badge: 'Now' },
+    { key: 'growth-monitor', label: 'Growth Monitor', icon: LineChart, badge: 'Live' },
     portfolioUpgradeRequired && !hasPortfolio
       ? { key: 'portfolio-upgrade', label: 'Portfolio', icon: UserCircle, badge: 'Upgrade' }
       : hasPortfolio
@@ -90,14 +105,14 @@ const StudentDashboard = () => {
       : []),
     { key: 'code-lab', label: 'Code Lab', icon: Code2, badge: 'Now' },
     { key: 'settings', label: 'Settings', icon: Settings, badge: 'Now', position: 'bottom' },
-  ];
+  ], [hasPortfolio, portfolioPath, portfolioUpgradeRequired]);
   useEffect(() => {
     const savedMenuKey = user?.dashboardMenu?.student;
     const validMenuKeys = menuItems.map((item) => item.key);
     if (savedMenuKey && validMenuKeys.includes(savedMenuKey)) {
       setActiveMenuKey((currentKey) => (currentKey === savedMenuKey ? currentKey : savedMenuKey));
     }
-  }, [hasPortfolio, user?.dashboardMenu?.student]);
+  }, [menuItems, user?.dashboardMenu?.student]);
 
   useEffect(() => {
     setSkills(Array.isArray(user?.skills) ? user.skills : []);
@@ -170,7 +185,7 @@ const StudentDashboard = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
     let isMounted = true;
     const hydrateProfileState = async () => {
       try {
@@ -211,6 +226,7 @@ const StudentDashboard = () => {
         setSelectedInstructorId(mentorshipResponse.instructor?.id || '');
         const nextAssignments = Array.isArray(mentorshipResponse.assignments) ? mentorshipResponse.assignments : [];
         setMentorAssignments(nextAssignments);
+        setGrowthSummary(mentorshipResponse?.growthSummary || EMPTY_GROWTH_SUMMARY);
         setSubmissionDrafts((current) => {
           const nextDrafts = {};
           nextAssignments.forEach((assignment) => {
@@ -250,6 +266,19 @@ const StudentDashboard = () => {
       if (url) URL.revokeObjectURL(url);
     });
   }, []);
+
+  const filteredGrowthItems = useMemo(() => {
+    if (growthFilter === 'assignment') {
+      return mentorAssignments.filter((item) => item.type !== 'project');
+    }
+    if (growthFilter === 'project') {
+      return mentorAssignments.filter((item) => item.type === 'project');
+    }
+    if (growthFilter === 'reviewed') {
+      return mentorAssignments.filter((item) => item.reviewStatus === 'reviewed');
+    }
+    return mentorAssignments;
+  }, [growthFilter, mentorAssignments]);
 
   if (loading) {
     return null;
@@ -561,13 +590,14 @@ const StudentDashboard = () => {
         }
         return next;
       });
-      showSuccess('Submission Saved', 'Assignment submission uploaded successfully.');
+      const itemTypeLabel = getWorkTypeLabel(updatedAssignment);
+      showSuccess('Submission Saved', `${itemTypeLabel} submission uploaded successfully.`);
     } catch (error) {
       setSubmissionErrors((current) => ({
         ...current,
         [assignmentId]: error?.message || 'Unable to submit assignment right now.',
       }));
-      showErrorModal('Submission Failed', error?.message || 'Unable to submit assignment right now.');
+      showErrorModal('Submission Failed', error?.message || 'Unable to submit work right now.');
     } finally {
       setSubmissionBusyAssignmentId('');
     }
@@ -603,16 +633,18 @@ const StudentDashboard = () => {
               <h3 className="font-semibold text-xl mt-3 mb-2 text-white">Portfolio Status</h3>
               <p className="text-gray-300 mb-6">Your portfolio is ready to be built and published when you are.</p>
               <div className="flex items-end justify-between gap-3">
-                <div className={`text-3xl font-bold ${activeAccent.textClass}`}>0%</div>
-                <span className="dashboard-metric-chip text-gray-200">Ready to start</span>
+                <div className={`text-3xl font-bold ${activeAccent.textClass}`}>{hasPortfolio ? '100%' : '0%'}</div>
+                <span className="dashboard-metric-chip text-gray-200">{hasPortfolio ? 'Live now' : 'Ready to start'}</span>
               </div>
             </div>
 
             <div className="dashboard-panel dashboard-stat-card rounded-[1.5rem] p-6">
-              <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Build</p>
-              <h3 className="font-semibold text-xl mt-3 mb-2 text-white">Projects</h3>
-              <p className="text-gray-300 mb-6">Showcase your coding projects and present them like case studies.</p>
-              <div className={`text-sm font-semibold ${activeAccent.textClass}`}>Coming Soon</div>
+              <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Growth</p>
+              <h3 className="font-semibold text-xl mt-3 mb-2 text-white">Reviewed Work</h3>
+              <p className="text-gray-300 mb-6">Track how your instructor is scoring your assignments and projects.</p>
+              <div className={`text-sm font-semibold ${activeAccent.textClass}`}>
+                {growthSummary.reviewedCount} reviewed item{growthSummary.reviewedCount === 1 ? '' : 's'}
+              </div>
             </div>
 
             <div className="dashboard-panel dashboard-stat-card rounded-[1.5rem] p-6">
@@ -705,8 +737,8 @@ const StudentDashboard = () => {
             <h3 className="font-semibold text-lg mb-4 text-white">Getting Started</h3>
             <ul className="space-y-3 text-gray-300">
               <li>1. Complete your profile information.</li>
-              <li>2. Add your first project to showcase.</li>
-              <li>3. Connect with instructors for feedback.</li>
+              <li>2. Choose an instructor from the Mentorship menu.</li>
+              <li>3. Submit your assigned work and watch your growth monitor update.</li>
             </ul>
           </div>
         </>
@@ -772,23 +804,144 @@ const StudentDashboard = () => {
           </div>
 
           <div className="dashboard-panel rounded-[1.5rem] p-6">
-            <h3 className="text-xl font-semibold text-white mb-2">Assignments & Scores</h3>
-            {(mentorAssignments || []).length === 0 ? (
-              <p className="text-gray-300">No assignments yet. Your instructor assignments will appear here.</p>
+            <h3 className="text-xl font-semibold text-white mb-2">Mentorship Snapshot</h3>
+            <p className="text-gray-300">Once your instructor gives you assignments or projects, they will appear in Growth Monitor with scores and remarks.</p>
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
+              <div className="rounded-[1.25rem] border border-white/10 bg-black/15 p-4">
+                <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Assigned</p>
+                <p className="mt-3 text-3xl font-bold text-white">{growthSummary.totalItems}</p>
+                <p className="mt-2 text-sm text-gray-300">
+                  {growthSummary.assignmentsCount} assignments and {growthSummary.projectsCount} projects
+                </p>
+              </div>
+              <div className="rounded-[1.25rem] border border-white/10 bg-black/15 p-4">
+                <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Submitted</p>
+                <p className="mt-3 text-3xl font-bold text-white">{growthSummary.submittedCount}</p>
+                <p className="mt-2 text-sm text-gray-300">Keep sending in your work to unlock more feedback.</p>
+              </div>
+              <div className="rounded-[1.25rem] border border-white/10 bg-black/15 p-4">
+                <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Average Score</p>
+                <p className="mt-3 text-3xl font-bold text-white">
+                  {Number.isFinite(growthSummary.averageScore) ? `${growthSummary.averageScore}%` : '--'}
+                </p>
+                <p className="mt-2 text-sm text-gray-300">Updated as soon as your instructor reviews your submissions.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeMenuKey === 'growth-monitor' && (
+        <div className="space-y-6">
+          <div className="grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
+            <div className="dashboard-panel rounded-[1.75rem] p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className={`text-xs uppercase tracking-[0.24em] ${activeAccent.textClass}`}>Growth Monitor</p>
+                  <h3 className="mt-3 text-2xl font-semibold text-white">Every assignment, project, score, and remark in one place</h3>
+                  <p className="mt-3 max-w-2xl text-gray-300">
+                    Review what your instructor assigned, submit work, and keep track of how your performance is improving over time.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: 'all', label: 'All work' },
+                    { key: 'assignment', label: 'Assignments' },
+                    { key: 'project', label: 'Projects' },
+                    { key: 'reviewed', label: 'Reviewed' },
+                  ].map((filter) => (
+                    <button
+                      key={filter.key}
+                      type="button"
+                      onClick={() => setGrowthFilter(filter.key)}
+                      className={`rounded-full px-4 py-2 text-sm transition ${
+                        growthFilter === filter.key
+                          ? `${activeAccent.primaryButtonClass} text-white`
+                          : 'border border-white/10 bg-white/5 text-gray-200 hover:bg-white/10'
+                      }`}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="dashboard-panel rounded-[1.75rem] p-6">
+              <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Progress Snapshot</p>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-white/10 bg-black/15 p-4">
+                  <p className="text-xs text-gray-400">Reviewed</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">{growthSummary.reviewedCount}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/15 p-4">
+                  <p className="text-xs text-gray-400">Pending</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">{growthSummary.pendingCount}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/15 p-4">
+                  <p className="text-xs text-gray-400">Projects</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">{growthSummary.projectsCount}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/15 p-4">
+                  <p className="text-xs text-gray-400">Average</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">
+                    {Number.isFinite(growthSummary.averageScore) ? `${growthSummary.averageScore}%` : '--'}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-4 text-sm text-gray-300">
+                {growthSummary.latestRemark
+                  ? `Latest remark: ${growthSummary.latestRemark}`
+                  : 'Your newest feedback will surface here once a review is posted.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="dashboard-panel rounded-[1.5rem] p-6">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h3 className="text-xl font-semibold text-white">Growth Timeline</h3>
+              <span className="text-sm text-gray-400">{filteredGrowthItems.length} item(s)</span>
+            </div>
+            {filteredGrowthItems.length === 0 ? (
+              <p className="text-gray-300">No matching growth records yet. Ask your instructor for your first assignment or project.</p>
             ) : (
-              <div className="space-y-3">
-                {mentorAssignments.map((assignment) => (
-                  <div key={assignment.id} className="dashboard-panel rounded-[1.25rem] p-4 bg-black/10">
-                    <p className="text-white font-semibold">{assignment.title}</p>
-                    <p className="text-sm text-gray-300 mt-1">{assignment.question}</p>
-                    {assignment.details && <p className="text-sm text-gray-400 mt-1">{assignment.details}</p>}
+              <div className="space-y-4">
+                {filteredGrowthItems.map((assignment) => (
+                  <div key={assignment.id} className="dashboard-panel rounded-[1.5rem] p-5 bg-black/10">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${activeAccent.textClass} ${activeAccent.borderClass}`}>
+                            {assignment.typeLabel || getWorkTypeLabel(assignment)}
+                          </span>
+                          <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-300">
+                            {assignment.submissionStatus === 'submitted' ? 'Submitted' : 'Awaiting submission'}
+                          </span>
+                          <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-300">
+                            {assignment.reviewStatus === 'reviewed' ? 'Reviewed' : 'Awaiting review'}
+                          </span>
+                        </div>
+                        <h4 className="mt-3 text-lg font-semibold text-white">{assignment.title}</h4>
+                        <p className="mt-2 text-sm text-gray-300">{assignment.question}</p>
+                        {assignment.details && <p className="mt-2 text-sm text-gray-400">{assignment.details}</p>}
+                      </div>
+                      <div className="min-w-[180px] rounded-[1.25rem] border border-white/10 bg-white/5 p-4">
+                        <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Score</p>
+                        <p className="mt-2 text-3xl font-semibold text-white">
+                          {Number.isFinite(assignment.score) ? `${assignment.score}%` : '--'}
+                        </p>
+                        <p className="mt-2 text-xs text-gray-400">
+                          Due {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'anytime'}
+                        </p>
+                      </div>
+                    </div>
                     {assignment.attachment?.url && (
-                      <>
+                      <div className="mt-4">
                         {isImageAttachment(assignment.attachment) && (
-                          <div className="mt-2 w-fit rounded-lg border border-white/20 p-2 bg-black/20">
+                          <div className="w-fit rounded-lg border border-white/20 p-2 bg-black/20">
                             <img
                               src={resolveMedia(assignment.attachment.url)}
-                              alt="Assignment attachment preview"
+                              alt={`${getWorkTypeLabel(assignment)} attachment preview`}
                               className="h-24 w-24 rounded object-cover"
                             />
                           </div>
@@ -801,25 +954,39 @@ const StudentDashboard = () => {
                         >
                           Open attachment ({assignment.attachment.originalName || 'file'})
                         </a>
-                      </>
+                      </div>
                     )}
-                    <p className="text-xs text-gray-400 mt-2">
-                      Score: {Number.isFinite(assignment.score) ? assignment.score : 'Not scored'} | Due:{' '}
-                      {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'No due date'}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Remark: {assignment.remark ? assignment.remark : 'No remark yet'}
-                    </p>
-                    {assignment.submission?.submittedAt && (
-                      <p className={`text-xs mt-2 ${activeAccent.textClass}`}>
-                        Submitted: {new Date(assignment.submission.submittedAt).toLocaleString()}
-                      </p>
-                    )}
-                    <div className="mt-3 space-y-3">
+                    <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+                      <div className="rounded-[1.25rem] border border-white/10 bg-black/15 p-4">
+                        <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Instructor Remark</p>
+                        <p className="mt-3 text-sm text-gray-200">
+                          {assignment.remark ? assignment.remark : 'No remark yet. Submit your work and check back after review.'}
+                        </p>
+                      </div>
+                      <div className="rounded-[1.25rem] border border-white/10 bg-black/15 p-4">
+                        <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Submission History</p>
+                        <p className="mt-3 text-sm text-gray-200">
+                          {assignment.submission?.submittedAt
+                            ? `Submitted ${new Date(assignment.submission.submittedAt).toLocaleString()}`
+                            : 'Not submitted yet'}
+                        </p>
+                        {assignment.submission?.attachment?.url && (
+                          <a
+                            href={resolveMedia(assignment.submission.attachment.url)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={`mt-2 inline-block text-sm ${activeAccent.linkClass}`}
+                          >
+                            View submitted file ({assignment.submission.attachment.originalName || 'file'})
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-4 space-y-3">
                       <textarea
                         value={submissionDrafts[assignment.id]?.answer || ''}
                         onChange={(event) => handleSubmissionAnswerChange(assignment.id, event.target.value)}
-                        placeholder="Write your answer"
+                        placeholder={assignment.type === 'project' ? 'Describe your project delivery or update' : 'Write your answer'}
                         rows={4}
                         className={`dashboard-input w-full rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 ${activeAccent.focusRingClass}`}
                       />
@@ -837,7 +1004,9 @@ const StudentDashboard = () => {
                           disabled={submissionBusyAssignmentId === assignment.id}
                           className={`px-4 py-2 rounded-lg text-white transition ${activeAccent.primaryButtonClass}`}
                         >
-                          {submissionBusyAssignmentId === assignment.id ? 'Submitting...' : 'Submit Assignment'}
+                          {submissionBusyAssignmentId === assignment.id
+                            ? 'Submitting...'
+                            : `Submit ${getWorkTypeLabel(assignment)}`}
                         </button>
                       </div>
                       {submissionImagePreviews[assignment.id] && (
@@ -848,27 +1017,6 @@ const StudentDashboard = () => {
                             className="h-24 w-24 rounded object-cover"
                           />
                         </div>
-                      )}
-                      {assignment.submission?.attachment?.url && (
-                        <>
-                          {isImageAttachment(assignment.submission.attachment) && (
-                            <div className="w-fit rounded-lg border border-white/20 p-2 bg-black/20">
-                              <img
-                                src={resolveMedia(assignment.submission.attachment.url)}
-                                alt="Submitted assignment preview"
-                                className="h-24 w-24 rounded object-cover"
-                              />
-                            </div>
-                          )}
-                          <a
-                            href={resolveMedia(assignment.submission.attachment.url)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={`text-sm inline-block ${activeAccent.linkClass}`}
-                          >
-                            View submitted file ({assignment.submission.attachment.originalName || 'file'})
-                          </a>
-                        </>
                       )}
                       {submissionErrors[assignment.id] && (
                         <p className="text-sm text-red-300">{submissionErrors[assignment.id]}</p>

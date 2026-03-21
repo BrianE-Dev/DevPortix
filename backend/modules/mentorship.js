@@ -43,6 +43,12 @@ const mentorshipAssignmentSchema = new Schema(
       required: true,
       index: true,
     },
+    type: {
+      type: String,
+      enum: ['assignment', 'project'],
+      default: 'assignment',
+      index: true,
+    },
     title: {
       type: String,
       required: true,
@@ -95,6 +101,10 @@ const mentorshipAssignmentSchema = new Schema(
       trim: true,
       maxlength: 2000,
     },
+    reviewedAt: {
+      type: Date,
+      default: null,
+    },
     dueDate: {
       type: Date,
       default: null,
@@ -140,6 +150,7 @@ const mentorshipAssignmentSchema = new Schema(
 );
 
 mentorshipAssignmentSchema.index({ instructorId: 1, studentId: 1, createdAt: -1 });
+mentorshipAssignmentSchema.index({ studentId: 1, type: 1, updatedAt: -1 });
 
 const MentorshipLink =
   mongoose.models.MentorshipLink || mongoose.model('MentorshipLink', mentorshipLinkSchema);

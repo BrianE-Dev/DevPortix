@@ -1,6 +1,12 @@
 const User = require('../modules/userSchema');
 const { MentorshipLink, MentorshipAssignment } = require('../modules/mentorship');
 
+const WORK_TYPES = ['assignment', 'project'];
+const WORK_TYPE_LABELS = {
+  assignment: 'Assignment',
+  project: 'Project',
+};
+
 const toUserPayload = (userDoc) => ({
   id: String(userDoc._id),
   fullName: userDoc.fullName,
@@ -10,42 +16,10 @@ const toUserPayload = (userDoc) => ({
   avatar: userDoc.avatar || null,
 });
 
-const toAssignmentPayload = (doc) => ({
-  id: String(doc._id),
-  instructorId: String(doc.instructorId),
-  studentId: String(doc.studentId),
-  title: doc.title,
-  question: doc.question || '',
-  details: doc.details || '',
-  attachment: doc.attachment?.url
-    ? {
-        url: doc.attachment.url,
-        mimeType: doc.attachment.mimeType || '',
-        originalName: doc.attachment.originalName || '',
-        size: Number(doc.attachment.size || 0),
-      }
-    : null,
-  submission:
-    doc.submission?.submittedAt || doc.submission?.answer || doc.submission?.attachment?.url
-      ? {
-          answer: doc.submission?.answer || '',
-          attachment: doc.submission?.attachment?.url
-            ? {
-                url: doc.submission.attachment.url,
-                mimeType: doc.submission.attachment.mimeType || '',
-                originalName: doc.submission.attachment.originalName || '',
-                size: Number(doc.submission.attachment.size || 0),
-              }
-            : null,
-          submittedAt: doc.submission?.submittedAt || null,
-        }
-      : null,
-  score: doc.score ?? null,
-  remark: doc.remark || '',
-  dueDate: doc.dueDate || null,
-  createdAt: doc.createdAt,
-  updatedAt: doc.updatedAt,
-});
+const normalizeWorkType = (value) => {
+  const normalized = String(value || 'assignment').trim().toLowerCase();
+  return WORK_TYPES.includes(normalized) ? normalized : null;
+};
 
 const toAttachmentPayload = (file) => {
   if (!file) return undefined;
@@ -55,6 +29,132 @@ const toAttachmentPayload = (file) => {
     originalName: file.originalname || '',
     size: Number(file.size || 0),
   };
+};
+
+const hasSubmission = (doc) => Boolean(
+  doc?.submission?.submittedAt || doc?.submission?.answer || doc?.submission?.attachment?.url
+);
+
+const hasReview = (doc) => Number.isFinite(doc?.score) || Boolean(String(doc?.remark || '').trim());
+
+const toAssignmentPayload = (doc) => {
+  const type = normalizeWorkType(doc.type) || 'assignment';
+  const submitted = hasSubmission(doc);
+  const reviewed = hasReview(doc);
+
+  return {
+    id: String(doc._id),
+    instructorId: String(doc.instructorId),
+    studentId: String(doc.studentId),
+    type,
+    typeLabel: WORK_TYPE_LABELS[type],
+    title: doc.title,
+    question: doc.question || '',
+    details: doc.details || '',
+    attachment: doc.attachment?.url
+      ? {
+          url: doc.attachment.url,
+          mimeType: doc.attachment.mimeType || '',
+          originalName: doc.attachment.originalName || '',
+          size: Number(doc.attachment.size || 0),
+        }
+      : null,
+    submission:
+      submitted
+        ? {
+            answer: doc.submission?.answer || '',
+            attachment: doc.submission?.attachment?.url
+              ? {
+                  url: doc.submission.attachment.url,
+                  mimeType: doc.submission.attachment.mimeType || '',
+                  originalName: doc.submission.attachment.originalName || '',
+                  size: Number(doc.submission.attachment.size || 0),
+                }
+              : null,
+            submittedAt: doc.submission?.submittedAt || null,
+          }
+        : null,
+    score: doc.score ?? null,
+    remark: doc.remark || '',
+    reviewedAt: doc.reviewedAt || null,
+    dueDate: doc.dueDate || null,
+    submissionStatus: submitted ? 'submitted' : 'pending',
+    reviewStatus: reviewed ? 'reviewed' : 'pending',
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+};
+
+const buildGrowthSummary = (docs = []) => {
+  const normalizedDocs = Array.isArray(docs) ? docs : [];
+  const scoredItems = normalizedDocs.filter((doc) => Number.isFinite(doc?.score));
+  const submittedItems = normalizedDocs.filter((doc) => hasSubmission(doc));
+  const reviewedItems = normalizedDocs.filter((doc) => hasReview(doc));
+  const assignmentsCount = normalizedDocs.filter((doc) => normalizeWorkType(doc?.type) === 'assignment').length;
+  const projectsCount = normalizedDocs.filter((doc) => normalizeWorkType(doc?.type) === 'project').length;
+  const averageScore = scoredItems.length > 0
+    ? Number((scoredItems.reduce((sum, doc) => sum + Number(doc.score || 0), 0) / scoredItems.length).toFixed(1))
+    : null;
+  const latestReviewedItem = [...reviewedItems]
+    .sort((left, right) => new Date(right.reviewedAt || right.updatedAt || 0) - new Date(left.reviewedAt || left.updatedAt || 0))[0];
+
+  return {
+    totalItems: normalizedDocs.length,
+    assignmentsCount,
+    projectsCount,
+    submittedCount: submittedItems.length,
+    reviewedCount: reviewedItems.length,
+    pendingCount: Math.max(normalizedDocs.length - submittedItems.length, 0),
+    averageScore,
+    latestRemark: latestReviewedItem?.remark || '',
+    latestReviewedAt: latestReviewedItem?.reviewedAt || latestReviewedItem?.updatedAt || null,
+  };
+};
+
+const parseStudentIds = (rawStudentIds) => {
+  if (Array.isArray(rawStudentIds)) {
+    return rawStudentIds;
+  }
+
+  if (typeof rawStudentIds === 'string') {
+    try {
+      const maybeArray = JSON.parse(rawStudentIds);
+      if (Array.isArray(maybeArray)) {
+        return maybeArray;
+      }
+    } catch {
+      return rawStudentIds.split(',').map((item) => item.trim()).filter(Boolean);
+    }
+  }
+
+  return [];
+};
+
+const validateScore = (rawScore) => {
+  if (rawScore === '' || rawScore === undefined || rawScore === null) {
+    return { value: null };
+  }
+
+  const score = Number(rawScore);
+  if (!Number.isFinite(score) || score < 0 || score > 100) {
+    return { error: 'score must be a number between 0 and 100' };
+  }
+
+  return { value: score };
+};
+
+const validateDueDate = (rawValue) => {
+  const dueDateRaw = String(rawValue || '').trim();
+  if (!dueDateRaw) {
+    return { value: null };
+  }
+
+  const dueDate = new Date(dueDateRaw);
+  if (Number.isNaN(dueDate.getTime())) {
+    return { error: 'dueDate is invalid' };
+  }
+
+  return { value: dueDate };
 };
 
 const listInstructors = async (_req, res) => {
@@ -132,12 +232,13 @@ const getMyMentorship = async (req, res) => {
       .lean();
 
     const assignments = await MentorshipAssignment.find({ studentId: req.userId })
-      .sort({ createdAt: -1 })
+      .sort({ dueDate: 1, createdAt: -1 })
       .lean();
 
     return res.status(200).json({
       instructor: link?.instructorId ? toUserPayload(link.instructorId) : null,
       assignments: assignments.map(toAssignmentPayload),
+      growthSummary: buildGrowthSummary(assignments),
     });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to load mentorship data', error: error.message });
@@ -158,12 +259,13 @@ const listMyStudents = async (req, res) => {
           instructorId: req.userId,
           studentId: student._id,
         })
-          .sort({ createdAt: -1 })
+          .sort({ dueDate: 1, createdAt: -1 })
           .lean();
 
         return {
           ...toUserPayload(student),
           assignments: assignments.map(toAssignmentPayload),
+          growthSummary: buildGrowthSummary(assignments),
         };
       })
     );
@@ -258,6 +360,11 @@ const createAssignment = async (req, res) => {
       return res.status(403).json({ message: 'This student is not assigned to you' });
     }
 
+    const type = normalizeWorkType(req.body?.type);
+    if (!type) {
+      return res.status(400).json({ message: "type must be either 'assignment' or 'project'" });
+    }
+
     const title = String(req.body?.title || '').trim();
     if (!title) {
       return res.status(400).json({ message: 'title is required' });
@@ -268,37 +375,34 @@ const createAssignment = async (req, res) => {
       return res.status(400).json({ message: 'question is required' });
     }
 
+    const scoreResult = validateScore(req.body?.score);
+    if (scoreResult.error) {
+      return res.status(400).json({ message: scoreResult.error });
+    }
+
+    const dueDateResult = validateDueDate(req.body?.dueDate);
+    if (dueDateResult.error) {
+      return res.status(400).json({ message: dueDateResult.error });
+    }
+
     const details = String(req.body?.details || '').trim();
     const remark = String(req.body?.remark || '').trim();
-    const rawScore = req.body?.score;
-    const score = rawScore === '' || rawScore === undefined || rawScore === null
-      ? null
-      : Number(rawScore);
-
-    if (score !== null && (!Number.isFinite(score) || score < 0 || score > 100)) {
-      return res.status(400).json({ message: 'score must be a number between 0 and 100' });
-    }
-
-    const dueDateRaw = String(req.body?.dueDate || '').trim();
-    const dueDate = dueDateRaw ? new Date(dueDateRaw) : null;
-    if (dueDateRaw && Number.isNaN(dueDate.getTime())) {
-      return res.status(400).json({ message: 'dueDate is invalid' });
-    }
-
     const created = await MentorshipAssignment.create({
       instructorId: req.userId,
       studentId,
+      type,
       title,
       question,
       details,
       attachment: toAttachmentPayload(req.file),
-      score,
+      score: scoreResult.value,
       remark,
-      dueDate,
+      reviewedAt: scoreResult.value !== null || remark ? new Date() : null,
+      dueDate: dueDateResult.value,
     });
 
     return res.status(201).json({
-      message: 'Assignment created',
+      message: `${WORK_TYPE_LABELS[type]} created`,
       assignment: toAssignmentPayload(created),
     });
   } catch (error) {
@@ -313,6 +417,11 @@ const createAssignments = async (req, res) => {
       return res.status(400).json({ message: "target must be either 'all' or 'selected'" });
     }
 
+    const type = normalizeWorkType(req.body?.type);
+    if (!type) {
+      return res.status(400).json({ message: "type must be either 'assignment' or 'project'" });
+    }
+
     const title = String(req.body?.title || '').trim();
     if (!title) {
       return res.status(400).json({ message: 'title is required' });
@@ -323,22 +432,18 @@ const createAssignments = async (req, res) => {
       return res.status(400).json({ message: 'question is required' });
     }
 
+    const scoreResult = validateScore(req.body?.score);
+    if (scoreResult.error) {
+      return res.status(400).json({ message: scoreResult.error });
+    }
+
+    const dueDateResult = validateDueDate(req.body?.dueDate);
+    if (dueDateResult.error) {
+      return res.status(400).json({ message: dueDateResult.error });
+    }
+
     const details = String(req.body?.details || '').trim();
     const remark = String(req.body?.remark || '').trim();
-    const rawScore = req.body?.score;
-    const score = rawScore === '' || rawScore === undefined || rawScore === null
-      ? null
-      : Number(rawScore);
-    if (score !== null && (!Number.isFinite(score) || score < 0 || score > 100)) {
-      return res.status(400).json({ message: 'score must be a number between 0 and 100' });
-    }
-
-    const dueDateRaw = String(req.body?.dueDate || '').trim();
-    const dueDate = dueDateRaw ? new Date(dueDateRaw) : null;
-    if (dueDateRaw && Number.isNaN(dueDate.getTime())) {
-      return res.status(400).json({ message: 'dueDate is invalid' });
-    }
-
     const activeLinks = await MentorshipLink.find({
       instructorId: req.userId,
       status: 'active',
@@ -353,24 +458,8 @@ const createAssignments = async (req, res) => {
 
     let targetStudentIds = allStudentIds;
     if (target === 'selected') {
-      const rawStudentIds = req.body?.studentIds;
-      let parsedIds = [];
-
-      if (Array.isArray(rawStudentIds)) {
-        parsedIds = rawStudentIds;
-      } else if (typeof rawStudentIds === 'string') {
-        try {
-          const maybeArray = JSON.parse(rawStudentIds);
-          if (Array.isArray(maybeArray)) {
-            parsedIds = maybeArray;
-          }
-        } catch {
-          parsedIds = rawStudentIds.split(',').map((item) => item.trim()).filter(Boolean);
-        }
-      }
-
       const allowedStudentIds = new Set(allStudentIds);
-      targetStudentIds = [...new Set(parsedIds.map((item) => String(item || '').trim()).filter(Boolean))]
+      targetStudentIds = [...new Set(parseStudentIds(req.body?.studentIds).map((item) => String(item || '').trim()).filter(Boolean))]
         .filter((studentId) => allowedStudentIds.has(studentId));
 
       if (targetStudentIds.length === 0) {
@@ -378,22 +467,25 @@ const createAssignments = async (req, res) => {
       }
     }
 
+    const reviewedAt = scoreResult.value !== null || remark ? new Date() : null;
     const docs = targetStudentIds.map((studentId) => ({
       instructorId: req.userId,
       studentId,
+      type,
       title,
       question,
       details,
       attachment: toAttachmentPayload(req.file),
-      score,
+      score: scoreResult.value,
       remark,
-      dueDate,
+      reviewedAt,
+      dueDate: dueDateResult.value,
     }));
 
     const createdAssignments = await MentorshipAssignment.insertMany(docs);
 
     return res.status(201).json({
-      message: `Assignments created for ${createdAssignments.length} student(s)`,
+      message: `${WORK_TYPE_LABELS[type]}s created for ${createdAssignments.length} student(s)`,
       count: createdAssignments.length,
       assignments: createdAssignments.map(toAssignmentPayload),
     });
@@ -418,6 +510,14 @@ const updateAssignment = async (req, res) => {
       return res.status(404).json({ message: 'Assignment not found' });
     }
 
+    if (req.body?.type !== undefined) {
+      const type = normalizeWorkType(req.body.type);
+      if (!type) {
+        return res.status(400).json({ message: "type must be either 'assignment' or 'project'" });
+      }
+      assignment.type = type;
+    }
+
     if (req.body?.title !== undefined) {
       const title = String(req.body.title || '').trim();
       if (!title) return res.status(400).json({ message: 'title cannot be empty' });
@@ -434,34 +534,27 @@ const updateAssignment = async (req, res) => {
       assignment.details = String(req.body.details || '').trim();
     }
 
+    let reviewTouched = false;
     if (req.body?.remark !== undefined) {
       assignment.remark = String(req.body.remark || '').trim();
+      reviewTouched = true;
     }
 
     if (req.body?.score !== undefined) {
-      const rawScore = req.body.score;
-      if (rawScore === '' || rawScore === null) {
-        assignment.score = null;
-      } else {
-        const numericScore = Number(rawScore);
-        if (!Number.isFinite(numericScore) || numericScore < 0 || numericScore > 100) {
-          return res.status(400).json({ message: 'score must be a number between 0 and 100' });
-        }
-        assignment.score = numericScore;
+      const scoreResult = validateScore(req.body.score);
+      if (scoreResult.error) {
+        return res.status(400).json({ message: scoreResult.error });
       }
+      assignment.score = scoreResult.value;
+      reviewTouched = true;
     }
 
     if (req.body?.dueDate !== undefined) {
-      const dueDateRaw = String(req.body.dueDate || '').trim();
-      if (!dueDateRaw) {
-        assignment.dueDate = null;
-      } else {
-        const dueDate = new Date(dueDateRaw);
-        if (Number.isNaN(dueDate.getTime())) {
-          return res.status(400).json({ message: 'dueDate is invalid' });
-        }
-        assignment.dueDate = dueDate;
+      const dueDateResult = validateDueDate(req.body.dueDate);
+      if (dueDateResult.error) {
+        return res.status(400).json({ message: dueDateResult.error });
       }
+      assignment.dueDate = dueDateResult.value;
     }
 
     if (req.body?.removeAttachment === 'true') {
@@ -477,10 +570,14 @@ const updateAssignment = async (req, res) => {
       assignment.attachment = toAttachmentPayload(req.file);
     }
 
+    if (reviewTouched) {
+      assignment.reviewedAt = hasReview(assignment) ? new Date() : null;
+    }
+
     await assignment.save();
 
     return res.status(200).json({
-      message: 'Assignment updated',
+      message: `${WORK_TYPE_LABELS[normalizeWorkType(assignment.type) || 'assignment']} updated`,
       assignment: toAssignmentPayload(assignment),
     });
   } catch (error) {
@@ -504,7 +601,8 @@ const deleteAssignment = async (req, res) => {
       return res.status(404).json({ message: 'Assignment not found' });
     }
 
-    return res.status(200).json({ message: 'Assignment deleted' });
+    const removedType = normalizeWorkType(removed.type) || 'assignment';
+    return res.status(200).json({ message: `${WORK_TYPE_LABELS[removedType]} deleted` });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to delete assignment', error: error.message });
   }
@@ -532,7 +630,7 @@ const submitMyAssignment = async (req, res) => {
       return res.status(400).json({ message: 'Please provide an answer or attachment' });
     }
 
-    const nextSubmission = {
+    assignment.submission = {
       answer,
       submittedAt: new Date(),
       attachment: hasAttachment
@@ -547,11 +645,11 @@ const submitMyAssignment = async (req, res) => {
             },
     };
 
-    assignment.submission = nextSubmission;
     await assignment.save();
 
+    const assignmentType = normalizeWorkType(assignment.type) || 'assignment';
     return res.status(200).json({
-      message: 'Assignment submitted',
+      message: `${WORK_TYPE_LABELS[assignmentType]} submitted`,
       assignment: toAssignmentPayload(assignment),
     });
   } catch (error) {
