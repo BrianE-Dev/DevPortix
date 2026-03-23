@@ -4,6 +4,7 @@ const cors = require('cors');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 const DBconnect = require('./database/dbConnect');
+const { emailRouter } = require('./controller/email.router');
 
 const app = express();
 app.set('etag', false);
@@ -37,6 +38,8 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/api/health', (_req, res) => {
   res.status(200).json({ ok: true, service: 'email-service' });
 });
+
+app.use('/api', emailRouter);
 
 const start = async () => {
   await DBconnect();
