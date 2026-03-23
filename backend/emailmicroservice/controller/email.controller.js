@@ -1,12 +1,14 @@
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
 const Joi = require('joi');
 const OtpToken = require('./otp.schema');
 
 const OTP_TTL_MINUTES = Number(process.env.OTP_TTL_MINUTES || 10);
 const MAX_VERIFY_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS || 5);
 const EMAIL_FROM_NAME = String(process.env.EMAIL_FROM_NAME || 'DevPortix').trim();
-const MAIL_PROVIDER = String(process.env.MAIL_PROVIDER || '').trim().toLowerCase();
+const KEPLERS_API_KEY = String(process.env.KEPLERS_API_KEY || '').trim();
+const KEPLERS_API_URL = String(
+  process.env.KEPLERS_API_URL || 'https://api.keplars.com/api/v1/send-email/instant'
+).trim();
 
 const requestOtpSchema = Joi.object({
   email: Joi.string().trim().email().required(),
@@ -26,30 +28,34 @@ const generateOtp = () => String(crypto.randomInt(100000, 1000000));
 const hashOtp = (email, purpose, otp) =>
   crypto.createHash('sha256').update(`${normalizeEmail(email)}:${normalizePurpose(purpose)}:${String(otp)}`).digest('hex');
 
-const createTransporter = () => {
-  const host = String(process.env.SMTP_HOST || 'smtp.gmail.com').trim();
-  const port = Number(process.env.SMTP_PORT || 587);
-  const secure = String(process.env.SMTP_SECURE || '').trim().toLowerCase() === 'true';
-  const user = String(process.env.MAIL_USER || process.env.EMAIL || '').trim();
-  const pass = String(process.env.MAIL_PASS || process.env.EMAILSECRET || '').trim();
-
-  if (!user || !pass) {
-    throw new Error('Email credentials are not configured');
+const sendWithKeplers = async ({ to, subject, text, html }) => {
+  if (!KEPLERS_API_KEY) {
+    throw new Error('Keplars API key is not configured');
   }
 
-  if (MAIL_PROVIDER === 'gmail') {
-    return nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user, pass },
-    });
-  }
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: secure || port === 465,
-    auth: { user, pass },
+  const response = await fetch(KEPLERS_API_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${KEPLERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      to: [to],
+      subject,
+      body: html || text,
+    }),
   });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload?.success === false) {
+    throw new Error(payload?.error || payload?.message || 'Keplars email request failed');
+  }
+
+  return payload;
+};
+
+const sendEmail = async (payload) => {
+  return sendWithKeplers(payload);
 };
 
 const buildOtpEmail = ({ otp, purpose }) => {
@@ -142,13 +148,9 @@ const requestOtp = async (req, res) => {
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    const transporter = createTransporter();
-    const mailUser = String(process.env.MAIL_USER || process.env.EMAIL || '').trim();
-    const fromEmail = String(process.env.SMTP_FROM_EMAIL || mailUser).trim();
     const emailPayload = buildOtpEmail({ otp, purpose });
 
-    await transporter.sendMail({
-      from: `"${EMAIL_FROM_NAME}" <${fromEmail}>`,
+    await sendEmail({
       to: email,
       subject: emailPayload.subject,
       text: emailPayload.text,
