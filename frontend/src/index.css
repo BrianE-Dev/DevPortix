@@ -194,7 +194,7 @@
   }
 
   .landing-breathe-card {
-    animation: landingCardBreathe 6.8s ease-in-out infinite;
+    animation: landingCardBreathe 12.5s cubic-bezier(0.37, 0, 0.63, 1) infinite;
     animation-delay: var(--breathe-delay, 0s);
     transform-origin: center center;
     will-change: transform, box-shadow, border-color;
@@ -318,10 +318,22 @@
     border-color: rgba(255, 255, 255, 0.08);
   }
 
+  25% {
+    transform: translateY(-2px) scale(1.004);
+    box-shadow: 0 21px 55px rgba(12, 18, 32, 0.3);
+    border-color: rgba(255, 255, 255, 0.11);
+  }
+
   50% {
-    transform: translateY(-6px) scale(1.012);
-    box-shadow: 0 28px 65px rgba(30, 41, 59, 0.34);
+    transform: translateY(-4px) scale(1.008);
+    box-shadow: 0 24px 60px rgba(18, 26, 45, 0.32);
     border-color: rgba(255, 255, 255, 0.18);
+  }
+
+  75% {
+    transform: translateY(-2px) scale(1.004);
+    box-shadow: 0 21px 55px rgba(12, 18, 32, 0.3);
+    border-color: rgba(255, 255, 255, 0.11);
   }
 }
 
