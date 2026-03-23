@@ -1,16 +1,42 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import LocalStorageService from '../services/localStorageService';
 import { communityApi } from '../services/communityApi';
 import { useModal } from '../hooks/useModal';
+import { useAuth } from '../hooks/useAuth';
+import { ROLES } from '../utils/constants';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5500';
 const resolveMedia = (url) => (!url ? '' : url.startsWith('http') ? url : `${API_BASE_URL}${url}`);
 
+const formatDate = (value) => {
+  if (!value) return '';
+
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(new Date(value));
+  } catch {
+    return '';
+  }
+};
+
+const blogSummary = (post) => {
+  const content = String(post?.content || '').trim();
+  if (content.length <= 150) return content;
+  return `${content.slice(0, 150).trim()}...`;
+};
+
 const CommunityPage = () => {
   const { confirm } = useModal();
+  const { user } = useAuth();
   const token = useMemo(() => LocalStorageService.getToken(), []);
+  const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
   const [tab, setTab] = useState('chat');
   const [posts, setPosts] = useState([]);
+  const [recentBlogs, setRecentBlogs] = useState([]);
+  const [mostLikedBlogs, setMostLikedBlogs] = useState([]);
   const [comments, setComments] = useState({});
   const [users, setUsers] = useState([]);
   const [requests, setRequests] = useState({ incoming: [], outgoing: [], friends: [] });
@@ -23,14 +49,51 @@ const CommunityPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const syncPost = useCallback((postId, updater) => {
+    const applyUpdate = (collection) =>
+      collection.map((post) => (post.id === postId ? updater(post) : post));
+
+    setPosts((prev) => applyUpdate(prev));
+    setRecentBlogs((prev) => applyUpdate(prev));
+    setMostLikedBlogs((prev) => applyUpdate(prev));
+  }, []);
+
+  const clearEditor = useCallback(() => {
+    setTitle('');
+    setContent('');
+    setMedia(null);
+    setEditing(null);
+    setMediaPreviewUrl((currentUrl) => {
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+      return '';
+    });
+  }, []);
+
   const loadPosts = useCallback(async () => {
     if (!token || tab === 'people') return;
     setLoading(true);
     setError('');
+
     try {
-      const postResp = await communityApi.listPosts(token, { type: tab, page: 1, limit: 25 });
-      const nextPosts = Array.isArray(postResp.posts) ? postResp.posts : [];
+      const requestsToRun =
+        tab === 'blog'
+          ? Promise.all([
+              communityApi.listPosts(token, { type: 'blog', page: 1, limit: 25, sort: 'newest' }),
+              communityApi.listPosts(token, { type: 'blog', page: 1, limit: 5, sort: 'newest' }),
+              communityApi.listPosts(token, { type: 'blog', page: 1, limit: 5, sort: 'mostLiked' }),
+            ])
+          : Promise.all([
+              communityApi.listPosts(token, { type: 'chat', page: 1, limit: 25, sort: 'newest' }),
+            ]);
+
+      const [feedResp, recentResp, likedResp] = await requestsToRun;
+      const nextPosts = Array.isArray(feedResp.posts) ? feedResp.posts : [];
       setPosts(nextPosts);
+      setRecentBlogs(tab === 'blog' && Array.isArray(recentResp?.posts) ? recentResp.posts : []);
+      setMostLikedBlogs(tab === 'blog' && Array.isArray(likedResp?.posts) ? likedResp.posts : []);
+
       const commentPairs = await Promise.all(
         nextPosts.map(async (post) => {
           const res = await communityApi.listComments(token, post.id);
@@ -43,12 +106,13 @@ const CommunityPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, tab]);
+  }, [tab, token]);
 
   const loadPeople = useCallback(async () => {
     if (!token || tab !== 'people') return;
     setLoading(true);
     setError('');
+
     try {
       const [usersResp, reqResp] = await Promise.all([
         communityApi.listUsers(token, { page: 1, limit: 30 }),
@@ -65,18 +129,27 @@ const CommunityPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, tab]);
+  }, [tab, token]);
 
   useEffect(() => {
     if (tab === 'people') loadPeople();
     else loadPosts();
-  }, [tab, loadPosts, loadPeople]);
+  }, [tab, loadPeople, loadPosts]);
 
-  useEffect(() => () => {
-    if (mediaPreviewUrl) {
-      URL.revokeObjectURL(mediaPreviewUrl);
+  useEffect(
+    () => () => {
+      if (mediaPreviewUrl) {
+        URL.revokeObjectURL(mediaPreviewUrl);
+      }
+    },
+    [mediaPreviewUrl]
+  );
+
+  useEffect(() => {
+    if (tab !== 'blog' && editing?.type === 'blog') {
+      clearEditor();
     }
-  }, [mediaPreviewUrl]);
+  }, [clearEditor, editing?.type, tab]);
 
   const handleMediaChange = (event) => {
     const nextFile = event.target.files?.[0] || null;
@@ -96,7 +169,13 @@ const CommunityPage = () => {
     event.preventDefault();
     if (!token || !content.trim()) return;
     if (tab === 'blog' && !title.trim()) return;
+    if (tab === 'blog' && !isSuperAdmin) {
+      setError('Only super admins can publish blog posts.');
+      return;
+    }
+
     setError('');
+
     try {
       const payload = {
         type: tab,
@@ -109,23 +188,14 @@ const CommunityPage = () => {
       } else {
         await communityApi.createPost(token, payload);
       }
-      setTitle('');
-      setContent('');
-      setMedia(null);
-      setMediaPreviewUrl((currentUrl) => {
-        if (currentUrl) {
-          URL.revokeObjectURL(currentUrl);
-        }
-        return '';
-      });
-      setEditing(null);
+      clearEditor();
       await loadPosts();
     } catch (err) {
       setError(err.message || 'Failed to save post');
     }
   };
 
-  const removePost = async (id) => {
+  const removePost = async (post) => {
     const isConfirmed = await confirm({
       type: 'warning',
       title: 'Delete Post?',
@@ -136,31 +206,43 @@ const CommunityPage = () => {
     if (!isConfirmed) return;
 
     try {
-      await communityApi.removePost(token, id);
+      await communityApi.removePost(token, post.id);
+      if (editing?.id === post.id) {
+        clearEditor();
+      }
       await loadPosts();
     } catch (err) {
       setError(err.message || 'Failed to delete post');
     }
   };
 
-  const upvote = async (id) => {
+  const toggleLike = async (postId) => {
     try {
-      const res = await communityApi.toggleLike(token, id);
-      setPosts((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, isUpvoted: res.isUpvoted, upvoteCount: res.upvoteCount } : p))
-      );
+      const res = await communityApi.toggleLike(token, postId);
+      syncPost(postId, (post) => ({
+        ...post,
+        isLiked: res.liked,
+        isUpvoted: res.isUpvoted,
+        likeCount: res.likeCount,
+        upvoteCount: res.upvoteCount,
+      }));
     } catch (err) {
-      setError(err.message || 'Failed to upvote');
+      setError(err.message || 'Failed to like post');
     }
   };
 
   const addComment = async (postId) => {
     const text = String(commentDrafts[postId] || '').trim();
     if (!text) return;
+
     try {
       const res = await communityApi.createComment(token, postId, { content: text });
       setComments((prev) => ({ ...prev, [postId]: [...(prev[postId] || []), res.comment] }));
       setCommentDrafts((prev) => ({ ...prev, [postId]: '' }));
+      syncPost(postId, (post) => ({
+        ...post,
+        commentCount: Number(post.commentCount || 0) + 1,
+      }));
     } catch (err) {
       setError(err.message || 'Failed to comment');
     }
@@ -184,166 +266,303 @@ const CommunityPage = () => {
     }
   };
 
+  const startEditing = (post) => {
+    setEditing(post);
+    setTitle(post.title || '');
+    setContent(post.content || '');
+    setMedia(null);
+    setMediaPreviewUrl((currentUrl) => {
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+      return '';
+    });
+  };
+
   return (
-    <section className="max-w-5xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold">Community</h1>
-      <div className="mt-4 flex gap-2">
-        <button className="px-3 py-1 border rounded" onClick={() => setTab('chat')}>Chats</button>
-        <button className="px-3 py-1 border rounded" onClick={() => setTab('blog')}>Blogs</button>
-        <button className="px-3 py-1 border rounded" onClick={() => setTab('people')}>People</button>
+    <section className="mx-auto max-w-7xl px-4 py-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-blue-600">Community space</p>
+          <h1 className="mt-2 text-3xl font-bold text-slate-900">Conversations, blogs, and people</h1>
+          <p className="mt-2 max-w-2xl text-sm text-slate-600">
+            Super admins handle blog publishing, while everyone else can read, like, and join the discussion.
+          </p>
+        </div>
+        <div className="flex gap-2 rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+          <button
+            className={`rounded-full px-4 py-2 text-sm ${tab === 'chat' ? 'bg-slate-900 text-white' : 'text-slate-600'}`}
+            onClick={() => setTab('chat')}
+          >
+            Chats
+          </button>
+          <button
+            className={`rounded-full px-4 py-2 text-sm ${tab === 'blog' ? 'bg-slate-900 text-white' : 'text-slate-600'}`}
+            onClick={() => setTab('blog')}
+          >
+            Blogs
+          </button>
+          <button
+            className={`rounded-full px-4 py-2 text-sm ${tab === 'people' ? 'bg-slate-900 text-white' : 'text-slate-600'}`}
+            onClick={() => setTab('people')}
+          >
+            People
+          </button>
+        </div>
       </div>
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
       {tab === 'people' ? (
-        <div className="mt-4 space-y-4">
-          <div className="grid md:grid-cols-3 gap-3">
-            <div className="border rounded p-3">
-              <h2 className="font-semibold text-sm">Incoming Requests</h2>
-              {(requests.incoming || []).map((r) => (
-                <div key={r.id} className="mt-2 text-sm">
-                  <p>{r.requester?.fullName}</p>
-                  <div className="flex gap-2 mt-1">
-                    <button className="px-2 py-1 border rounded text-xs" onClick={() => respondRequest(r.id, 'accept')}>Accept</button>
-                    <button className="px-2 py-1 border rounded text-xs" onClick={() => respondRequest(r.id, 'reject')}>Reject</button>
+        <div className="mt-6 space-y-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="text-sm font-semibold text-slate-900">Incoming Requests</h2>
+              {(requests.incoming || []).map((request) => (
+                <div key={request.id} className="mt-3 rounded-2xl bg-slate-50 p-3 text-sm">
+                  <p className="font-medium text-slate-900">{request.requester?.fullName}</p>
+                  <div className="mt-2 flex gap-2">
+                    <button className="rounded-full bg-slate-900 px-3 py-1 text-xs text-white" onClick={() => respondRequest(request.id, 'accept')}>
+                      Accept
+                    </button>
+                    <button className="rounded-full border border-slate-300 px-3 py-1 text-xs text-slate-700" onClick={() => respondRequest(request.id, 'reject')}>
+                      Reject
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="border rounded p-3">
-              <h2 className="font-semibold text-sm">Outgoing Requests</h2>
-              {(requests.outgoing || []).map((r) => (
-                <p key={r.id} className="mt-2 text-sm">{r.recipient?.fullName}</p>
+            <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="text-sm font-semibold text-slate-900">Outgoing Requests</h2>
+              {(requests.outgoing || []).map((request) => (
+                <p key={request.id} className="mt-3 rounded-2xl bg-slate-50 p-3 text-sm text-slate-700">
+                  {request.recipient?.fullName}
+                </p>
               ))}
             </div>
-            <div className="border rounded p-3">
-              <h2 className="font-semibold text-sm">Friends</h2>
-              {(requests.friends || []).map((f) => (
-                <p key={f.id} className="mt-2 text-sm">{f.fullName}</p>
+            <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="text-sm font-semibold text-slate-900">Friends</h2>
+              {(requests.friends || []).map((friend) => (
+                <p key={friend.id} className="mt-3 rounded-2xl bg-slate-50 p-3 text-sm text-slate-700">
+                  {friend.fullName}
+                </p>
               ))}
             </div>
           </div>
 
-          <div className="space-y-2">
-            {users.map((user) => (
-              <article key={user.id} className="border rounded p-3 flex justify-between items-center">
+          <div className="space-y-3">
+            {users.map((person) => (
+              <article key={person.id} className="flex items-center justify-between rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div>
-                  <p className="font-semibold text-sm">{user.fullName}</p>
-                  <p className="text-xs text-gray-500">{user.email} | {user.role}</p>
+                  <p className="font-semibold text-slate-900">{person.fullName}</p>
+                  <p className="text-sm text-slate-500">
+                    {person.email} | {person.role}
+                  </p>
                 </div>
-                {user.friendshipStatus === 'none' ? (
-                  <button className="px-3 py-1 text-xs border rounded" onClick={() => sendFriendRequest(user.id)}>
+                {person.friendshipStatus === 'none' ? (
+                  <button className="rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700" onClick={() => sendFriendRequest(person.id)}>
                     Add Friend
                   </button>
                 ) : (
-                  <span className="text-xs">{user.friendshipStatus.replace('_', ' ')}</span>
+                  <span className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+                    {person.friendshipStatus.replace('_', ' ')}
+                  </span>
                 )}
               </article>
             ))}
           </div>
         </div>
       ) : (
-        <>
-          <form onSubmit={createOrUpdatePost} className="mt-4 border rounded p-4 space-y-3">
-            {tab === 'blog' && (
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Blog title"
-                className="w-full border rounded px-3 py-2 text-sm"
-              />
-            )}
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={tab === 'blog' ? 'Write blog content...' : 'Write chat message...'}
-              className="w-full border rounded px-3 py-2 text-sm"
-              rows={4}
-            />
-            {tab === 'blog' && (
-              <>
-                <input type="file" onChange={handleMediaChange} className="text-xs" />
-                {mediaPreviewUrl && (
-                  <div className="rounded border p-2 w-fit">
-                    <img src={mediaPreviewUrl} alt="Selected media preview" className="h-24 w-24 object-cover rounded" />
-                  </div>
-                )}
-              </>
-            )}
-            <button className="px-3 py-2 rounded bg-blue-600 text-white text-sm">
-              {editing ? 'Update' : 'Post'}
-            </button>
-          </form>
-
-          <div className="mt-4 space-y-3">
-            {loading ? <p className="text-sm">Loading...</p> : null}
-            {posts.map((post) => (
-              <article key={post.id} className="border rounded p-4">
-                <div className="flex justify-between items-start">
+        <div className={`mt-6 grid gap-6 ${tab === 'blog' ? 'xl:grid-cols-[minmax(0,1.4fr)_320px]' : ''}`}>
+          <div className="space-y-5">
+            {tab === 'chat' || isSuperAdmin ? (
+              <form onSubmit={createOrUpdatePost} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-sm">{post.author?.fullName}</p>
-                    {post.title ? <h2 className="font-bold mt-2">{post.title}</h2> : null}
+                    <h2 className="text-lg font-semibold text-slate-900">
+                      {editing ? 'Update your post' : tab === 'blog' ? 'Publish a blog post' : 'Start a conversation'}
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {tab === 'blog' ? 'Blogs are reserved for super-admin publishing.' : 'Chats remain open to the community.'}
+                    </p>
                   </div>
-                  {post.isOwner ? (
-                    <div className="flex gap-2">
-                      <button className="px-2 py-1 text-xs border rounded" onClick={() => {
-                        setEditing(post);
-                        setTitle(post.title || '');
-                        setContent(post.content || '');
-                        setMedia(null);
-                        setMediaPreviewUrl((currentUrl) => {
-                          if (currentUrl) {
-                            URL.revokeObjectURL(currentUrl);
-                          }
-                          return '';
-                        });
-                      }}>
-                        Edit
-                      </button>
-                      <button className="px-2 py-1 text-xs border rounded" onClick={() => removePost(post.id)}>
-                        Delete
-                      </button>
-                    </div>
+                  {editing ? (
+                    <button
+                      type="button"
+                      className="rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700"
+                      onClick={clearEditor}
+                    >
+                      Cancel
+                    </button>
                   ) : null}
                 </div>
-                <p className="mt-2 text-sm whitespace-pre-wrap">{post.content}</p>
-                {post.media?.url ? (
-                  <div className="mt-2">
-                    {(post.media.mimeType || '').startsWith('image/') ? (
-                      <img src={resolveMedia(post.media.url)} alt="blog media" className="max-h-80 rounded" />
-                    ) : (
-                      <a className="text-sm text-blue-600 underline" href={resolveMedia(post.media.url)} target="_blank" rel="noreferrer">Open media</a>
-                    )}
-                  </div>
+
+                {tab === 'blog' ? (
+                  <input
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    placeholder="Blog title"
+                    className="mt-4 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+                  />
                 ) : null}
-                <div className="mt-3">
-                  <button className="px-2 py-1 text-xs border rounded" onClick={() => upvote(post.id)}>
-                    {(post.isUpvoted || post.isLiked) ? 'Upvoted' : 'Upvote'} ({Number(post.upvoteCount ?? post.likeCount ?? 0)})
-                  </button>
-                </div>
-                <div className="mt-3 space-y-2">
-                  {(comments[post.id] || []).map((c) => (
-                    <div key={c.id} className="text-xs border rounded p-2">
-                      <p className="font-semibold">{c.author?.fullName}</p>
-                      <p>{c.content}</p>
+
+                <textarea
+                  value={content}
+                  onChange={(event) => setContent(event.target.value)}
+                  placeholder={tab === 'blog' ? 'Write blog content...' : 'Write chat message...'}
+                  className="mt-4 w-full rounded-3xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+                  rows={tab === 'blog' ? 7 : 4}
+                />
+
+                {tab === 'blog' ? (
+                  <>
+                    <input type="file" onChange={handleMediaChange} className="mt-3 text-xs text-slate-500" />
+                    {mediaPreviewUrl ? (
+                      <div className="mt-3 w-fit rounded-2xl border border-slate-200 p-2">
+                        <img src={mediaPreviewUrl} alt="Selected media preview" className="h-24 w-24 rounded-xl object-cover" />
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
+
+                <button className="mt-4 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white">
+                  {editing ? 'Update' : 'Post'}
+                </button>
+              </form>
+            ) : (
+              <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 shadow-sm">
+                <h2 className="text-lg font-semibold">Blog publishing is limited to super admins</h2>
+                <p className="mt-2">
+                  You can still read every blog, leave comments, and like posts with the heart button below.
+                </p>
+              </div>
+            )}
+
+            {loading ? <p className="text-sm text-slate-500">Loading...</p> : null}
+
+            {posts.map((post) => {
+              const canManagePost = post.type === 'blog' ? isSuperAdmin : post.isOwner;
+              const likeCount = Number(post.upvoteCount ?? post.likeCount ?? 0);
+              const commentCount = Number(post.commentCount || 0);
+              const isLiked = Boolean(post.isLiked || post.isUpvoted);
+
+              return (
+                <article key={post.id} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{post.author?.fullName}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.24em] text-slate-400">
+                        {post.type} {post.createdAt ? `| ${formatDate(post.createdAt)}` : ''}
+                      </p>
+                      {post.title ? <h2 className="mt-3 text-2xl font-semibold text-slate-900">{post.title}</h2> : null}
                     </div>
-                  ))}
-                  <div className="flex gap-2">
-                    <input
-                      value={commentDrafts[post.id] || ''}
-                      onChange={(e) => setCommentDrafts((prev) => ({ ...prev, [post.id]: e.target.value }))}
-                      placeholder="Add comment..."
-                      className="flex-1 border rounded px-2 py-1 text-xs"
-                    />
-                    <button className="px-2 py-1 text-xs border rounded" onClick={() => addComment(post.id)}>
-                      Comment
-                    </button>
+                    {canManagePost ? (
+                      <div className="flex gap-2">
+                        <button
+                          className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700"
+                          onClick={() => startEditing(post)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700"
+                          onClick={() => removePost(post)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
-                </div>
-              </article>
-            ))}
+
+                  <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-700">{post.content}</p>
+
+                  {post.media?.url ? (
+                    <div className="mt-4">
+                      {(post.media.mimeType || '').startsWith('image/') ? (
+                        <img src={resolveMedia(post.media.url)} alt="blog media" className="max-h-96 rounded-[1.5rem] object-cover" />
+                      ) : (
+                        <a className="text-sm text-blue-600 underline" href={resolveMedia(post.media.url)} target="_blank" rel="noreferrer">
+                          Open media
+                        </a>
+                      )}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-5 flex flex-wrap items-center gap-4 border-t border-slate-100 pt-4">
+                    <button
+                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition ${
+                        isLiked ? 'border-red-200 bg-red-50 text-red-600' : 'border-slate-200 text-slate-600'
+                      }`}
+                      onClick={() => toggleLike(post.id)}
+                    >
+                      <span className={isLiked ? 'text-red-500' : 'text-slate-400'} aria-hidden="true">
+                        &#9829;
+                      </span>
+                      <span>{likeCount}</span>
+                    </button>
+                    <span className="text-sm text-slate-500">{commentCount} comments</span>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {(comments[post.id] || []).map((comment) => (
+                      <div key={comment.id} className="rounded-2xl bg-slate-50 p-3 text-sm">
+                        <p className="font-semibold text-slate-900">{comment.author?.fullName}</p>
+                        <p className="mt-1 text-slate-700">{comment.content}</p>
+                      </div>
+                    ))}
+
+                    <div className="flex gap-2">
+                      <input
+                        value={commentDrafts[post.id] || ''}
+                        onChange={(event) => setCommentDrafts((prev) => ({ ...prev, [post.id]: event.target.value }))}
+                        placeholder="Add comment..."
+                        className="flex-1 rounded-full border border-slate-200 px-4 py-2 text-sm outline-none transition focus:border-slate-400"
+                      />
+                      <button
+                        className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+                        onClick={() => addComment(post.id)}
+                      >
+                        Comment
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
-        </>
+
+          {tab === 'blog' ? (
+            <aside className="space-y-5">
+              <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+                <h2 className="text-lg font-semibold text-slate-900">Recent Blogs</h2>
+                <div className="mt-4 space-y-4">
+                  {recentBlogs.map((post) => (
+                    <article key={post.id} className="border-b border-slate-100 pb-4 last:border-b-0 last:pb-0">
+                      <p className="text-xs uppercase tracking-[0.22em] text-slate-400">{formatDate(post.createdAt)}</p>
+                      <h3 className="mt-2 font-semibold text-slate-900">{post.title}</h3>
+                      <p className="mt-2 text-sm text-slate-600">{blogSummary(post)}</p>
+                    </article>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+                <h2 className="text-lg font-semibold text-slate-900">Most Liked Blogs</h2>
+                <div className="mt-4 space-y-4">
+                  {mostLikedBlogs.map((post) => (
+                    <article key={post.id} className="border-b border-slate-100 pb-4 last:border-b-0 last:pb-0">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="font-semibold text-slate-900">{post.title}</h3>
+                        <span className="text-sm text-red-500">&#9829; {Number(post.likeCount || post.upvoteCount || 0)}</span>
+                      </div>
+                      <p className="mt-2 text-sm text-slate-600">{blogSummary(post)}</p>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </aside>
+          ) : null}
+        </div>
       )}
     </section>
   );

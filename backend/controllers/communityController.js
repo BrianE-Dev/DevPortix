@@ -147,6 +147,11 @@ const createMediaFromFile = (file) => {
   };
 };
 
+const getCurrentUserRole = async (userId) => {
+  const user = await User.findById(userId).select('role');
+  return String(user?.role || '').trim().toLowerCase();
+};
+
 const listUsers = async (req, res) => {
   try {
     const q = String(req.query?.q || '').trim();
@@ -504,6 +509,13 @@ const createPost = async (req, res) => {
       return res.status(400).json({ message: 'Blog title is required' });
     }
 
+    if (type === 'blog') {
+      const requesterRole = await getCurrentUserRole(req.userId);
+      if (requesterRole !== 'super_admin') {
+        return res.status(403).json({ message: 'Only super admins can create blog posts' });
+      }
+    }
+
     if (req.file && type !== 'blog') {
       return res.status(400).json({ message: 'Media upload is only supported for blog posts' });
     }
@@ -529,6 +541,7 @@ const createPost = async (req, res) => {
 const updatePost = async (req, res) => {
   try {
     const updates = {};
+    const requesterRole = await getCurrentUserRole(req.userId);
 
     if (req.body?.title !== undefined) {
       updates.title = String(req.body.title || '').trim();
@@ -541,9 +554,21 @@ const updatePost = async (req, res) => {
       }
     }
 
-    const existing = await CommunityPost.findOne({ _id: req.params.id, ownerId: req.userId });
+    const existing = await CommunityPost.findById(req.params.id);
     if (!existing) {
       return res.status(404).json({ message: 'Post not found' });
+    }
+
+    const canManagePost =
+      existing.type === 'blog' ? requesterRole === 'super_admin' : sameId(existing.ownerId, req.userId);
+
+    if (!canManagePost) {
+      return res.status(403).json({
+        message:
+          existing.type === 'blog'
+            ? 'Only super admins can edit blog posts'
+            : 'You are not allowed to edit this post',
+      });
     }
 
     if ((updates.title !== undefined || existing.type === 'blog') && existing.type === 'blog') {
@@ -571,7 +596,7 @@ const updatePost = async (req, res) => {
     }
 
     const updated = await CommunityPost.findOneAndUpdate(
-      { _id: req.params.id, ownerId: req.userId },
+      { _id: req.params.id },
       updates,
       { returnDocument: 'after', runValidators: true }
     ).populate('ownerId', 'fullName email role avatar');
@@ -586,14 +611,25 @@ const updatePost = async (req, res) => {
 
 const deletePost = async (req, res) => {
   try {
-    const deleted = await CommunityPost.findOneAndDelete({
-      _id: req.params.id,
-      ownerId: req.userId,
-    });
-
-    if (!deleted) {
+    const existing = await CommunityPost.findById(req.params.id).select('_id ownerId type');
+    if (!existing) {
       return res.status(404).json({ message: 'Post not found' });
     }
+
+    const requesterRole = await getCurrentUserRole(req.userId);
+    const canManagePost =
+      existing.type === 'blog' ? requesterRole === 'super_admin' : sameId(existing.ownerId, req.userId);
+
+    if (!canManagePost) {
+      return res.status(403).json({
+        message:
+          existing.type === 'blog'
+            ? 'Only super admins can delete blog posts'
+            : 'You are not allowed to delete this post',
+      });
+    }
+
+    const deleted = await CommunityPost.findByIdAndDelete(req.params.id);
 
     await Promise.all([
       CommunityComment.deleteMany({ postId: deleted._id }),
