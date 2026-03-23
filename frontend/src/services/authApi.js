@@ -1,6 +1,13 @@
 import { request } from './apiClient';
 
 export const authApi = {
+  async requestRegistrationOtp(payload) {
+    return request('/api/auth/register/otp/request', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
   async register(payload) {
     return request('/api/auth/register', {
       method: 'POST',

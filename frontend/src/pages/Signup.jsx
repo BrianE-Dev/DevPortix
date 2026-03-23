@@ -5,6 +5,7 @@ import { User, Mail, Lock, Github, Code2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import { ROLES } from '../utils/constants';
+import { authApi } from '../services/authApi';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -12,11 +13,14 @@ const Signup = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    otp: '',
     githubUsername: '',
     role: ''
   });
   const [error, setError] = useState('');
+  const [otpMessage, setOtpMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const { signup } = useAuth();
   const { theme } = useTheme();
@@ -33,10 +37,32 @@ const Signup = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'email') {
+      setOtpMessage('');
+    }
     setFormData({
       ...formData,
       [name]: value
     });
+  };
+
+  const handleRequestOtp = async () => {
+    setError('');
+    setOtpMessage('');
+
+    try {
+      if (!formData.email) {
+        throw new Error('Enter your email address first');
+      }
+
+      setOtpLoading(true);
+      await authApi.requestRegistrationOtp({ email: formData.email });
+      setOtpMessage(`A registration OTP has been sent to ${formData.email}.`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setOtpLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -45,8 +71,8 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      if (!formData.email || !formData.password || !formData.confirmPassword) {
-        throw new Error('Please fill in all required fields');
+      if (!formData.email || !formData.password || !formData.confirmPassword || !formData.otp) {
+        throw new Error('Please fill in all required fields including the OTP');
       }
 
       if (formData.password !== formData.confirmPassword) {
@@ -69,6 +95,7 @@ const Signup = () => {
         email: formData.email,
         fullName: formData.fullName || 'New User',
         password: formData.password,
+        otp: formData.otp,
         githubUsername: formData.githubUsername || '',
         role: formData.role,
       });
@@ -135,6 +162,44 @@ const Signup = () => {
                   required
                 />
               </div>
+              <div className="mt-3 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleRequestOtp}
+                  disabled={otpLoading}
+                  className="rounded-lg border border-blue-500 px-4 py-2 text-sm font-medium text-blue-500 transition hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed dark:hover:bg-blue-950/40"
+                >
+                  {otpLoading ? 'Sending OTP...' : 'Send OTP'}
+                </button>
+                {otpMessage ? (
+                  <span className={`text-xs ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
+                    {otpMessage}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+
+            <div>
+              <label className={`block text-sm font-medium ${labelClass}`}>Email OTP</label>
+              <div className="relative mt-1">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Mail className={`w-5 h-5 ${iconClass}`} />
+                </div>
+                <input
+                  type="text"
+                  name="otp"
+                  value={formData.otp}
+                  onChange={handleChange}
+                  className={`${inputClass} pl-10 pr-3 py-3 tracking-[0.3em]`}
+                  placeholder="123456"
+                  inputMode="numeric"
+                  maxLength={6}
+                  required
+                />
+              </div>
+              <p className={`mt-1 text-xs ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
+                Enter the code sent to your email before creating your account.
+              </p>
             </div>
 
             <div>
@@ -190,6 +255,7 @@ const Signup = () => {
                   <option value={ROLES.STUDENT}>Student</option>
                   <option value={ROLES.INSTRUCTOR}>Instructor / Mentor</option>
                   <option value={ROLES.ORGANIZATION}>Organization</option>
+                  <option value={ROLES.PROFESSIONAL}>Professional</option>
                 </select>
               </div>
             </div>
@@ -235,7 +301,7 @@ const Signup = () => {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || otpLoading}
               className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating Account...' : 'Create Account'}

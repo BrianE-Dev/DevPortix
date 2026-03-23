@@ -1,19 +1,30 @@
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const User = require('../modules/userSchema');
 const Subscription = require('../modules/subscription');
 const PortfolioSettings = require('../modules/portfolioSettings');
+const OtpToken = require('../modules/otpToken');
 
 const TOKEN_TTL = '7d';
 const PUBLIC_SIGNUP_ROLES = new Set(['student', 'instructor', 'organization', 'professional']);
 const DEFAULT_SUBSCRIPTION_BY_ROLE = {
   organization: 'basic',
 };
+const OTP_PURPOSE_REGISTRATION = 'registration';
+const EMAIL_SERVICE_URL = String(process.env.EMAIL_SERVICE_URL || '').trim().replace(/\/+$/, '');
 
 const signToken = (userId) =>
   jwt.sign({ sub: String(userId) }, process.env.JWT_SECRET || 'devportix_dev_secret', {
     expiresIn: TOKEN_TTL,
   });
+
+const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
+const hashOtp = (email, purpose, otp) =>
+  crypto
+    .createHash('sha256')
+    .update(`${normalizeEmail(email)}:${String(purpose || '').trim().toLowerCase()}:${String(otp)}`)
+    .digest('hex');
 
 const toPublicUser = (userDoc) => ({
   id: String(userDoc._id),
@@ -30,22 +41,82 @@ const toPublicUser = (userDoc) => ({
   updatedAt: userDoc.updatedAt,
 });
 
+const requestRegistrationOtp = async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const existing = await User.findOne({ email }).lean();
+    if (existing) {
+      return res.status(409).json({ message: 'An account with this email already exists' });
+    }
+
+    if (!EMAIL_SERVICE_URL) {
+      return res.status(503).json({ message: 'Email service unavailable' });
+    }
+
+    const response = await fetch(`${EMAIL_SERVICE_URL}/api/otp/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        purpose: OTP_PURPOSE_REGISTRATION,
+      }),
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return res.status(response.status).json({
+        message: payload?.message || 'Failed to send registration OTP',
+      });
+    }
+
+    return res.status(200).json(payload);
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to send registration OTP', error: error.message });
+  }
+};
+
 const register = async (req, res) => {
   try {
-    const { fullName, email, password, role, githubUsername } = req.body;
+    const { fullName, email, password, role, githubUsername, otp } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
+    if (!email || !password || !otp) {
+      return res.status(400).json({ message: 'Email, password, and OTP are required' });
     }
 
     if (String(password).length < 8) {
       return res.status(400).json({ message: 'Password must be at least 8 characters' });
     }
 
-    const normalizedEmail = String(email).trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
     const existing = await User.findOne({ email: normalizedEmail }).lean();
     if (existing) {
       return res.status(409).json({ message: 'An account with this email already exists' });
+    }
+
+    const otpDoc = await OtpToken.findOne({
+      email: normalizedEmail,
+      purpose: OTP_PURPOSE_REGISTRATION,
+    });
+
+    if (!otpDoc) {
+      return res.status(400).json({ message: 'Request a registration OTP before creating your account' });
+    }
+
+    if (otpDoc.expiresAt.getTime() < Date.now()) {
+      await OtpToken.deleteOne({ _id: otpDoc._id });
+      return res.status(410).json({ message: 'Your registration OTP has expired. Request a new code.' });
+    }
+
+    const submittedHash = hashOtp(normalizedEmail, OTP_PURPOSE_REGISTRATION, otp);
+    if (submittedHash !== otpDoc.codeHash) {
+      otpDoc.attempts = Number(otpDoc.attempts || 0) + 1;
+      await otpDoc.save();
+      return res.status(400).json({ message: 'Invalid registration OTP' });
     }
 
     const passwordHash = await bcrypt.hash(String(password), 12);
@@ -66,6 +137,7 @@ const register = async (req, res) => {
     await Promise.all([
       Subscription.create({ ownerId: user._id, plan: defaultPlan }),
       PortfolioSettings.create({ ownerId: user._id }),
+      OtpToken.deleteOne({ _id: otpDoc._id }),
     ]);
 
     const token = signToken(user._id);
@@ -110,6 +182,7 @@ const login = async (req, res) => {
 };
 
 module.exports = {
+  requestRegistrationOtp,
   register,
   login,
 };

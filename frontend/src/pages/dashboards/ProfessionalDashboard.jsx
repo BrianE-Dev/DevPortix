@@ -19,8 +19,9 @@ const UPGRADE_PROMPT = 'Upgrade to a better plan to access your portfolio.';
 const ProfessionalDashboard = () => {
   const { loading, isAuthenticated, user, getDashboardPath, updateProfile } = useAuth();
   const { showSuccess, showError: showErrorModal, confirm } = useModal();
-  const displayName = user?.fullName || user?.username || 'Professional';
-  const menuStorageKey = user?.role === ROLES.ORGANIZATION ? 'organization' : 'professional';
+  const isOrganization = user?.role === ROLES.ORGANIZATION;
+  const displayName = user?.fullName || user?.username || (isOrganization ? 'Organization' : 'Professional');
+  const menuStorageKey = isOrganization ? 'organization' : 'professional';
   const [activeMenuKey, setActiveMenuKey] = useState('overview');
   const [skillInput, setSkillInput] = useState('');
   const [skills, setSkills] = useState(() => (Array.isArray(user?.skills) ? user.skills : []));
@@ -45,11 +46,16 @@ const ProfessionalDashboard = () => {
   const portfolioPath = hasPortfolio
     ? `/portfolio/${portfolio?.slug || portfolio?.username || ''}`
     : null;
+  const dashboardRoleLabel = isOrganization ? 'Organization' : 'Professional';
+  const dashboardTitle = isOrganization ? 'Organization Dashboard' : 'Professional Dashboard';
+  const dashboardSubtitle = isOrganization
+    ? `Welcome, ${displayName}. Coordinate teams, present your brand, and manage organization-level visibility.`
+    : `Welcome, ${displayName}. Build your advanced portfolio for career growth.`;
   const menuItems = [
     { key: 'overview', label: 'Overview', icon: BarChart3, badge: 'Now' },
     { key: 'profile', label: 'Profile', icon: UserCircle, badge: 'Now' },
-    { key: 'experience', label: 'Experience', icon: BriefcaseBusiness, badge: 'Soon' },
-    { key: 'network', label: 'Network', icon: Network, badge: 'Soon' },
+    { key: 'experience', label: isOrganization ? 'Operations' : 'Experience', icon: BriefcaseBusiness, badge: 'Soon' },
+    { key: 'network', label: isOrganization ? 'Partners' : 'Network', icon: Network, badge: 'Soon' },
     portfolioUpgradeRequired && !hasPortfolio
       ? { key: 'portfolio-upgrade', label: 'Portfolio', icon: UserCircle, badge: 'Upgrade' }
       : hasPortfolio
@@ -67,7 +73,7 @@ const ProfessionalDashboard = () => {
           },
         ]
       : []),
-    { key: 'code-lab', label: 'Code Lab', icon: Code2, badge: 'Now' },
+    { key: 'code-lab', label: isOrganization ? 'Brand Lab' : 'Code Lab', icon: Code2, badge: 'Now' },
     { key: 'settings', label: 'Settings', icon: Settings, badge: 'Now', position: 'bottom' },
   ];
   useEffect(() => {
@@ -388,9 +394,9 @@ const ProfessionalDashboard = () => {
 
   return (
     <DashboardShell
-      role="Professional"
-      title="Professional Dashboard"
-      subtitle={`Welcome, ${displayName}. Build your advanced portfolio for career growth.`}
+      role={dashboardRoleLabel}
+      title={dashboardTitle}
+      subtitle={dashboardSubtitle}
       accentClass={activeAccent.textClass}
       activeTabClass={activeAccent.primaryButtonClass}
       menuItems={menuItems}
@@ -400,30 +406,47 @@ const ProfessionalDashboard = () => {
       {activeMenuKey === 'overview' && (
         <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
           <div className="dashboard-panel dashboard-stat-card rounded-[1.5rem] p-6">
-            <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Career</p>
-            <h3 className="font-semibold text-xl mt-3 mb-2 text-white">Experience</h3>
-            <p className="text-gray-300 mb-4">Showcase your work history with cleaner story-driven sections.</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-gray-400">{isOrganization ? 'Operations' : 'Career'}</p>
+            <h3 className="font-semibold text-xl mt-3 mb-2 text-white">{isOrganization ? 'Team Presence' : 'Experience'}</h3>
+            <p className="text-gray-300 mb-4">
+              {isOrganization
+                ? 'Present your organization with a clearer operating profile and internal ownership touchpoints.'
+                : 'Showcase your work history with cleaner story-driven sections.'}
+            </p>
             <div className={`text-sm font-semibold ${activeAccent.textClass}`}>Coming Soon</div>
           </div>
 
           <div className="dashboard-panel dashboard-stat-card rounded-[1.5rem] p-6">
-            <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Work</p>
-            <h3 className="font-semibold text-xl mt-3 mb-2 text-white">Projects</h3>
-            <p className="text-gray-300 mb-4">Highlight professional projects and measurable outcomes.</p>
-            <div className={`text-sm font-semibold ${activeAccent.textClass}`}>Coming Soon</div>
+            <p className="text-xs uppercase tracking-[0.24em] text-gray-400">{isOrganization ? 'Growth' : 'Work'}</p>
+            <h3 className="font-semibold text-xl mt-3 mb-2 text-white">{isOrganization ? 'Program Pipeline' : 'Projects'}</h3>
+            <p className="text-gray-300 mb-4">
+              {isOrganization
+                ? 'Prepare to spotlight mentorship programs, initiatives, and team outcomes in one place.'
+                : 'Highlight professional projects and measurable outcomes.'}
+            </p>
+            <div className={`text-sm font-semibold ${activeAccent.textClass}`}>{isOrganization ? 'Organization Ready' : 'Coming Soon'}</div>
           </div>
 
           <div className="dashboard-panel dashboard-stat-card rounded-[1.5rem] p-6">
-            <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Community</p>
-            <h3 className="font-semibold text-xl mt-3 mb-2 text-white">Network</h3>
-            <p className="text-gray-300 mb-4">Connect with other professionals through a cleaner hub layout.</p>
-            <div className={`text-sm font-semibold ${activeAccent.textClass}`}>Coming Soon</div>
+            <p className="text-xs uppercase tracking-[0.24em] text-gray-400">{isOrganization ? 'Brand' : 'Community'}</p>
+            <h3 className="font-semibold text-xl mt-3 mb-2 text-white">{isOrganization ? 'Portfolio Hub' : 'Network'}</h3>
+            <p className="text-gray-300 mb-4">
+              {isOrganization
+                ? 'Create a stronger public-facing space for your company, initiative, or learning program.'
+                : 'Connect with other professionals through a cleaner hub layout.'}
+            </p>
+            <div className={`text-sm font-semibold ${activeAccent.textClass}`}>{hasPortfolio ? 'Live' : 'Coming Soon'}</div>
           </div>
 
           <div className="dashboard-panel dashboard-stat-card rounded-[1.5rem] p-6">
-            <p className="text-xs uppercase tracking-[0.24em] text-gray-400">Identity</p>
-            <h3 className="font-semibold text-xl mt-3 mb-2 text-white">Skills</h3>
-            <p className="text-gray-300 mb-4">Add and save the skills you want to showcase.</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-gray-400">{isOrganization ? 'Controls' : 'Identity'}</p>
+            <h3 className="font-semibold text-xl mt-3 mb-2 text-white">{isOrganization ? 'Workspace Controls' : 'Skills'}</h3>
+            <p className="text-gray-300 mb-4">
+              {isOrganization
+                ? 'Keep your brand details, public presentation, and workspace state aligned.'
+                : 'Add and save the skills you want to showcase.'}
+            </p>
+            {!isOrganization && (
             <div className="flex gap-2 mb-4">
               <input
                 type="text"
@@ -442,8 +465,9 @@ const ProfessionalDashboard = () => {
                 Save
               </button>
             </div>
+            )}
             {skillsError && <p className="text-xs text-red-300 mb-3">{skillsError}</p>}
-            {skills.length > 0 ? (
+            {!isOrganization && skills.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {skills.map((skill) => (
                   <div
@@ -489,8 +513,10 @@ const ProfessionalDashboard = () => {
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : !isOrganization ? (
               <div className={`text-sm ${activeAccent.textClass}`}>No skills saved yet.</div>
+            ) : (
+              <div className={`text-sm font-semibold ${activeAccent.textClass}`}>Active</div>
             )}
           </div>
         </div>
@@ -506,27 +532,47 @@ const ProfessionalDashboard = () => {
 
       {activeMenuKey === 'experience' && (
         <div className="dashboard-panel rounded-[1.5rem] p-6">
-          <h3 className="font-semibold text-lg mb-4 text-white">Professional Features</h3>
+          <h3 className="font-semibold text-lg mb-4 text-white">
+            {isOrganization ? 'Organization Features' : 'Professional Features'}
+          </h3>
           <ul className="space-y-3 text-gray-300">
-            <li>1. Detailed work experience with metrics.</li>
-            <li>2. Integration with GitHub and LinkedIn.</li>
-            <li>3. Analytics on portfolio views.</li>
+            {isOrganization ? (
+              <>
+                <li>1. Team and program presentation tailored to organizational visibility.</li>
+                <li>2. Shared brand presence for mentors, opportunities, and initiatives.</li>
+                <li>3. Organization-level portfolio controls and audience analytics.</li>
+              </>
+            ) : (
+              <>
+                <li>1. Detailed work experience with metrics.</li>
+                <li>2. Integration with GitHub and LinkedIn.</li>
+                <li>3. Analytics on portfolio views.</li>
+              </>
+            )}
           </ul>
         </div>
       )}
 
       {activeMenuKey === 'network' && (
         <div className="dashboard-panel rounded-[1.5rem] p-6">
-          <h3 className="font-semibold text-lg mb-2 text-white">Network</h3>
-          <p className="text-gray-300">Professional networking tools are coming soon.</p>
+          <h3 className="font-semibold text-lg mb-2 text-white">{isOrganization ? 'Partners' : 'Network'}</h3>
+          <p className="text-gray-300">
+            {isOrganization
+              ? 'Partnership and collaboration tools for organizations are coming soon.'
+              : 'Professional networking tools are coming soon.'}
+          </p>
         </div>
       )}
 
       {activeMenuKey === 'create-portfolio' && !hasPortfolio && (
         <div className="dashboard-panel rounded-[1.5rem] p-6">
-          <h3 className="text-xl font-semibold text-white mb-2">Create Portfolio</h3>
+          <h3 className="text-xl font-semibold text-white mb-2">
+            {isOrganization ? 'Create Organization Portfolio' : 'Create Portfolio'}
+          </h3>
           <p className="text-gray-300">
-            Generate your professional portfolio page to start customizing it.
+            {isOrganization
+              ? 'Generate your organization page to start presenting your brand, programs, and opportunities.'
+              : 'Generate your professional portfolio page to start customizing it.'}
           </p>
           <button
             type="button"
@@ -561,7 +607,10 @@ const ProfessionalDashboard = () => {
       )}
 
       {activeMenuKey === 'code-lab' && (
-        <ReactPlayground storageKey="professional-dashboard-react-playground" title="Professional React Playground" />
+        <ReactPlayground
+          storageKey={isOrganization ? 'organization-dashboard-react-playground' : 'professional-dashboard-react-playground'}
+          title={isOrganization ? 'Organization Brand Lab' : 'Professional React Playground'}
+        />
       )}
     </DashboardShell>
   );

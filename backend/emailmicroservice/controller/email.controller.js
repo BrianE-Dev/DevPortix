@@ -54,19 +54,61 @@ const createTransporter = () => {
 
 const buildOtpEmail = ({ otp, purpose }) => {
   const subjectPurpose = normalizePurpose(purpose).replace(/_/g, ' ');
+  const titlePurpose = subjectPurpose
+    .split(' ')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 
   return {
-    subject: `Your DevPortix OTP for ${subjectPurpose}`,
-    text: `Your DevPortix OTP is ${otp}. It expires in ${OTP_TTL_MINUTES} minutes.`,
+    subject: `Your DevPortix OTP for ${titlePurpose}`,
+    text: [
+      'DevPortix Verification Code',
+      '',
+      `Your one-time password for ${subjectPurpose} is: ${otp}`,
+      `This code expires in ${OTP_TTL_MINUTES} minutes.`,
+      '',
+      'If you did not request this code, you can safely ignore this email.',
+    ].join('\n'),
     html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a;">
-        <h2 style="margin-bottom: 8px;">DevPortix Verification Code</h2>
-        <p>Use the code below to continue your ${subjectPurpose} flow.</p>
-        <div style="display: inline-block; margin: 12px 0; padding: 12px 18px; border-radius: 12px; background: #eff6ff; font-size: 28px; font-weight: 700; letter-spacing: 6px;">
-          ${otp}
+      <div style="margin: 0; padding: 32px 16px; background: #eef4ff; font-family: Arial, sans-serif; color: #0f172a;">
+        <div style="max-width: 640px; margin: 0 auto; overflow: hidden; border-radius: 28px; background: #ffffff; box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);">
+          <div style="padding: 32px; background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #38bdf8 100%); color: #ffffff;">
+            <div style="display: inline-block; padding: 8px 14px; border-radius: 999px; background: rgba(255,255,255,0.14); font-size: 12px; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase;">
+              DevPortix Security
+            </div>
+            <h1 style="margin: 18px 0 10px; font-size: 30px; line-height: 1.2;">Verification Code</h1>
+            <p style="margin: 0; max-width: 460px; font-size: 15px; line-height: 1.7; color: rgba(255,255,255,0.88);">
+              Use this one-time password to complete your ${subjectPurpose} request and keep your DevPortix account secure.
+            </p>
+          </div>
+
+          <div style="padding: 32px;">
+            <p style="margin: 0 0 12px; font-size: 14px; color: #475569;">Request Type</p>
+            <p style="margin: 0; font-size: 20px; font-weight: 700; color: #0f172a;">${titlePurpose}</p>
+
+            <div style="margin: 28px 0; border-radius: 24px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe; padding: 28px; text-align: center;">
+              <p style="margin: 0 0 12px; font-size: 13px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #2563eb;">
+                One-Time Password
+              </p>
+              <div style="font-size: 34px; line-height: 1; font-weight: 800; letter-spacing: 10px; color: #0f172a;">
+                ${otp}
+              </div>
+            </div>
+
+            <div style="border-radius: 20px; background: #f8fafc; padding: 20px;">
+              <p style="margin: 0 0 8px; font-size: 14px; color: #0f172a;">
+                This code expires in <strong>${OTP_TTL_MINUTES} minutes</strong>.
+              </p>
+              <p style="margin: 0; font-size: 14px; line-height: 1.7; color: #475569;">
+                If you did not request this code, you can ignore this email. For your protection, never share this OTP with anyone.
+              </p>
+            </div>
+
+            <p style="margin: 28px 0 0; font-size: 13px; line-height: 1.7; color: #64748b;">
+              This message was sent by DevPortix to help verify your identity and complete a secure action on your account.
+            </p>
+          </div>
         </div>
-        <p>This code expires in ${OTP_TTL_MINUTES} minutes.</p>
-        <p>If you did not request this code, you can ignore this email.</p>
       </div>
     `,
   };
