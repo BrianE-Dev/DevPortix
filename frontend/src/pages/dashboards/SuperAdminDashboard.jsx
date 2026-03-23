@@ -142,69 +142,71 @@ const SuperAdminDashboard = () => {
       <div className="space-y-6">
         {error && <p className="text-sm text-red-300">{error}</p>}
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {METRIC_CARDS.map((card) => (
-            <div key={card.key} className="dashboard-panel rounded-[1.5rem] p-5">
-              <p className="text-xs uppercase tracking-[0.28em] text-gray-400">{card.label}</p>
-              <p className="mt-4 text-3xl font-semibold text-white">
-                {card.role ? metrics[card.role] : metrics.total}
-              </p>
-              <p className="mt-2 text-sm text-gray-400">
-                {card.role ? `${roleLabel(card.role)} accounts currently active in the workspace.` : 'All registered accounts across the platform.'}
-              </p>
-            </div>
-          ))}
-        </section>
-
         {activeMenuKey === 'overview' ? (
-          <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.7fr)]">
-            <div className="dashboard-panel rounded-[1.5rem] p-6">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-semibold text-white">Role Distribution</h3>
-                  <p className="mt-1 text-sm text-gray-400">A quick breakdown of how accounts are spread across the platform.</p>
+          <>
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {METRIC_CARDS.map((card) => (
+                <div key={card.key} className="dashboard-panel rounded-[1.5rem] p-5">
+                  <p className="text-xs uppercase tracking-[0.28em] text-gray-400">{card.label}</p>
+                  <p className="mt-4 text-3xl font-semibold text-white">
+                    {card.role ? metrics[card.role] : metrics.total}
+                  </p>
+                  <p className="mt-2 text-sm text-gray-400">
+                    {card.role ? `${roleLabel(card.role)} accounts currently active in the workspace.` : 'All registered accounts across the platform.'}
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={loadUsers}
-                  className="dashboard-soft-button rounded-xl px-3 py-2 text-white"
-                >
-                  Refresh
-                </button>
-              </div>
+              ))}
+            </section>
 
-              <div className="mt-6 space-y-4">
-                {ROLE_OPTIONS.map((role) => {
-                  const count = metrics[role];
-                  const width = metrics.total > 0 ? `${Math.max((count / metrics.total) * 100, count > 0 ? 8 : 0)}%` : '0%';
+            <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.7fr)]">
+              <div className="dashboard-panel rounded-[1.5rem] p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl font-semibold text-white">Role Distribution</h3>
+                    <p className="mt-1 text-sm text-gray-400">A quick breakdown of how accounts are spread across the platform.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={loadUsers}
+                    className="dashboard-soft-button rounded-xl px-3 py-2 text-white"
+                  >
+                    Refresh
+                  </button>
+                </div>
 
-                  return (
-                    <div key={role}>
-                      <div className="mb-2 flex items-center justify-between gap-3">
-                        <span className="text-sm font-medium text-white">{roleLabel(role)}</span>
-                        <span className="text-sm text-gray-300">{count}</span>
+                <div className="mt-6 space-y-4">
+                  {ROLE_OPTIONS.map((role) => {
+                    const count = metrics[role];
+                    const width = metrics.total > 0 ? `${Math.max((count / metrics.total) * 100, count > 0 ? 8 : 0)}%` : '0%';
+
+                    return (
+                      <div key={role}>
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <span className="text-sm font-medium text-white">{roleLabel(role)}</span>
+                          <span className="text-sm text-gray-300">{count}</span>
+                        </div>
+                        <div className="h-3 rounded-full bg-white/10">
+                          <div
+                            className={`h-3 rounded-full ${activeAccent.primaryButtonClass}`}
+                            style={{ width }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-3 rounded-full bg-white/10">
-                        <div
-                          className={`h-3 rounded-full ${activeAccent.primaryButtonClass}`}
-                          style={{ width }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            <div className="dashboard-panel rounded-[1.5rem] p-6">
-              <h3 className="text-xl font-semibold text-white">Quick Notes</h3>
-              <div className="mt-5 space-y-4 text-sm text-gray-300">
-                <p>Search and role filters are available in the Users view for faster access reviews.</p>
-                <p>Only super admins can enter the admin workspace or manage blog publishing rights.</p>
-                <p>Role changes apply immediately after a refresh and affect guarded routes across the app.</p>
+              <div className="dashboard-panel rounded-[1.5rem] p-6">
+                <h3 className="text-xl font-semibold text-white">Quick Notes</h3>
+                <div className="mt-5 space-y-4 text-sm text-gray-300">
+                  <p>Search and role filters are available in the Users view for faster access reviews.</p>
+                  <p>Only super admins can enter the admin workspace or manage blog publishing rights.</p>
+                  <p>Role changes apply immediately after a refresh and affect guarded routes across the app.</p>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          </>
         ) : null}
 
         {activeMenuKey === 'users' || activeMenuKey === 'roles' ? (
@@ -256,6 +258,7 @@ const SuperAdminDashboard = () => {
                     <th className="py-3 pr-4 font-medium text-gray-300">Name</th>
                     <th className="py-3 pr-4 font-medium text-gray-300">Email</th>
                     <th className="py-3 pr-4 font-medium text-gray-300">Role</th>
+                    <th className="py-3 pr-4 font-medium text-gray-300">Current Plan</th>
                     <th className="py-3 pr-4 font-medium text-gray-300">GitHub</th>
                     <th className="py-3 font-medium text-gray-300">Set Role</th>
                   </tr>
@@ -266,6 +269,7 @@ const SuperAdminDashboard = () => {
                       <td className="py-3 pr-4 text-white">{userItem.fullName || 'User'}</td>
                       <td className="py-3 pr-4 text-gray-300">{userItem.email}</td>
                       <td className="py-3 pr-4 text-gray-300">{roleLabel(userItem.role)}</td>
+                      <td className="py-3 pr-4 text-gray-300">{String(userItem.subscription || 'free').toUpperCase()}</td>
                       <td className="py-3 pr-4 text-gray-300">{userItem.githubUsername || 'N/A'}</td>
                       <td className="py-3">
                         <select
@@ -285,7 +289,7 @@ const SuperAdminDashboard = () => {
                   ))}
                   {filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-4 text-gray-400">
+                      <td colSpan={6} className="py-4 text-gray-400">
                         No users match the current search and filter.
                       </td>
                     </tr>
