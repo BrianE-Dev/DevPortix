@@ -1,5 +1,6 @@
 import React from 'react';
 import { Activity, BarChart3, Users, Zap } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 
 const ANALYTICS_CARDS = [
   {
@@ -49,12 +50,15 @@ const ANALYTICS_CARDS = [
 ];
 
 const Projects = () => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   return (
     <section id="projects" className="bg-slate-950 px-4 py-20 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-4xl font-bold text-white sm:text-5xl">Platform Analytics</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-sm text-slate-300 sm:text-base">
+          <h2 className={`text-4xl font-bold sm:text-5xl ${isDark ? 'text-white' : 'text-slate-900'}`}>Platform Analytics</h2>
+          <p className={`mx-auto mt-4 max-w-2xl text-sm sm:text-base ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
             Real-time growth and engagement metrics across the DEVPORTIX ecosystem.
           </p>
         </div>
@@ -69,15 +73,15 @@ const Projects = () => {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="text-sm font-semibold text-white">{card.label}</h3>
+                    <h3 className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-50'}`}>{card.label}</h3>
                     <div className="mt-5 text-4xl font-bold text-white">{card.value}</div>
                     <p className={`mt-2 text-xs font-medium ${card.trendAccent}`}>{card.trend}</p>
                   </div>
-                  <div className={`rounded-xl p-3 ${card.iconSurface} ${card.accent}`}>
+                  <div className={`rounded-xl p-3 ${card.iconSurface} ${isDark ? card.accent : 'text-white'}`}>
                     <Icon className="h-4 w-4" />
                   </div>
                 </div>
-                <p className="mt-5 text-sm leading-6 text-slate-300">{card.description}</p>
+                <p className={`mt-5 text-sm leading-6 ${isDark ? 'text-slate-300' : 'text-slate-100/90'}`}>{card.description}</p>
               </article>
             );
           })}

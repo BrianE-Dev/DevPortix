@@ -1,5 +1,6 @@
 import React from 'react';
 import { Code, Layout, Shield, Users, Zap } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 
 const FEATURES = [
   {
@@ -40,12 +41,15 @@ const FEATURES = [
 ];
 
 const Features = () => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   return (
     <section id="features" className="bg-slate-950 px-4 py-20 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-4xl font-bold text-white sm:text-5xl">Powerful Features for Developers</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-sm text-slate-300 sm:text-base">
+          <h2 className={`text-4xl font-bold sm:text-5xl ${isDark ? 'text-white' : 'text-slate-900'}`}>Powerful Features for Developers</h2>
+          <p className={`mx-auto mt-4 max-w-2xl text-sm sm:text-base ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
             Everything you need to showcase your skills and grow your career with our developer-centric toolkit.
           </p>
         </div>
@@ -58,11 +62,11 @@ const Features = () => {
                 key={feature.title}
                 className="landing-breathe-card rounded-2xl border border-white/8 bg-slate-900/70 p-6 shadow-[0_18px_50px_rgba(2,6,23,0.28)] transition duration-300 hover:border-white/15 hover:bg-slate-900/88"
               >
-                <div className={`mb-6 inline-flex rounded-xl ${feature.iconSurface} p-3 ${feature.accent}`}>
+                <div className={`mb-6 inline-flex rounded-xl ${feature.iconSurface} p-3 ${isDark ? feature.accent : 'text-white'}`}>
                   <Icon className="h-5 w-5" />
                 </div>
-                <h3 className="text-base font-semibold text-white">{feature.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-300">{feature.description}</p>
+                <h3 className={`text-base font-semibold ${isDark ? 'text-white' : 'text-slate-50'}`}>{feature.title}</h3>
+                <p className={`mt-3 text-sm leading-6 ${isDark ? 'text-slate-300' : 'text-slate-100/90'}`}>{feature.description}</p>
               </article>
             );
           })}

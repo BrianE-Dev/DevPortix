@@ -253,6 +253,17 @@
 }
 
 @layer utilities {
+  .theme-light .landing-breathe-card {
+    border-color: rgb(71 85 105 / 0.42);
+    background:
+      linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(51, 65, 85, 0.78)),
+      radial-gradient(circle at top left, rgba(96, 165, 250, 0.2), transparent 38%),
+      radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.18), transparent 42%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 18px 42px rgba(15, 23, 42, 0.18);
+  }
+
   .theme-light .dashboard-platform {
     border-color: rgb(203 213 225 / 0.9);
     background:

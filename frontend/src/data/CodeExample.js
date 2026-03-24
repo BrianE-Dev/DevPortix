@@ -1,5 +1,5 @@
 export const codeExamples = {
-    "App.jsx" : `
+    "App.jsx": `
     import { useState } from 'react';
     import { DEVPORTIX } from 'devportix'
 
@@ -22,7 +22,7 @@ export const codeExamples = {
         );
         }
     `,
-    "Hero.jsx" : `
+    "Hero.jsx": `
     import { useState } from 'react';
     import { DEVPORTIX } from 'devportix'
 
@@ -47,7 +47,7 @@ export const codeExamples = {
         );
         }
     `,
-    "Navbar.jsx" : `
+    "Navbar.jsx": `
     import { useState } from 'react';
     import { DEVPORTIX } from 'devportix'
 
@@ -70,33 +70,38 @@ export const codeExamples = {
         );
         }
     `,
-}; 
-
+};
 
 export const floatingCards = {
     "App.jsx": {
-        bgColor: "bg-blue-500/20",
-        iconColor: "text-blue-400",
-        textColor: "text-blue-200",
-        contentColor: "text-blue-300",
+        accentStyles: {
+            background: "linear-gradient(135deg, rgba(37, 99, 235, 0.28), rgba(30, 41, 59, 0.78))",
+            icon: "#60a5fa",
+            title: "#dbeafe",
+            content: "#93c5fd",
+        },
         icon: "AI",
         title: "Smart Completion",
         content: "AI-powered code suggestions in realtime",
     },
     "Hero.jsx": {
-        bgColor: "bg-purple-500/20",
-        iconColor: "text-purple-400",
-        textColor: "text-purple-200",
-        contentColor: "text-purple-300",
+        accentStyles: {
+            background: "linear-gradient(135deg, rgba(147, 51, 234, 0.28), rgba(49, 46, 129, 0.78))",
+            icon: "#fb923c",
+            title: "#f3e8ff",
+            content: "#d8b4fe",
+        },
         icon: "⚡",
         title: "Auto Animation",
         content: "Dynamic typing effects generated automatically",
     },
     "Navbar.jsx": {
-        bgColor: "bg-purple-500/20",
-        iconColor: "text-emerald-400",
-        textColor: "text-emerald-200",
-        contentColor: "text-emerald-300",
+        accentStyles: {
+            background: "linear-gradient(135deg, rgba(91, 33, 182, 0.28), rgba(67, 56, 202, 0.78))",
+            icon: "#a7f3d0",
+            title: "#d1fae5",
+            content: "#6ee7b7",
+        },
         icon: "🔍",
         title: "Smart search",
         content: "Intelligent code search across your project",
