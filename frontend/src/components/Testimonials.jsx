@@ -65,39 +65,27 @@ const TESTIMONIALS = [
 ];
 
 const SLIDE_DURATION_MS = 7000;
-const STATS_STORAGE_KEY = 'devportix_testimonial_stats';
-const DEFAULT_STATS = {
-  activeUsers: 7152,
-  averageRating: 4.9,
-  countries: 50,
-  satisfaction: 98,
+const TARGET_STATS = {
+  activeUsers: 15000,
+  averageRating: 4.85,
+  countries: 15,
+  satisfaction: 100,
 };
 
-const readStoredStats = () => {
-  if (typeof window === 'undefined') return DEFAULT_STATS;
-
-  try {
-    const raw = window.localStorage.getItem(STATS_STORAGE_KEY);
-    if (!raw) return DEFAULT_STATS;
-    const parsed = JSON.parse(raw);
-    return {
-      activeUsers: Number(parsed?.activeUsers) || DEFAULT_STATS.activeUsers,
-      averageRating: Number(parsed?.averageRating) || DEFAULT_STATS.averageRating,
-      countries: Number(parsed?.countries) || DEFAULT_STATS.countries,
-      satisfaction: Number(parsed?.satisfaction) || DEFAULT_STATS.satisfaction,
-    };
-  } catch {
-    return DEFAULT_STATS;
-  }
+const INITIAL_STATS = {
+  activeUsers: 0,
+  averageRating: 0,
+  countries: 0,
+  satisfaction: 0,
 };
 
 const formatCount = (value) => `${Math.floor(value).toLocaleString()}+`;
-const formatRating = (value) => `${value.toFixed(1)}/5`;
+const formatRating = (value) => `${value.toFixed(2)}/5`;
 const formatCountries = (value) => `${Math.floor(value)}+`;
 const formatSatisfaction = (value) => `${Math.round(value)}%`;
 
 const Testimonials = () => {
-  const [stats, setStats] = useState(() => readStoredStats());
+  const [stats, setStats] = useState(INITIAL_STATS);
   const [hasAnimated, setHasAnimated] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -170,18 +158,6 @@ const Testimonials = () => {
           hasIncrementedThisVisitRef.current = true;
           setHasAnimated(true);
 
-          const currentStats = readStoredStats();
-          const nextStats = {
-            activeUsers: currentStats.activeUsers + 37,
-            averageRating: Math.min(5, currentStats.averageRating + 0.03),
-            countries: currentStats.countries + 1,
-            satisfaction: Math.min(100, currentStats.satisfaction + 1),
-          };
-
-          if (typeof window !== 'undefined') {
-            window.localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(nextStats));
-          }
-
           const durationMs = 1600;
           const start = performance.now();
 
@@ -190,19 +166,16 @@ const Testimonials = () => {
             const eased = 1 - Math.pow(1 - progressValue, 3);
 
             setStats({
-              activeUsers:
-                currentStats.activeUsers + (nextStats.activeUsers - currentStats.activeUsers) * eased,
-              averageRating:
-                currentStats.averageRating + (nextStats.averageRating - currentStats.averageRating) * eased,
-              countries: currentStats.countries + (nextStats.countries - currentStats.countries) * eased,
-              satisfaction:
-                currentStats.satisfaction + (nextStats.satisfaction - currentStats.satisfaction) * eased,
+              activeUsers: TARGET_STATS.activeUsers * eased,
+              averageRating: TARGET_STATS.averageRating * eased,
+              countries: TARGET_STATS.countries * eased,
+              satisfaction: TARGET_STATS.satisfaction * eased,
             });
 
             if (progressValue < 1) {
               requestAnimationFrame(tick);
             } else {
-              setStats(nextStats);
+              setStats(TARGET_STATS);
             }
           };
 
