@@ -460,25 +460,53 @@ pre::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Force readable text in light mode for components that hardcode bright text colors */
+/* In light mode, only flip bright text to dark when the surface itself is genuinely light. */
 @layer utilities {
-  html:not(.dark) .text-white,
-  html:not(.dark) .text-gray-100,
-  html:not(.dark) .text-gray-200,
-  html:not(.dark) .text-gray-300,
-  html:not(.dark) .text-gray-400,
-  html:not(.dark) .text-blue-200,
-  html:not(.dark) .text-blue-300,
-  html:not(.dark) .text-blue-400,
-  html:not(.dark) .text-cyan-400,
-  html:not(.dark) .text-indigo-400,
-  html:not(.dark) .text-purple-300,
-  html:not(.dark) .text-purple-400,
-  html:not(.dark) .text-emerald-300,
-  html:not(.dark) .text-emerald-400,
-  html:not(.dark) .text-green-400,
-  html:not(.dark) .text-yellow-400,
-  html:not(.dark) .text-red-300 {
+  html:not(.dark) :is(
+    div,
+    section,
+    article,
+    nav,
+    form,
+    aside,
+    main,
+    header,
+    footer,
+    li,
+    button,
+    a,
+    span
+  ):is(
+    [class*="bg-white"],
+    [class*="bg-slate-50"],
+    [class*="bg-slate-100"],
+    [class*="bg-gray-50"],
+    [class*="bg-gray-100"],
+    [class*="bg-blue-50"],
+    [class*="bg-blue-100"],
+    [class*="bg-sky-50"],
+    [class*="bg-sky-100"],
+    [class*="bg-indigo-50"],
+    [class*="bg-indigo-100"]
+  ) :is(
+    .text-white,
+    .text-gray-100,
+    .text-gray-200,
+    .text-gray-300,
+    .text-gray-400,
+    .text-blue-200,
+    .text-blue-300,
+    .text-blue-400,
+    .text-cyan-400,
+    .text-indigo-400,
+    .text-purple-300,
+    .text-purple-400,
+    .text-emerald-300,
+    .text-emerald-400,
+    .text-green-400,
+    .text-yellow-400,
+    .text-red-300
+  ) {
     color: rgb(17 24 39) !important;
   }
 }
@@ -812,4 +840,3 @@ pre::-webkit-scrollbar-thumb:hover {
     background-image: linear-gradient(to bottom right, rgb(17 24 39 / 0.8), rgb(31 41 55 / 0.8)) !important;
   }
 }
-
