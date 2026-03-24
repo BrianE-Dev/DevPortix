@@ -12,6 +12,7 @@ import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { useNavigate } from "react-router-dom";
 import { codeExamples, floatingCards } from "../data/CodeExample";
 import { useAuth } from "../hooks/useAuth";
+import { useTheme } from "../hooks/useTheme";
 import demoVideo from "../assets/demo/DevP-Demo.mp4";
 
 const Hero = () => {
@@ -21,6 +22,8 @@ const Hero = () => {
   const demoVideoRef = useRef(null);
   const navigate = useNavigate();
   const { isAuthenticated, getDashboardPath, loading } = useAuth();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   useEffect(() => {
     let rafId;
@@ -74,9 +77,26 @@ const Hero = () => {
     }
     navigate("/signup");
   };
+
+  const heroSectionClass = isDark
+    ? "bg-gradient-to-br from-gray-900 via-black to-gray-900"
+    : "bg-blue-100";
+  const heroGlowPrimaryClass = isDark ? "bg-indigo-500/30" : "bg-blue-300/55";
+  const heroGlowSecondaryClass = isDark ? "bg-blue-400/30" : "bg-cyan-300/45";
+  const heroBadgeClass = isDark
+    ? "bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20"
+    : "bg-white/85 border border-blue-200 shadow-[0_12px_30px_rgba(148,163,184,0.18)]";
+  const heroBadgeIconClass = isDark ? "text-blue-400" : "text-blue-700";
+  const heroBadgeTextClass = isDark ? "text-blue-300" : "text-slate-800";
+  const heroDescriptionClass = isDark ? "text-gray-300" : "text-slate-700";
+  const heroStatCardClass = isDark
+    ? "bg-white/5"
+    : "border border-slate-300/80 bg-white/70 shadow-[0_14px_36px_rgba(148,163,184,0.18)]";
+  const heroStatNumberClass = isDark ? "text-white" : "text-slate-900";
+  const heroStatTextClass = isDark ? "text-gray-300" : "text-slate-700";
   
   return (
-    <section className="hero-theme-preserve relative min-h-screen flex items-center justify-center pt-16 sm:pt-20 px-4 sm:px-6 lg:px-8 overflow-hidden bg-gradient-to-br from-gray-900 via-black to-gray-900">
+    <section className={`hero-theme-preserve relative min-h-screen flex items-center justify-center pt-16 sm:pt-20 px-4 sm:px-6 lg:px-8 overflow-hidden ${heroSectionClass}`}>
       {/* Dynamic Mouse Follow Gradient */}
       <div
         className="absolute inset-0"
@@ -84,14 +104,14 @@ const Hero = () => {
           pointerEvents: "none",
           background: `radial-gradient(
             600px circle at ${mousePosition.x}px ${mousePosition.y}px,
-            rgba(100,36,170,0.40) 0%,
+            ${isDark ? "rgba(100,36,170,0.40)" : "rgba(59,130,246,0.14)"} 0%,
             rgba(142,36,170,0) 40%)`,
         }}
       />
       
       {/* Animated Background Glows */}
-      <div className="absolute top-20 left-4 sm:left-10 w-48 sm:w-72 h-48 sm:h-72 bg-indigo-500/30 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-20 right-4 sm:right-10 w-64 sm:w-96 h-64 sm:h-96 bg-blue-400/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      <div className={`absolute top-20 left-4 sm:left-10 w-48 sm:w-72 h-48 sm:h-72 rounded-full blur-3xl animate-pulse ${heroGlowPrimaryClass}`}></div>
+      <div className={`absolute bottom-20 right-4 sm:right-10 w-64 sm:w-96 h-64 sm:h-96 rounded-full blur-3xl animate-pulse delay-1000 ${heroGlowSecondaryClass}`}></div>
       
       {/* Main Content */}
       <div className="max-w-7xl mx-auto text-center relative w-full">
@@ -100,9 +120,9 @@ const Hero = () => {
           {/* Left Column - Text Content */}
           <div className="order-1 lg:order-1">
             {/* Badge */}
-            <div className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-full mb-6 animate-in slide-in-from-bottom duration-1000">
-              <Sparkles className="w-4 h-4 text-blue-400" />
-              <span className="text-sm text-blue-300 font-medium">
+            <div className={`inline-flex items-center space-x-2 px-4 py-2 rounded-full mb-6 animate-in slide-in-from-bottom duration-1000 ${heroBadgeClass}`}>
+              <Sparkles className={`w-4 h-4 ${heroBadgeIconClass}`} />
+              <span className={`text-sm font-medium ${heroBadgeTextClass}`}>
                 Portfolio + Proof for Developers
               </span>
             </div>
@@ -119,9 +139,9 @@ const Hero = () => {
 
             {/* Description */}
             <div className="mb-8">
-              <p className="text-lg text-gray-300 mb-4 max-w-2xl mx-auto lg:mx-0 animate-in slide-in-from-bottom duration-700 delay-500">
+              <p className={`text-lg ${heroDescriptionClass} mb-4 max-w-2xl mx-auto lg:mx-0 animate-in slide-in-from-bottom duration-700 delay-500`}>
                Turn your projects, progress, and real work into structured</p> 
-                <p className="text-lg text-gray-300 max-w-2xl mx-auto lg:mx-0 animate-in slide-in-from-bottom duration-700 delay-700">
+                <p className={`text-lg ${heroDescriptionClass} max-w-2xl mx-auto lg:mx-0 animate-in slide-in-from-bottom duration-700 delay-700`}>
                   proof employers trust — all in one portfolio.</p>
               
             </div>
@@ -150,17 +170,17 @@ const Hero = () => {
 
             {/* Stats or Features */}
             <div className="grid grid-cols-3 gap-4 animate-in slide-in-from-bottom duration-700 delay-700">
-              <div className="text-center p-4 bg-white/5 rounded-xl backdrop-blur-sm">
-                <div className="text-2xl font-bold text-white">100+</div>
-                <div className="text-sm text-gray-300">Templates</div>
+              <div className={`text-center p-4 rounded-xl backdrop-blur-sm ${heroStatCardClass}`}>
+                <div className={`text-2xl font-bold ${heroStatNumberClass}`}>100+</div>
+                <div className={`text-sm ${heroStatTextClass}`}>Templates</div>
               </div>
-              <div className="text-center p-4 bg-white/5 rounded-xl backdrop-blur-sm">
-                <div className="text-2xl font-bold text-white">24/7</div>
-                <div className="text-sm text-gray-300">Support</div>
+              <div className={`text-center p-4 rounded-xl backdrop-blur-sm ${heroStatCardClass}`}>
+                <div className={`text-2xl font-bold ${heroStatNumberClass}`}>24/7</div>
+                <div className={`text-sm ${heroStatTextClass}`}>Support</div>
               </div>
-              <div className="text-center p-4 bg-white/5 rounded-xl backdrop-blur-sm">
-                <div className="text-2xl font-bold text-white">GitHub</div>
-                <div className="text-sm text-gray-300">Integration</div>
+              <div className={`text-center p-4 rounded-xl backdrop-blur-sm ${heroStatCardClass}`}>
+                <div className={`text-2xl font-bold ${heroStatNumberClass}`}>GitHub</div>
+                <div className={`text-sm ${heroStatTextClass}`}>Integration</div>
               </div>
             </div>
           </div>
