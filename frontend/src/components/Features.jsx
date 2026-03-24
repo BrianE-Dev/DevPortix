@@ -57,7 +57,6 @@ const Features = () => {
               <article
                 key={feature.title}
                 className="landing-breathe-card rounded-2xl border border-white/8 bg-slate-900/70 p-6 shadow-[0_18px_50px_rgba(2,6,23,0.28)] transition duration-300 hover:border-white/15 hover:bg-slate-900/88"
-                style={{ '--breathe-delay': `${FEATURES.indexOf(feature) * 0.45}s` }}
               >
                 <div className={`mb-6 inline-flex rounded-xl ${feature.iconSurface} p-3 ${feature.accent}`}>
                   <Icon className="h-5 w-5" />

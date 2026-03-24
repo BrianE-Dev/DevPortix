@@ -194,10 +194,35 @@
   }
 
   .landing-breathe-card {
-    animation: landingCardBreathe 12.5s cubic-bezier(0.37, 0, 0.63, 1) infinite;
-    animation-delay: var(--breathe-delay, 0s);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background:
+      linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.62)),
+      radial-gradient(circle at top left, rgba(96, 165, 250, 0.16), transparent 38%),
+      radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.14), transparent 42%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 18px 50px rgba(2, 6, 23, 0.28);
+    backdrop-filter: blur(18px);
     transform-origin: center center;
-    will-change: transform, box-shadow, border-color;
+    transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease, background 220ms ease;
+  }
+
+  .landing-breathe-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.09), transparent 32%, transparent 68%, rgba(255, 255, 255, 0.05));
+    pointer-events: none;
+  }
+
+  .landing-breathe-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(148, 163, 184, 0.3);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 24px 60px rgba(2, 6, 23, 0.34);
   }
 
   /* Global card hover lift for the shared frosted card pattern */
@@ -217,11 +242,11 @@
       animation: none !important;
     }
 
-    .landing-breathe-card {
-      animation: none !important;
+    :is(div, section, article, li)[class*="bg-white/5"][class*="border-white/10"][class*="rounded-"]:hover {
+      transform: none;
     }
 
-    :is(div, section, article, li)[class*="bg-white/5"][class*="border-white/10"][class*="rounded-"]:hover {
+    .landing-breathe-card:hover {
       transform: none;
     }
   }
@@ -322,33 +347,6 @@
   }
   .delay-2000{
     animation-delay: 2000ms;
-  }
-}
-
-@keyframes landingCardBreathe {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-    box-shadow: 0 18px 50px rgba(2, 6, 23, 0.28);
-    border-color: rgba(255, 255, 255, 0.08);
-  }
-
-  25% {
-    transform: translateY(-2px) scale(1.004);
-    box-shadow: 0 21px 55px rgba(12, 18, 32, 0.3);
-    border-color: rgba(255, 255, 255, 0.11);
-  }
-
-  50% {
-    transform: translateY(-4px) scale(1.008);
-    box-shadow: 0 24px 60px rgba(18, 26, 45, 0.32);
-    border-color: rgba(255, 255, 255, 0.18);
-  }
-
-  75% {
-    transform: translateY(-2px) scale(1.004);
-    box-shadow: 0 21px 55px rgba(12, 18, 32, 0.3);
-    border-color: rgba(255, 255, 255, 0.11);
   }
 }
 
