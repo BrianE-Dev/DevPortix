@@ -6,15 +6,18 @@ import { PRICING_PLANS } from '../data/pricingPlans';
 import LocalStorageService from '../services/localStorageService';
 import { paymentApi } from '../services/paymentApi';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../hooks/useTheme';
 import { ROLES } from '../utils/constants';
 
 const Pricing = () => {
   const { isAuthenticated, user } = useAuth();
+  const { theme } = useTheme();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [activePlanId, setActivePlanId] = useState('');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const isDark = theme === 'dark';
   const currentPlan = useMemo(() => String(user?.subscription || 'free').toLowerCase(), [user?.subscription]);
   const isOrganization = user?.role === ROLES.ORGANIZATION;
   const visiblePlans = useMemo(
@@ -103,7 +106,7 @@ const Pricing = () => {
           <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
             Simple, Transparent Pricing
           </h2>
-          <p className="text-lg text-slate-300 max-w-3xl mx-auto">
+          <p className={`text-lg max-w-3xl mx-auto ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
             Choose the perfect plan for your needs. All plans include our core features.
           </p>
         </div>
@@ -123,17 +126,28 @@ const Pricing = () => {
               const titleClass = plan.id === 'free'
                 ? 'text-white'
                 : plan.id === 'basic'
-                  ? 'text-violet-300'
+                  ? isDark
+                    ? 'text-violet-300'
+                    : 'text-violet-700'
                   : plan.id === 'standard'
-                    ? 'text-cyan-400'
+                    ? isDark
+                      ? 'text-cyan-400'
+                      : 'text-cyan-700'
                     : 'text-orange-400';
+              const bodyTextClass = isDark || plan.id === 'premium' || plan.id === 'free' ? 'text-slate-300' : 'text-slate-600';
+              const featureTextClass = isDark || plan.id === 'premium' || plan.id === 'free' ? 'text-slate-200' : 'text-slate-700';
+              const priceClass = isDark || plan.id === 'premium' || plan.id === 'free' ? 'text-white' : 'text-slate-900';
               const buttonClass = isPopular
                 ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-[0_14px_30px_rgba(139,92,246,0.35)] hover:opacity-95'
                 : plan.id === 'standard'
-                  ? 'border border-cyan-500/60 bg-transparent text-cyan-400 hover:bg-cyan-500/10'
+                  ? isDark
+                    ? 'border border-cyan-500/60 bg-transparent text-cyan-400 hover:bg-cyan-500/10'
+                    : 'border border-cyan-600/70 bg-transparent text-cyan-700 hover:bg-cyan-100'
                   : plan.id === 'premium'
                     ? 'bg-orange-500 text-white hover:bg-orange-400'
-                    : 'border border-white/10 bg-white/8 text-white hover:bg-white/12';
+                    : isDark
+                      ? 'border border-white/10 bg-white/8 text-white hover:bg-white/12'
+                      : 'border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100';
               const iconClass = plan.id === 'premium' ? 'text-orange-400' : 'text-emerald-400';
 
               return (
@@ -153,17 +167,17 @@ const Pricing = () => {
               <div className="mb-8 text-left">
                 <h3 className={`mb-3 text-[1.7rem] font-bold ${titleClass}`}>{plan.name}</h3>
                 <div className="mb-2 flex items-end gap-2">
-                  <span className="text-5xl font-bold text-white">{plan.price}</span>
-                  {plan.period && <span className="mb-1 text-slate-300">{plan.period}</span>}
+                  <span className={`text-5xl font-bold ${priceClass}`}>{plan.price}</span>
+                  {plan.period && <span className={`mb-1 ${bodyTextClass}`}>{plan.period}</span>}
                 </div>
-                <p className="max-w-xs text-sm leading-6 text-slate-300">{plan.description}</p>
+                <p className={`max-w-xs text-sm leading-6 ${bodyTextClass}`}>{plan.description}</p>
               </div>
 
               <ul className="space-y-4 mb-8">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start">
                     <Check className={`mt-1 mr-3 h-4 w-4 flex-shrink-0 ${iconClass}`} />
-                    <span className="text-slate-200">{feature}</span>
+                    <span className={featureTextClass}>{feature}</span>
                   </li>
                 ))}
               </ul>
@@ -187,7 +201,7 @@ const Pricing = () => {
         </div>
 
         <div className="mt-12 text-center">
-          <p className="text-slate-300 italic">
+          <p className={`italic ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
             {isOrganization
               ? 'Organization accounts start from Basic and can upgrade anytime.'
               : 'Start free and upgrade anytime as your student base grows.'}
