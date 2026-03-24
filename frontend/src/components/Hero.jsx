@@ -103,28 +103,26 @@ const Hero = () => {
             <div className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-full mb-6 animate-in slide-in-from-bottom duration-1000">
               <Sparkles className="w-4 h-4 text-blue-400" />
               <span className="text-sm text-blue-300 font-medium">
-                Start telling your code story
+                Portfolio + Proof for Developers
               </span>
             </div>
 
             {/* Main Heading */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 animate-in slide-in-from-bottom duration-500 delay-100">
               <span className="block bg-gradient-to-r from-white via-blue-100 to-cyan-400 bg-clip-text text-transparent mb-2">
-                Build a Developer Portfolio
+                Prove Your Skills With a Developer 
               </span>
               <span className="block bg-gradient-to-r from-indigo-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                That Tells Your Story
+                Portfolio That Gets You Hired
               </span>
             </h1>
 
             {/* Description */}
             <div className="mb-8">
               <p className="text-lg text-gray-300 mb-4 max-w-2xl mx-auto lg:mx-0 animate-in slide-in-from-bottom duration-700 delay-500">
-                Document your growth by porting every line of your code into a 
-                living </p> 
-                <p className="text-lg text-gray-300 max-w-2xl mx-auto lg:mx-0 animate-in slide-in-from-bottom duration-700 delay-1000">
-                  portfolio—showcase meaningful projects and turn your work 
-                into real career opportunities.</p>
+               Turn your projects, progress, and real work into structured</p> 
+                <p className="text-lg text-gray-300 max-w-2xl mx-auto lg:mx-0 animate-in slide-in-from-bottom duration-700 delay-700">
+                  proof employers trust — all in one portfolio.</p>
               
             </div>
 
@@ -136,7 +134,7 @@ const Hero = () => {
                 aria-label="Start building portfolio"
                 onClick={handleStartBuilding}
               >
-                <span className="text-base">Start Building Now</span>
+                <span className="text-base">Create Your Portfolio</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
               </button>
 

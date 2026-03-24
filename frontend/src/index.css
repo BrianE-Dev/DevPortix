@@ -288,6 +288,12 @@
   .duration-700 {
     animation-duration: 700ms;
   }
+  .duration-800 {
+    animation-duration: 800ms;
+  }
+  .duration-900 {
+    animation-duration: 900ms;
+  }
 
   .duration-1000 {
     animation-duration: 1000ms;
@@ -298,6 +304,15 @@
   }
   .delay-500{
     animation-delay: 500ms;
+  }
+  .delay-600{
+    animation-delay: 600ms;
+  }
+  .delay-700{
+    animation-delay: 700ms;
+  }
+  .delay-800{
+    animation-delay: 800ms;
   }
   .delay-1000{
     animation-delay: 1000ms;
