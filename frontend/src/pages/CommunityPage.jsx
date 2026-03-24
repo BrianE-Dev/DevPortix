@@ -3,6 +3,7 @@ import LocalStorageService from '../services/localStorageService';
 import { communityApi } from '../services/communityApi';
 import { useModal } from '../hooks/useModal';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../hooks/useTheme';
 import { ROLES } from '../utils/constants';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5500';
@@ -31,7 +32,9 @@ const blogSummary = (post) => {
 const CommunityPage = () => {
   const { confirm } = useModal();
   const { user } = useAuth();
+  const { theme } = useTheme();
   const token = useMemo(() => LocalStorageService.getToken(), []);
+  const isDark = theme === 'dark';
   const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
   const [tab, setTab] = useState('chat');
   const [posts, setPosts] = useState([]);
@@ -283,9 +286,9 @@ const CommunityPage = () => {
     <section className="mx-auto max-w-7xl px-4 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-blue-600">Community space</p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-900">Conversations, blogs, and people</h1>
-          <p className="mt-2 max-w-2xl text-sm text-slate-600">
+          <p className={`text-sm font-semibold uppercase tracking-[0.28em] ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>Community space</p>
+          <h1 className={`mt-2 text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Conversations, blogs, and people</h1>
+          <p className={`mt-2 max-w-2xl text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
             Super admins handle blog publishing, while everyone else can read, like, and join the discussion.
           </p>
         </div>
