@@ -54,6 +54,30 @@ const Hero = () => {
   }, []);
 
   const currentFloatingCards = floatingCards[activeTab];
+  const floatingCardStyles = {
+    "App.jsx": {
+      background: "rgba(59, 130, 246, 0.2)",
+      icon: "#60a5fa",
+      title: "#bfdbfe",
+      content: "#93c5fd",
+      iconLabel: "AI",
+    },
+    "Hero.jsx": {
+      background: "rgba(168, 85, 247, 0.2)",
+      icon: "#c084fc",
+      title: "#e9d5ff",
+      content: "#d8b4fe",
+      iconLabel: "⚡",
+    },
+    "Navbar.jsx": {
+      background: "rgba(168, 85, 247, 0.2)",
+      icon: "#34d399",
+      title: "#a7f3d0",
+      content: "#6ee7b7",
+      iconLabel: "🔍",
+    },
+  };
+  const currentFloatingCardStyle = floatingCardStyles[activeTab];
 
   useEffect(() => {
     if (!showDemo || !demoVideoRef.current) return;
@@ -187,23 +211,36 @@ const Hero = () => {
 
           {/* Right Column - Code Editor */}
           <div className="order-2 lg:order-2 w-full text-left">
-            <div className="relative bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-xl rounded-2xl p-4 shadow-2xl border border-white/10">
+            <div
+              className="relative backdrop-blur-xl rounded-2xl p-4 shadow-2xl border border-white/10"
+              style={{
+                background: "linear-gradient(to bottom right, rgba(17, 24, 39, 0.5), rgba(0, 0, 0, 0.5))",
+              }}
+            >
               {/* Editor Container */}
-              <div className="bg-gradient-to-br from-gray-900/80 to-gray-800/80 backdrop-blur-sm rounded-xl overflow-hidden h-[350px] sm:h-[400px] lg:h-[450px] w-full border border-white/10">
+              <div
+                className="backdrop-blur-sm rounded-xl overflow-hidden h-[350px] sm:h-[400px] lg:h-[450px] w-full border border-white/10"
+                style={{
+                  background: "linear-gradient(to bottom right, rgba(17, 24, 39, 0.8), rgba(31, 41, 55, 0.8))",
+                }}
+              >
                 
                 {/* IDE Header */}
-                <div className="flex items-center justify-between px-4 py-3 bg-gray-900/80 backdrop-blur-sm border-b border-white/10">
+                <div
+                  className="flex items-center justify-between px-4 py-3 backdrop-blur-sm border-b border-white/10"
+                  style={{ backgroundColor: "rgba(17, 24, 39, 0.8)" }}
+                >
                   <div className="flex items-center space-x-3">
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 rounded-full bg-red-500" />
                       <div className="w-3 h-3 rounded-full bg-yellow-500" />
                       <div className="w-3 h-3 rounded-full bg-green-500" />
                     </div>
-                    <span className="text-sm font-medium text-gray-200">
+                    <span className="text-sm font-medium" style={{ color: "rgb(229 231 235)" }}>
                       DEVPORTIX
                     </span>
                   </div>
-                  <ChevronDownCircle className="w-5 h-5 text-gray-400" />
+                  <ChevronDownCircle className="w-5 h-5" style={{ color: "rgb(156 163 175)" }} />
                 </div>
 
                 {/* File Tabs */}
@@ -212,11 +249,20 @@ const Hero = () => {
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`px-4 py-2 text-sm rounded-t-lg transition-all duration-500 whitespace-nowrap ${
+                      className="px-4 py-2 text-sm rounded-t-lg transition-all duration-500 whitespace-nowrap border-t border-x"
+                      style={
                         activeTab === tab
-                          ? "bg-gradient-to-r from-blue-500/30 to-purple-500/30 text-white border-t border-x border-blue-400/20"
-                          : "bg-gray-800/50 text-gray-400 hover:text-white hover:bg-gray-700/50"
-                      }`}
+                          ? {
+                              background: "linear-gradient(to right, rgba(59, 130, 246, 0.3), rgba(168, 85, 247, 0.3))",
+                              color: "#ffffff",
+                              borderColor: "rgba(96, 165, 250, 0.2)",
+                            }
+                          : {
+                              backgroundColor: "rgba(31, 41, 55, 0.5)",
+                              color: "rgb(156 163 175)",
+                              borderColor: "transparent",
+                            }
+                      }
                     >
                       {tab}
                     </button>
@@ -249,17 +295,21 @@ const Hero = () => {
 
               {/* Floating Info Card */}
               <div
-                className={`hidden lg:block absolute -bottom-4 -right-4 transform w-80 ${currentFloatingCards.bgColor} backdrop-blur-xl rounded-xl p-5 border border-white/20 shadow-2xl transition-all duration-500`}
+                className="hidden lg:block absolute -bottom-4 -right-4 transform w-80 backdrop-blur-xl rounded-xl p-5 border border-white/20 shadow-2xl transition-all duration-500"
+                style={{ backgroundColor: currentFloatingCardStyle.background }}
               >
                 <div className="flex items-center space-x-3 mb-3">
-                  <div className={`w-10 h-10 ${currentFloatingCards.iconColor} rounded-lg flex items-center justify-center text-lg`}>
-                    {currentFloatingCards.icon}
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-lg"
+                    style={{ color: currentFloatingCardStyle.icon }}
+                  >
+                    {currentFloatingCardStyle.iconLabel}
                   </div>
-                  <span className={`text-lg font-semibold ${currentFloatingCards.textColor}`}>
+                  <span className="text-lg font-semibold" style={{ color: currentFloatingCardStyle.title }}>
                     {currentFloatingCards.title}
                   </span>
                 </div>
-                <p className={`text-sm ${currentFloatingCards.contentColor} leading-relaxed`}>
+                <p className="text-sm leading-relaxed" style={{ color: currentFloatingCardStyle.content }}>
                   {currentFloatingCards.content}
                 </p>
               </div>
