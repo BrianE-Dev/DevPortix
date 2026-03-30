@@ -1,6 +1,7 @@
 import { Outlet, Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { ROLES } from '../utils/constants';
+import BrandLogo from '../components/BrandLogo';
 
 const InstructorLayout = () => {
   const { loading, isAuthenticated, user, logout, getDashboardPath } = useAuth();
@@ -29,8 +30,9 @@ const InstructorLayout = () => {
         <div className="container mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-8">
-              <Link to="/instructor" className="text-xl font-bold text-green-600">
-                DEVPORTIX Instructor
+              <Link to="/instructor" className="flex items-center gap-3 text-xl font-bold text-green-600">
+                <BrandLogo className="h-8 w-auto max-w-[8rem]" alt="DevPortix logo" />
+                <span>Instructor</span>
               </Link>
               <div className="flex space-x-4">
                 <Link to="/instructor" className="text-green-600 hover:text-green-800">

@@ -45,9 +45,6 @@ const updateUserRole = async (req, res) => {
     }
 
     targetUser.role = nextRole;
-    if (nextRole === 'organization' && String(targetUser.subscription || '').trim().toLowerCase() === 'free') {
-      targetUser.subscription = 'basic';
-    }
     await targetUser.save();
 
     await Subscription.findOneAndUpdate(

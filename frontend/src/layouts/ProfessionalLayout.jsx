@@ -1,6 +1,7 @@
 import { Outlet, Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { ROLES } from '../utils/constants';
+import BrandLogo from '../components/BrandLogo';
 
 const ProfessionalLayout = () => {
   const { loading, isAuthenticated, user, logout, getDashboardPath } = useAuth();
@@ -29,8 +30,9 @@ const ProfessionalLayout = () => {
         <div className="container mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-8">
-              <Link to="/professional" className="text-xl font-bold text-purple-600">
-                DEVPORTIX Professional
+              <Link to="/professional" className="flex items-center gap-3 text-xl font-bold text-purple-600">
+                <BrandLogo className="h-8 w-auto max-w-[8rem]" alt="DevPortix logo" />
+                <span>Professional</span>
               </Link>
               <div className="flex space-x-4">
                 <Link to="/professional" className="text-purple-600 hover:text-purple-800">

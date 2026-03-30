@@ -14,6 +14,7 @@ import { codeExamples, floatingCards } from "../data/CodeExample";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
 import demoVideo from "../assets/demo/DevP-Demo.mp4";
+import BrandLogo from "./BrandLogo";
 
 const Hero = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -236,9 +237,7 @@ const Hero = () => {
                       <div className="w-3 h-3 rounded-full bg-yellow-500" />
                       <div className="w-3 h-3 rounded-full bg-green-500" />
                     </div>
-                    <span className="text-sm font-medium" style={{ color: "rgb(229 231 235)" }}>
-                      DEVPORTIX
-                    </span>
+                    <BrandLogo className="h-5 w-auto max-w-[7rem]" alt="DevPortix logo" />
                   </div>
                   <ChevronDownCircle className="w-5 h-5" style={{ color: "rgb(156 163 175)" }} />
                 </div>

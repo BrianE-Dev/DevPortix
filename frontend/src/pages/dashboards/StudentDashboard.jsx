@@ -15,9 +15,7 @@ import { mentorshipApi } from '../../services/mentorshipApi';
 import { useModal } from '../../hooks/useModal';
 import ProfileSettingsPanel from '../../components/ProfileSettingsPanel';
 import SettingsPanel from '../../components/SettingsPanel';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5500';
-const resolveMedia = (url) => (!url ? '' : url.startsWith('http') ? url : `${API_BASE_URL}${url}`);
+import { resolveMediaUrl } from '../../utils/api';
 const isImageAttachment = (attachment) => {
   const mimeType = String(attachment?.mimeType || '').toLowerCase();
   const fileName = String(attachment?.originalName || attachment?.url || '').toLowerCase();
@@ -940,14 +938,14 @@ const StudentDashboard = () => {
                         {isImageAttachment(assignment.attachment) && (
                           <div className="w-fit rounded-lg border border-white/20 p-2 bg-black/20">
                             <img
-                              src={resolveMedia(assignment.attachment.url)}
+                              src={resolveMediaUrl(assignment.attachment.url)}
                               alt={`${getWorkTypeLabel(assignment)} attachment preview`}
                               className="h-24 w-24 rounded object-cover"
                             />
                           </div>
                         )}
                         <a
-                          href={resolveMedia(assignment.attachment.url)}
+                          href={resolveMediaUrl(assignment.attachment.url)}
                           target="_blank"
                           rel="noreferrer"
                           className={`text-sm mt-2 inline-block ${activeAccent.linkClass}`}
@@ -972,7 +970,7 @@ const StudentDashboard = () => {
                         </p>
                         {assignment.submission?.attachment?.url && (
                           <a
-                            href={resolveMedia(assignment.submission.attachment.url)}
+                            href={resolveMediaUrl(assignment.submission.attachment.url)}
                             target="_blank"
                             rel="noreferrer"
                             className={`mt-2 inline-block text-sm ${activeAccent.linkClass}`}

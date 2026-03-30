@@ -7,10 +7,10 @@ import LocalStorageService from '../services/localStorageService';
 import { paymentApi } from '../services/paymentApi';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
-import { ROLES } from '../utils/constants';
+import { getRecommendedPlanForRole, roleRequiresPaidPlan } from '../utils/accessControl';
 
 const Pricing = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, setAuthenticatedUser } = useAuth();
   const { theme } = useTheme();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -19,12 +19,15 @@ const Pricing = () => {
   const [error, setError] = useState('');
   const isDark = theme === 'dark';
   const currentPlan = useMemo(() => String(user?.subscription || 'free').toLowerCase(), [user?.subscription]);
-  const isOrganization = user?.role === ROLES.ORGANIZATION;
+  const isOrganization = String(user?.role || '').toLowerCase() === 'organization';
+  const requiresPaidPlan = roleRequiresPaidPlan(user?.role);
   const visiblePlans = useMemo(
-    () => (isOrganization ? PRICING_PLANS.filter((plan) => plan.id !== 'free') : PRICING_PLANS),
-    [isOrganization]
+    () => (requiresPaidPlan ? PRICING_PLANS.filter((plan) => plan.id !== 'free') : PRICING_PLANS),
+    [requiresPaidPlan]
   );
   const callbackReference = searchParams.get('reference') || searchParams.get('trxref');
+  const requiredPlan = searchParams.get('required');
+  const requestedPlan = searchParams.get('plan');
   const [resolvedPlan, setResolvedPlan] = useState(currentPlan);
 
   useEffect(() => {
@@ -42,7 +45,7 @@ const Pricing = () => {
         setActivePlanId('verify');
         setError('');
         const response = await paymentApi.verify(token, callbackReference);
-        LocalStorageService.setUser(response.user);
+        setAuthenticatedUser(response.user);
         setResolvedPlan(String(response.plan || currentPlan).toLowerCase());
         setNotice(`Payment successful. Your subscription is now ${String(response.plan).toUpperCase()}.`);
         navigate('/pricing', { replace: true });
@@ -54,7 +57,18 @@ const Pricing = () => {
     };
 
     verifyFromCallback();
-  }, [callbackReference, currentPlan, isAuthenticated, navigate]);
+  }, [callbackReference, currentPlan, isAuthenticated, navigate, setAuthenticatedUser]);
+
+  useEffect(() => {
+    if (!requiredPlan || !requiresPaidPlan) {
+      return;
+    }
+
+    const recommendedPlan = requestedPlan || getRecommendedPlanForRole(user?.role);
+    setNotice(
+      `${isOrganization ? 'Organization' : 'Professional'} accounts require a paid plan before full access. Choose ${String(recommendedPlan).toUpperCase()} or another paid plan to continue.`
+    );
+  }, [isOrganization, requestedPlan, requiredPlan, requiresPaidPlan, user?.role]);
 
   const handlePlanCheckout = async (planId) => {
     const plan = String(planId || '').toLowerCase();
@@ -111,7 +125,7 @@ const Pricing = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div className={`grid grid-cols-1 gap-6 md:grid-cols-2 ${requiresPaidPlan ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
           {visiblePlans.map((plan) => (
             (() => {
               const isCurrentPlan = plan.id === resolvedPlan;
@@ -153,7 +167,7 @@ const Pricing = () => {
               return (
             <div
               key={plan.id}
-              className={`relative rounded-[22px] border p-7 transition-all duration-300 hover:-translate-y-1 ${cardClass}`}
+              className={`relative mx-auto w-full max-w-md rounded-[22px] border p-7 transition-all duration-300 hover:-translate-y-1 ${cardClass}`}
             >
               {isPopular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 transform">

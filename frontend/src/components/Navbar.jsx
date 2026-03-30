@@ -3,8 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, User, LogIn, LogOut, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
-import logo from '../assets/logo.png';
 import LocalStorageService from '../services/localStorageService';
+import BrandLogo from './BrandLogo';
 
 const ACCENT_NAV_STYLES = {
   blue: {
@@ -188,9 +188,7 @@ const Navbar = () => {
               aria-label="Go to the DevPortix home page"
             >
               <div className="flex flex-col justify-between items-center group cursor-pointer">
-                <div>
-                  <img src={logo} alt="DEVPORTIX Logo" className="w-28 h-auto lg:w-40" />
-                </div>
+                <BrandLogo className="h-10 w-auto max-w-[10rem] lg:h-12 lg:max-w-[13rem]" alt="DevPortix logo" />
                 {!isPortfolioPage && (
                   <span className={`mt-1 text-xs sm:text-sm group-hover:text-violet-300 ${isDark ? 'text-white' : 'text-white/95'}`}>
                     ... your code, your story.

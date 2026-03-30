@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Circle } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../hooks/useAuth';
+import { resolveMediaUrl } from '../utils/api';
 
 const DashboardShell = ({
   role,
@@ -17,13 +18,11 @@ const DashboardShell = ({
   const { theme } = useTheme();
   const { user } = useAuth();
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5500';
   const avatarSrc = useMemo(() => {
     const avatar = String(user?.avatar || '').trim();
     if (!avatar) return '';
-    if (avatar.startsWith('data:') || avatar.startsWith('http')) return avatar;
-    return `${API_BASE_URL}${avatar}`;
-  }, [API_BASE_URL, user?.avatar]);
+    return resolveMediaUrl(avatar);
+  }, [user?.avatar]);
 
   const initials = useMemo(() => {
     const fullName = String(user?.fullName || '').trim();

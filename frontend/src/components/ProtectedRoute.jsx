@@ -1,9 +1,10 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, loading, user, getDashboardPath } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -22,6 +23,10 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   if (Array.isArray(allowedRoles) && allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
     return <Navigate to={getDashboardPath()} replace />;
+  }
+
+  if (location.pathname !== '/pricing' && getDashboardPath(user).startsWith('/pricing')) {
+    return <Navigate to={getDashboardPath(user)} replace />;
   }
 
   return children;

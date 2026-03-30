@@ -8,9 +8,6 @@ const OtpToken = require('../modules/otpToken');
 
 const TOKEN_TTL = '7d';
 const PUBLIC_SIGNUP_ROLES = new Set(['student', 'instructor', 'organization', 'professional']);
-const DEFAULT_SUBSCRIPTION_BY_ROLE = {
-  organization: 'basic',
-};
 const OTP_PURPOSE_REGISTRATION = 'registration';
 const EMAIL_SERVICE_URL = String(process.env.EMAIL_SERVICE_URL || '').trim().replace(/\/+$/, '');
 const OTP_REQUEST_TIMEOUT_MS = Number(process.env.OTP_REQUEST_TIMEOUT_MS || 15000);
@@ -162,7 +159,7 @@ const register = async (req, res) => {
 
     const normalizedRole = String(role || 'student').trim().toLowerCase();
     const assignedRole = PUBLIC_SIGNUP_ROLES.has(normalizedRole) ? normalizedRole : 'student';
-    const defaultPlan = DEFAULT_SUBSCRIPTION_BY_ROLE[assignedRole] || 'free';
+    const defaultPlan = 'free';
 
     const user = await User.create({
       fullName: fullName?.trim() || 'New User',

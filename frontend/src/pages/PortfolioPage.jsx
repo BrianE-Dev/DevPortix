@@ -14,9 +14,7 @@ import {
 } from 'lucide-react';
 import { portfolioApi } from '../services/portfolioApi';
 import { getDashboardAccent } from '../utils/dashboardAccent';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5500';
-const resolveMedia = (url) => (!url ? '' : url.startsWith('http') || url.startsWith('data:') ? url : `${API_BASE_URL}${url}`);
+import { resolveMediaUrl } from '../utils/api';
 
 const accentThemes = {
   blue: {
@@ -189,7 +187,7 @@ const PortfolioPage = () => {
               <div className="mt-8 flex flex-wrap items-start gap-5">
                 {portfolio.ownerAvatar ? (
                   <img
-                    src={resolveMedia(portfolio.ownerAvatar)}
+                    src={resolveMediaUrl(portfolio.ownerAvatar)}
                     alt={`${portfolio.ownerFullName || portfolio.username} profile`}
                     className="h-24 w-24 rounded-[1.75rem] border border-white/15 object-cover shadow-2xl"
                   />

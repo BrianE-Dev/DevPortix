@@ -59,13 +59,6 @@ const updateProfile = async (req, res) => {
         return res.status(403).json({ message: 'You are not allowed to assign this role' });
       }
       updates.role = requestedRole;
-
-      if (requestedRole === 'organization') {
-        const currentPlan = String(requester.subscription || 'free').trim().toLowerCase();
-        if (currentPlan === 'free') {
-          updates.subscription = 'basic';
-        }
-      }
     }
 
     if (updates.skills !== undefined) {

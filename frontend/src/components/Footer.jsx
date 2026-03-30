@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Github, Linkedin, Twitter } from 'lucide-react';
+import BrandLogo from './BrandLogo';
 
 const Footer = () => {
   return (
@@ -13,9 +14,7 @@ const Footer = () => {
               className="flex items-center space-x-2 justify-center md:justify-start"
               aria-label="Go to the DevPortix home page"
             >
-              <div className="flex flex-col items-center justify-between group cursor-pointer">
-                <p className="text-xl text-white">DEVPORTIX</p>
-              </div>
+              <BrandLogo className="h-9 w-auto max-w-[11rem]" alt="DevPortix logo" />
             </Link>
             <p className="text-sm text-gray-300">
               Build beautiful developer portfolios that tell your story.

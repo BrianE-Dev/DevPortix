@@ -5,9 +5,7 @@ import { useModal } from '../hooks/useModal';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import { ROLES } from '../utils/constants';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5500';
-const resolveMedia = (url) => (!url ? '' : url.startsWith('http') ? url : `${API_BASE_URL}${url}`);
+import { resolveMediaUrl } from '../utils/api';
 
 const formatDate = (value) => {
   if (!value) return '';
@@ -482,9 +480,9 @@ const CommunityPage = () => {
                   {post.media?.url ? (
                     <div className="mt-4">
                       {(post.media.mimeType || '').startsWith('image/') ? (
-                        <img src={resolveMedia(post.media.url)} alt="blog media" className="max-h-96 rounded-[1.5rem] object-cover" />
+                        <img src={resolveMediaUrl(post.media.url)} alt="blog media" className="max-h-96 rounded-[1.5rem] object-cover" />
                       ) : (
-                        <a className="text-sm text-blue-600 underline" href={resolveMedia(post.media.url)} target="_blank" rel="noreferrer">
+                        <a className="text-sm text-blue-600 underline" href={resolveMediaUrl(post.media.url)} target="_blank" rel="noreferrer">
                           Open media
                         </a>
                       )}

@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import BrandLogo from '../components/BrandLogo';
 
 const MarketingLayout = () => {
   return (
@@ -10,7 +11,10 @@ const MarketingLayout = () => {
       </main>
       <footer className="mt-20 border-t border-gray-200 py-6">
         <div className="container mx-auto px-4 text-center text-gray-600">
-          <p>DEVPORTIX &copy; {new Date().getFullYear()} - Your Code, Your Story</p>
+          <div className="mb-3 flex justify-center">
+            <BrandLogo className="h-8 w-auto max-w-[9rem]" alt="DevPortix logo" />
+          </div>
+          <p>&copy; {new Date().getFullYear()} - Your Code, Your Story</p>
         </div>
       </footer>
     </div>

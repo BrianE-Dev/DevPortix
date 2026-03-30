@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROLES } from '../../utils/constants';
+import BrandLogo from '../../components/BrandLogo';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -63,7 +64,10 @@ const LoginPage = () => {
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 max-w-md w-full">
       <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome to DEVPORTIX</h2>
+        <div className="mb-4 flex justify-center">
+          <BrandLogo className="h-12 w-auto max-w-[12rem]" alt="DevPortix logo" />
+        </div>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome back</h2>
         <p className="text-gray-600">Sign in to continue</p>
       </div>
 

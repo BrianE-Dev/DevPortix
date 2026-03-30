@@ -1,6 +1,7 @@
 import { Outlet, Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { ROLES } from '../utils/constants';
+import BrandLogo from '../components/BrandLogo';
 
 const StudentLayout = () => {
   const { loading, isAuthenticated, user, logout, getDashboardPath } = useAuth();
@@ -29,8 +30,9 @@ const StudentLayout = () => {
         <div className="container mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-8">
-              <Link to="/student" className="text-xl font-bold text-blue-600">
-                DEVPORTIX Student
+              <Link to="/student" className="flex items-center gap-3 text-xl font-bold text-blue-600">
+                <BrandLogo className="h-8 w-auto max-w-[8rem]" alt="DevPortix logo" />
+                <span>Student</span>
               </Link>
               <div className="flex space-x-4">
                 <Link to="/student" className="text-blue-600 hover:text-blue-800">

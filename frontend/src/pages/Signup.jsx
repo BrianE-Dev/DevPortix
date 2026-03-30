@@ -1,11 +1,12 @@
 // src/pages/Signup.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Github, Code2 } from 'lucide-react';
+import { User, Mail, Lock, Github } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import { ROLES } from '../utils/constants';
 import { authApi } from '../services/authApi';
+import BrandLogo from '../components/BrandLogo';
 
 const Signup = () => {
   const OTP_RESEND_COOLDOWN_SECONDS = 60;
@@ -134,8 +135,7 @@ const Signup = () => {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center space-x-2">
-            <Code2 className="w-10 h-10 text-blue-400" />
-            <span className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>DEVPORTIX</span>
+            <BrandLogo className="h-12 w-auto max-w-[12rem]" alt="DevPortix logo" />
           </Link>
           <h2 className={`mt-6 text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Create your account</h2>
           <p className={`mt-2 ${isDark ? 'text-gray-400' : 'text-slate-600'}`}>Start building your portfolio today</p>

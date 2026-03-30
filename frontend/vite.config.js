@@ -9,6 +9,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 export default defineConfig({
   root: __dirname,
   plugins: [react()],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5500',
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: 'http://localhost:5500',
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     sourcemap: true,
   },

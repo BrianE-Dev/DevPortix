@@ -4,8 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useModal } from '../hooks/useModal';
 import LocalStorageService from '../services/localStorageService';
 import { portfolioApi } from '../services/portfolioApi';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5500';
+import { resolveMediaUrl } from '../utils/api';
 
 const ProfileSettingsPanel = ({ accent, onPortfolioDeleted }) => {
   const { user, updateProfile, deleteAccount } = useAuth();
@@ -20,8 +19,7 @@ const ProfileSettingsPanel = ({ accent, onPortfolioDeleted }) => {
   const avatarSrc = useMemo(() => {
     const avatar = String(user?.avatar || '').trim();
     if (!avatar) return '';
-    if (avatar.startsWith('data:') || avatar.startsWith('http')) return avatar;
-    return `${API_BASE_URL}${avatar}`;
+    return resolveMediaUrl(avatar);
   }, [user?.avatar]);
 
   useEffect(() => {

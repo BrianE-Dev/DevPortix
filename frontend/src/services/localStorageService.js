@@ -138,9 +138,7 @@ class LocalStorageService {
 
     const requestedRole = String(userData?.role || 'student').trim().toLowerCase();
     const normalizedRole = requestedRole || 'student';
-    const normalizedSubscription = this.normalizeSubscription(
-      userData.subscription || (normalizedRole === 'organization' ? 'basic' : 'free')
-    );
+    const normalizedSubscription = this.normalizeSubscription(userData.subscription || 'free');
 
     const registeredUser = {
       id: userData.id || uuidv4(),
@@ -174,8 +172,7 @@ class LocalStorageService {
 
   // User management
   static setUser(user) {
-    const normalizedRole = String(user.role || 'student').trim().toLowerCase();
-    const fallbackSubscription = normalizedRole === 'organization' ? 'basic' : 'free';
+    const fallbackSubscription = 'free';
     const userData = {
       ...user,
       id: user.id || uuidv4(),

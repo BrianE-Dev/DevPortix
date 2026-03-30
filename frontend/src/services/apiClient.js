@@ -1,11 +1,4 @@
-const rawApiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5500';
-const shouldForceHttps =
-  typeof window !== 'undefined' &&
-  window.location.protocol === 'https:' &&
-  /^http:\/\//i.test(rawApiBaseUrl);
-const API_BASE_URL = shouldForceHttps
-  ? rawApiBaseUrl.replace(/^http:\/\//i, 'https://')
-  : rawApiBaseUrl;
+import { resolveApiUrl } from '../utils/api';
 
 const parseError = async (response) => {
   try {
@@ -34,7 +27,7 @@ export const request = async (path, options = {}) => {
         ...customHeaders,
       };
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(resolveApiUrl(path), {
     ...restOptions,
     cache: 'no-store',
     headers: mergedHeaders,
