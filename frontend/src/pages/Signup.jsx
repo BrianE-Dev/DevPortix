@@ -8,6 +8,7 @@ import { ROLES } from '../utils/constants';
 import { authApi } from '../services/authApi';
 
 const Signup = () => {
+  const OTP_RESEND_COOLDOWN_SECONDS = 60;
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -21,6 +22,7 @@ const Signup = () => {
   const [otpMessage, setOtpMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(0);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const { signup } = useAuth();
   const { theme } = useTheme();
@@ -46,6 +48,18 @@ const Signup = () => {
     });
   };
 
+  React.useEffect(() => {
+    if (otpCooldown <= 0) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      setOtpCooldown((currentValue) => Math.max(currentValue - 1, 0));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [otpCooldown]);
+
   const handleRequestOtp = async () => {
     setError('');
     setOtpMessage('');
@@ -55,11 +69,19 @@ const Signup = () => {
         throw new Error('Enter your email address first');
       }
 
+      if (otpCooldown > 0) {
+        throw new Error(`Please wait ${otpCooldown}s before requesting another OTP`);
+      }
+
       setOtpLoading(true);
       await authApi.requestRegistrationOtp({ email: formData.email });
       setOtpMessage(`A registration OTP has been sent to ${formData.email}.`);
+      setOtpCooldown(OTP_RESEND_COOLDOWN_SECONDS);
     } catch (err) {
-      setError(err.message);
+      if (err.status === 429) {
+        setOtpCooldown(OTP_RESEND_COOLDOWN_SECONDS);
+      }
+      setError(err.message || 'Failed to send registration OTP');
     } finally {
       setOtpLoading(false);
     }
@@ -166,10 +188,10 @@ const Signup = () => {
                 <button
                   type="button"
                   onClick={handleRequestOtp}
-                  disabled={otpLoading}
+                  disabled={otpLoading || otpCooldown > 0}
                   className="rounded-lg border border-blue-500 px-4 py-2 text-sm font-medium text-blue-500 transition hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed dark:hover:bg-blue-950/40"
                 >
-                  {otpLoading ? 'Sending OTP...' : 'Send OTP'}
+                  {otpLoading ? 'Sending OTP...' : otpCooldown > 0 ? `Resend in ${otpCooldown}s` : 'Send OTP'}
                 </button>
                 {otpMessage ? (
                   <span className={`text-xs ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>

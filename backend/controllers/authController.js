@@ -13,6 +13,7 @@ const DEFAULT_SUBSCRIPTION_BY_ROLE = {
 };
 const OTP_PURPOSE_REGISTRATION = 'registration';
 const EMAIL_SERVICE_URL = String(process.env.EMAIL_SERVICE_URL || '').trim().replace(/\/+$/, '');
+const OTP_REQUEST_TIMEOUT_MS = Number(process.env.OTP_REQUEST_TIMEOUT_MS || 15000);
 
 const signToken = (userId) =>
   jwt.sign({ sub: String(userId) }, process.env.JWT_SECRET || 'devportix_dev_secret', {
@@ -25,6 +26,13 @@ const hashOtp = (email, purpose, otp) =>
     .createHash('sha256')
     .update(`${normalizeEmail(email)}:${String(purpose || '').trim().toLowerCase()}:${String(otp)}`)
     .digest('hex');
+const parseJsonSafely = async (response) => {
+  try {
+    return await response.json();
+  } catch (_error) {
+    return null;
+  }
+};
 
 const toPublicUser = (userDoc) => ({
   id: String(userDoc._id),
@@ -58,6 +66,9 @@ const requestRegistrationOtp = async (req, res) => {
       return res.status(503).json({ message: 'Email service unavailable' });
     }
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), OTP_REQUEST_TIMEOUT_MS);
+
     const response = await fetch(`${EMAIL_SERVICE_URL}/api/otp/request`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -65,18 +76,46 @@ const requestRegistrationOtp = async (req, res) => {
         email,
         purpose: OTP_PURPOSE_REGISTRATION,
       }),
-    });
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeout));
 
-    const payload = await response.json().catch(() => ({}));
+    const payload = await parseJsonSafely(response);
     if (!response.ok) {
+      const upstreamMessage = payload?.message || 'Failed to send registration OTP';
+
+      if (response.status === 429) {
+        return res.status(429).json({
+          message: 'Too many OTP requests. Please wait a minute before trying again.',
+        });
+      }
+
+      if (response.status >= 500) {
+        console.error(
+          `[auth] OTP request failed via email service (${response.status}): ${payload?.error || upstreamMessage}`
+        );
+        return res.status(503).json({
+          message: 'OTP service is temporarily unavailable. Please try again shortly.',
+        });
+      }
+
       return res.status(response.status).json({
-        message: payload?.message || 'Failed to send registration OTP',
+        message: upstreamMessage,
       });
     }
 
-    return res.status(200).json(payload);
+    return res.status(200).json(payload || { message: 'OTP sent successfully' });
   } catch (error) {
-    return res.status(500).json({ message: 'Failed to send registration OTP', error: error.message });
+    if (error.name === 'AbortError') {
+      console.error('[auth] OTP request to email service timed out');
+      return res.status(504).json({
+        message: 'OTP request timed out. Please try again shortly.',
+      });
+    }
+
+    console.error('[auth] Failed to send registration OTP:', error.message);
+    return res.status(503).json({
+      message: 'OTP service is temporarily unavailable. Please try again shortly.',
+    });
   }
 };
 
