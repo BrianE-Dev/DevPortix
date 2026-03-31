@@ -23,7 +23,14 @@ const app = express();
 app.set('etag', false);
 
 app.use(cors());
-app.use(express.json({ limit: '25mb' }));
+app.use(express.json({
+  limit: '25mb',
+  verify: (req, _res, buf, encoding) => {
+    if (req.originalUrl === '/api/payments/webhook') {
+      req.rawBody = buf.toString(encoding || 'utf8');
+    }
+  },
+}));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use('/api', (_req, res, next) => {

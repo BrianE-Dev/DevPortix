@@ -193,8 +193,14 @@ const Testimonials = () => {
   const currentProfile = TESTIMONIALS[activeIndex % TESTIMONIALS.length];
 
   return (
-    <section className="bg-slate-950 px-4 py-20 sm:px-6 lg:px-8">
+    <section className="bg-slate-950 px-4 py-24 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
+        <div className="mb-8 text-center">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+            Social Proof
+          </span>
+        </div>
+
         <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-white/6 to-white/[0.03] p-6 shadow-[0_24px_80px_rgba(2,6,23,0.28)] backdrop-blur-xl sm:p-8">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div className="max-w-2xl">

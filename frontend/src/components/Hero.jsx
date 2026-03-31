@@ -121,7 +121,7 @@ const Hero = () => {
   const heroStatTextClass = isDark ? "text-gray-300" : "text-slate-700";
   
   return (
-    <section className={`hero-theme-preserve relative min-h-screen flex items-center justify-center pt-16 sm:pt-20 px-4 sm:px-6 lg:px-8 overflow-hidden ${heroSectionClass}`}>
+    <section className={`hero-theme-preserve relative flex min-h-screen items-center justify-center overflow-hidden px-4 pt-16 pb-28 sm:px-6 sm:pt-20 sm:pb-32 lg:px-8 ${heroSectionClass}`}>
       {/* Dynamic Mouse Follow Gradient */}
       <div
         className="absolute inset-0"
@@ -195,15 +195,15 @@ const Hero = () => {
 
             {/* Stats or Features */}
             <div className="grid grid-cols-3 gap-4 animate-in slide-in-from-bottom duration-700 delay-700">
-              <div className={`text-center p-4 rounded-xl backdrop-blur-sm ${heroStatCardClass}`}>
+              <div className={`rounded-2xl p-4 text-center backdrop-blur-sm ${heroStatCardClass}`}>
                 <div className={`text-2xl font-bold ${heroStatNumberClass}`}>100+</div>
                 <div className={`text-sm ${heroStatTextClass}`}>Templates</div>
               </div>
-              <div className={`text-center p-4 rounded-xl backdrop-blur-sm ${heroStatCardClass}`}>
+              <div className={`rounded-2xl p-4 text-center backdrop-blur-sm ${heroStatCardClass}`}>
                 <div className={`text-2xl font-bold ${heroStatNumberClass}`}>24/7</div>
                 <div className={`text-sm ${heroStatTextClass}`}>Support</div>
               </div>
-              <div className={`text-center p-4 rounded-xl backdrop-blur-sm ${heroStatCardClass}`}>
+              <div className={`rounded-2xl p-4 text-center backdrop-blur-sm ${heroStatCardClass}`}>
                 <div className={`text-2xl font-bold ${heroStatNumberClass}`}>GitHub</div>
                 <div className={`text-sm ${heroStatTextClass}`}>Integration</div>
               </div>
@@ -316,6 +316,8 @@ const Hero = () => {
           </div>
         </div>
       </div>
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent via-slate-950/60 to-slate-950" />
 
       {showDemo && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">

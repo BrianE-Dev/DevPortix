@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const User = require('../modules/userSchema');
 const Subscription = require('../modules/subscription');
 const Paystack = /** @type {any} */ (require('paystack-api')(
@@ -8,20 +9,51 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || process.env.PSSEC
 
 const PLAN_PRICING = {
   basic: {
-    amountKobo: 100000,
+    amountKobo: 500000,
     currency: 'NGN',
   },
   standard: {
-    amountKobo: 300000,
+    amountKobo: 900000,
     currency: 'NGN',
   },
   premium: {
-    amountKobo: 600000,
+    amountKobo: 1400000,
     currency: 'NGN',
   },
 };
 
 const isSupportedPaidPlan = (plan) => ['basic', 'standard', 'premium'].includes(plan);
+
+const addOneMonth = () => {
+  const renewalDate = new Date();
+  renewalDate.setMonth(renewalDate.getMonth() + 1);
+  return renewalDate;
+};
+
+const applySuccessfulSubscriptionPayment = async ({ userId, plan, customerCode }) => {
+  const renewalDate = addOneMonth();
+
+  const updatedSubscription = await Subscription.findOneAndUpdate(
+    { ownerId: userId },
+    {
+      $set: {
+        plan,
+        status: 'active',
+        renewalDate,
+        providerCustomerId: customerCode || null,
+      },
+    },
+    { new: true, upsert: true, setDefaultsOnInsert: true }
+  );
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { $set: { subscription: plan } },
+    { new: true }
+  ).lean();
+
+  return { updatedSubscription, user };
+};
 
 const resolveFrontendBaseUrl = (req) => {
   const configured = process.env.PUBLIC_APP_URL || process.env.CLIENT_URL;
@@ -128,27 +160,11 @@ const verifySubscriptionPayment = async (req, res) => {
       return res.status(403).json({ message: 'This payment does not belong to the current user' });
     }
 
-    const renewalDate = new Date();
-    renewalDate.setMonth(renewalDate.getMonth() + 1);
-
-    const updatedSubscription = await Subscription.findOneAndUpdate(
-      { ownerId: req.userId },
-      {
-        $set: {
-          plan: paidPlan,
-          status: 'active',
-          renewalDate,
-          providerCustomerId: transaction.customer?.customer_code || null,
-        },
-      },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
-
-    const user = await User.findByIdAndUpdate(
-      req.userId,
-      { $set: { subscription: paidPlan } },
-      { new: true }
-    ).lean();
+    const { updatedSubscription, user } = await applySuccessfulSubscriptionPayment({
+      userId: req.userId,
+      plan: paidPlan,
+      customerCode: transaction.customer?.customer_code || null,
+    });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -179,7 +195,70 @@ const verifySubscriptionPayment = async (req, res) => {
   }
 };
 
+const handlePaystackWebhook = async (req, res) => {
+  try {
+    if (!PAYSTACK_SECRET_KEY) {
+      return res.status(500).json({ message: 'Paystack secret key is not configured' });
+    }
+
+    const signature = String(req.get('x-paystack-signature') || '').trim();
+    const rawBody = typeof req.rawBody === 'string' ? req.rawBody : '';
+    if (!signature || !rawBody) {
+      return res.status(400).json({ message: 'Missing Paystack signature or raw body' });
+    }
+
+    const expectedSignature = crypto
+      .createHmac('sha512', PAYSTACK_SECRET_KEY)
+      .update(rawBody)
+      .digest('hex');
+
+    const isSignatureValid =
+      signature.length === expectedSignature.length &&
+      crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+
+    if (!isSignatureValid) {
+      return res.status(401).json({ message: 'Invalid Paystack signature' });
+    }
+
+    const event = req.body || {};
+    if (event.event !== 'charge.success') {
+      return res.status(200).json({ received: true, ignored: true, event: event.event || null });
+    }
+
+    const transaction = event.data || {};
+    const metadata = transaction.metadata || {};
+    const product = String(metadata.product || '').trim().toLowerCase();
+    const paidPlan = String(metadata.plan || '').trim().toLowerCase();
+    const paidUserId = String(metadata.userId || '').trim();
+
+    if (product !== 'devportix_subscription' || !paidUserId || !isSupportedPaidPlan(paidPlan)) {
+      return res.status(200).json({ received: true, ignored: true, reason: 'Unsupported webhook payload' });
+    }
+
+    const { user } = await applySuccessfulSubscriptionPayment({
+      userId: paidUserId,
+      plan: paidPlan,
+      customerCode: transaction.customer?.customer_code || null,
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found for webhook payment' });
+    }
+
+    return res.status(200).json({
+      received: true,
+      processed: true,
+      reference: transaction.reference || null,
+      plan: paidPlan,
+      userId: paidUserId,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to process Paystack webhook', error: error.message });
+  }
+};
+
 module.exports = {
   initializeSubscriptionPayment,
   verifySubscriptionPayment,
+  handlePaystackWebhook,
 };

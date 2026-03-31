@@ -1,6 +1,6 @@
 // src/components/Pricing.jsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, Sparkles } from 'lucide-react';
+import { AlertCircle, Check, LoaderCircle, Sparkles } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PRICING_PLANS } from '../data/pricingPlans';
 import LocalStorageService from '../services/localStorageService';
@@ -10,13 +10,14 @@ import { useTheme } from '../hooks/useTheme';
 import { getRecommendedPlanForRole, roleRequiresPaidPlan } from '../utils/accessControl';
 
 const Pricing = () => {
-  const { isAuthenticated, user, setAuthenticatedUser } = useAuth();
+  const { isAuthenticated, loading, user, setAuthenticatedUser } = useAuth();
   const { theme } = useTheme();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [activePlanId, setActivePlanId] = useState('');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [paymentFeedback, setPaymentFeedback] = useState({ tone: '', message: '' });
   const isDark = theme === 'dark';
   const currentPlan = useMemo(() => String(user?.subscription || 'free').toLowerCase(), [user?.subscription]);
   const isOrganization = String(user?.role || '').toLowerCase() === 'organization';
@@ -26,6 +27,7 @@ const Pricing = () => {
     [requiresPaidPlan]
   );
   const callbackReference = searchParams.get('reference') || searchParams.get('trxref');
+  const callbackStatus = String(searchParams.get('status') || '').trim().toLowerCase();
   const requiredPlan = searchParams.get('required');
   const requestedPlan = searchParams.get('plan');
   const [resolvedPlan, setResolvedPlan] = useState(currentPlan);
@@ -36,20 +38,64 @@ const Pricing = () => {
 
   useEffect(() => {
     const verifyFromCallback = async () => {
-      if (!callbackReference || !isAuthenticated) return;
+      if (!callbackReference || loading) return;
+
+      if (!isAuthenticated) {
+        setPaymentFeedback({
+          tone: 'error',
+          message: 'Please sign in again to complete payment verification.',
+        });
+        setError('Please sign in again to complete payment verification.');
+        setNotice('');
+        navigate('/login', { replace: true });
+        return;
+      }
+
+      if (callbackStatus && callbackStatus !== 'success') {
+        setPaymentFeedback({
+          tone: 'error',
+          message: 'Payment was not completed. You can try again whenever you are ready.',
+        });
+        setError('Payment was not completed. You can try again whenever you are ready.');
+        setNotice('');
+        navigate('/pricing', { replace: true });
+        return;
+      }
 
       const token = LocalStorageService.getToken();
-      if (!token) return;
+      if (!token) {
+        setPaymentFeedback({
+          tone: 'error',
+          message: 'Please sign in again to complete payment verification.',
+        });
+        setError('Please sign in again to complete payment verification.');
+        setNotice('');
+        navigate('/login', { replace: true });
+        return;
+      }
 
       try {
         setActivePlanId('verify');
+        setPaymentFeedback({
+          tone: 'loading',
+          message: 'Confirming your payment with Paystack...',
+        });
+        setNotice('Confirming your payment...');
         setError('');
         const response = await paymentApi.verify(token, callbackReference);
         setAuthenticatedUser(response.user);
         setResolvedPlan(String(response.plan || currentPlan).toLowerCase());
+        setPaymentFeedback({
+          tone: 'success',
+          message: `Payment successful. Your subscription is now ${String(response.plan).toUpperCase()}.`,
+        });
         setNotice(`Payment successful. Your subscription is now ${String(response.plan).toUpperCase()}.`);
         navigate('/pricing', { replace: true });
       } catch (verificationError) {
+        setPaymentFeedback({
+          tone: 'error',
+          message: verificationError?.message || 'Unable to verify payment right now.',
+        });
         setError(verificationError?.message || 'Unable to verify payment right now.');
       } finally {
         setActivePlanId('');
@@ -57,7 +103,7 @@ const Pricing = () => {
     };
 
     verifyFromCallback();
-  }, [callbackReference, currentPlan, isAuthenticated, navigate, setAuthenticatedUser]);
+  }, [callbackReference, callbackStatus, currentPlan, isAuthenticated, loading, navigate, setAuthenticatedUser]);
 
   useEffect(() => {
     if (!requiredPlan || !requiresPaidPlan) {
@@ -113,6 +159,32 @@ const Pricing = () => {
     }
   };
 
+  const paymentFeedbackConfig = {
+    loading: {
+      className: 'border-cyan-400/30 bg-cyan-500/10 text-cyan-100',
+      icon: LoaderCircle,
+      iconClassName: 'animate-spin text-cyan-300',
+      title: 'Confirming payment',
+    },
+    success: {
+      className: 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100',
+      icon: Check,
+      iconClassName: 'text-emerald-300',
+      title: 'Payment confirmed',
+    },
+    error: {
+      className: 'border-red-400/30 bg-red-500/10 text-red-100',
+      icon: AlertCircle,
+      iconClassName: 'text-red-300',
+      title: 'Payment issue',
+    },
+  };
+
+  const activePaymentFeedback = paymentFeedback.tone
+    ? paymentFeedbackConfig[paymentFeedback.tone]
+    : null;
+  const PaymentFeedbackIcon = activePaymentFeedback?.icon || null;
+
   return (
     <section id="pricing" className="bg-slate-950 py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -124,6 +196,22 @@ const Pricing = () => {
             Choose the perfect plan for your needs. All plans include our core features.
           </p>
         </div>
+
+        {activePaymentFeedback && PaymentFeedbackIcon && (
+          <div className={`mb-8 rounded-3xl border px-5 py-4 shadow-[0_18px_50px_rgba(15,23,42,0.25)] ${activePaymentFeedback.className}`}>
+            <div className="flex items-start gap-3">
+              <PaymentFeedbackIcon className={`mt-0.5 h-5 w-5 flex-shrink-0 ${activePaymentFeedback.iconClassName}`} />
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.18em]">
+                  {activePaymentFeedback.title}
+                </p>
+                <p className="mt-1 text-sm leading-6">
+                  {paymentFeedback.message}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className={`grid grid-cols-1 gap-6 md:grid-cols-2 ${requiresPaidPlan ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
           {visiblePlans.map((plan) => (
