@@ -4,6 +4,27 @@ const authHeaders = (token) => ({
   Authorization: `Bearer ${token}`,
 });
 
+const getGuestId = () => {
+  if (typeof window === 'undefined') return '';
+
+  const storageKey = 'devportix_guest_id';
+  const existing = window.localStorage.getItem(storageKey);
+  if (existing) return existing;
+
+  const nextId =
+    typeof window.crypto?.randomUUID === 'function'
+      ? window.crypto.randomUUID()
+      : `guest-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+  window.localStorage.setItem(storageKey, nextId);
+  return nextId;
+};
+
+const communityHeaders = (token) => ({
+  ...(token ? authHeaders(token) : {}),
+  'X-Guest-Id': getGuestId(),
+});
+
 const toFormData = (payload = {}) => {
   const formData = new FormData();
 
@@ -79,7 +100,7 @@ export const communityApi = {
 
     return request(`/api/community/posts${query ? `?${query}` : ''}`, {
       method: 'GET',
-      headers: authHeaders(token),
+      headers: communityHeaders(token),
     });
   },
 
@@ -109,7 +130,7 @@ export const communityApi = {
   async listComments(token, postId) {
     return request(`/api/community/posts/${postId}/comments`, {
       method: 'GET',
-      headers: authHeaders(token),
+      headers: communityHeaders(token),
     });
   },
 
@@ -139,7 +160,7 @@ export const communityApi = {
   async toggleLike(token, postId) {
     return request(`/api/community/posts/${postId}/upvotes/toggle`, {
       method: 'POST',
-      headers: authHeaders(token),
+      headers: communityHeaders(token),
     });
   },
 };

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Clock3, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import LocalStorageService from '../services/localStorageService';
 import { communityApi } from '../services/communityApi';
 import { useModal } from '../hooks/useModal';
@@ -7,7 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import { ROLES } from '../utils/constants';
 import { resolveMediaUrl } from '../utils/api';
-import { DEVPORTIX_BLOG_TOPICS, DEVPORTIX_EDITORIAL_BLOGS } from '../data/communityEditorial';
+import { DEVPORTIX_BLOG_TEMPLATES, DEVPORTIX_BLOG_TOPICS, DEVPORTIX_EDITORIAL_BLOGS } from '../data/communityEditorial';
 
 const formatDate = (value) => {
   if (!value) return '';
@@ -30,9 +31,20 @@ const blogSummary = (post) => {
   return `${content.slice(0, 150).trim()}...`;
 };
 
+const loadEditorialLikes = () => {
+  if (typeof window === 'undefined') return {};
+
+  try {
+    const raw = window.localStorage.getItem('devportix_editorial_blog_likes');
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
 const CommunityPage = () => {
   const { confirm } = useModal();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { theme } = useTheme();
   const token = useMemo(() => LocalStorageService.getToken(), []);
   const isDark = theme === 'dark';
@@ -52,9 +64,12 @@ const CommunityPage = () => {
   const [commentDrafts, setCommentDrafts] = useState({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [editorialLikes, setEditorialLikes] = useState(() => loadEditorialLikes());
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
 
   const editorialBlogs = useMemo(() => DEVPORTIX_EDITORIAL_BLOGS, []);
   const savedTopics = useMemo(() => DEVPORTIX_BLOG_TOPICS, []);
+  const blogTemplates = useMemo(() => DEVPORTIX_BLOG_TEMPLATES, []);
 
   const syncPost = useCallback((postId, updater) => {
     const applyUpdate = (collection) =>
@@ -70,6 +85,7 @@ const CommunityPage = () => {
     setContent('');
     setMedia(null);
     setEditing(null);
+    setSelectedTemplateId('');
     setMediaPreviewUrl((currentUrl) => {
       if (currentUrl) {
         URL.revokeObjectURL(currentUrl);
@@ -79,7 +95,7 @@ const CommunityPage = () => {
   }, []);
 
   const loadPosts = useCallback(async () => {
-    if (!token || tab === 'people') return;
+    if (tab === 'people') return;
     setLoading(true);
     setError('');
 
@@ -139,6 +155,10 @@ const CommunityPage = () => {
   }, [tab, token]);
 
   useEffect(() => {
+    if ((tab === 'people' || tab === 'chat') && !token) {
+      setLoading(false);
+      return;
+    }
     if (tab === 'people') loadPeople();
     else loadPosts();
   }, [tab, loadPeople, loadPosts]);
@@ -239,6 +259,11 @@ const CommunityPage = () => {
   };
 
   const addComment = async (postId) => {
+    if (!token) {
+      setError('Please register or sign in to comment on blog posts.');
+      return;
+    }
+
     const text = String(commentDrafts[postId] || '').trim();
     if (!text) return;
 
@@ -286,6 +311,37 @@ const CommunityPage = () => {
     });
   };
 
+  const toggleEditorialLike = (postId) => {
+    setEditorialLikes((prev) => {
+      const next = {
+        ...prev,
+        [postId]: !prev[postId],
+      };
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('devportix_editorial_blog_likes', JSON.stringify(next));
+      }
+
+      return next;
+    });
+  };
+
+  const loadBlogTemplate = (template) => {
+    setTab('blog');
+    setEditing(null);
+    setSelectedTemplateId(template.id || '');
+    setTitle(template.title || '');
+    setContent(template.content || '');
+    setMedia(null);
+    setError('');
+    setMediaPreviewUrl((currentUrl) => {
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+      return '';
+    });
+  };
+
   const mergedBlogPosts = useMemo(() => {
     const apiBlogs = Array.isArray(posts) ? posts : [];
     const apiTitles = new Set(apiBlogs.map((post) => String(post?.title || '').trim().toLowerCase()));
@@ -321,6 +377,8 @@ const CommunityPage = () => {
   }, [editorialBlogs, mostLikedBlogs]);
 
   const displayPosts = tab === 'blog' ? mergedBlogPosts : posts;
+  const activeTemplate =
+    blogTemplates.find((template) => template.id === selectedTemplateId) || blogTemplates[0] || null;
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-8">
@@ -357,6 +415,22 @@ const CommunityPage = () => {
       {error && <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
       {tab === 'people' ? (
+        !isAuthenticated ? (
+          <div className="mt-6 rounded-[2rem] border border-sky-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-slate-900">Create an account to explore people</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
+              Blog reading is open to everyone, but the people directory and friend requests are available after registration.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link to="/signup" className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white">
+                Register
+              </Link>
+              <Link to="/login" className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700">
+                Sign In
+              </Link>
+            </div>
+          </div>
+        ) : (
         <div className="mt-6 space-y-4">
           <div className="grid gap-3 md:grid-cols-3">
             <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -415,10 +489,26 @@ const CommunityPage = () => {
             ))}
           </div>
         </div>
+        )
       ) : (
         <div className={`mt-6 grid gap-6 ${tab === 'blog' ? 'xl:grid-cols-[minmax(0,1.4fr)_320px]' : ''}`}>
           <div className="space-y-5">
-            {tab === 'chat' || isSuperAdmin ? (
+            {tab === 'chat' && !isAuthenticated ? (
+              <div className="rounded-[2rem] border border-sky-200 bg-white p-5 text-sm text-slate-700 shadow-sm">
+                <h2 className="text-lg font-semibold text-slate-900">Sign in to join community chats</h2>
+                <p className="mt-2">
+                  Blog reading and liking are public now, but posting chats still requires an account.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Link to="/signup" className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white">
+                    Register
+                  </Link>
+                  <Link to="/login" className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700">
+                    Sign In
+                  </Link>
+                </div>
+              </div>
+            ) : tab === 'chat' || isSuperAdmin ? (
               <form onSubmit={createOrUpdatePost} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -441,12 +531,58 @@ const CommunityPage = () => {
                 </div>
 
                 {tab === 'blog' ? (
-                  <input
-                    value={title}
-                    onChange={(event) => setTitle(event.target.value)}
-                    placeholder="Blog title"
-                    className="mt-4 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
-                  />
+                  <>
+                    <div className="mt-4 rounded-[1.5rem] border border-sky-100 bg-sky-50/80 p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Template Library</p>
+                          <h3 className="mt-2 text-base font-semibold text-slate-900">Quick-start DevPortix blog drafts</h3>
+                          <p className="mt-1 text-sm text-slate-600">
+                            Load a structured draft, replace any section you want, then attach your cover image and publish.
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
+                          {blogTemplates.length} ready template{blogTemplates.length === 1 ? '' : 's'}
+                        </span>
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        {blogTemplates.map((template) => (
+                          <div key={template.id} className="rounded-[1.25rem] border border-white bg-white/90 p-4 shadow-sm">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold text-slate-900">{template.title}</p>
+                                <p className="mt-1 text-sm text-slate-600">{template.excerpt}</p>
+                              </div>
+                              <button
+                                type="button"
+                                className="rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white"
+                                onClick={() => loadBlogTemplate(template)}
+                              >
+                                Load Draft
+                              </button>
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {template.tags.map((tag) => (
+                                <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-xs leading-6 text-slate-600">
+                              Cover note: {template.recommendedCoverNote}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <input
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      placeholder="Blog title"
+                      className="mt-4 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+                    />
+                  </>
                 ) : null}
 
                 <textarea
@@ -465,6 +601,17 @@ const CommunityPage = () => {
                         <img src={mediaPreviewUrl} alt="Selected media preview" className="h-24 w-24 rounded-xl object-cover" />
                       </div>
                     ) : null}
+                    <div className="mt-4 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Publishing Checklist</p>
+                      <div className="mt-3 space-y-2">
+                        {(activeTemplate?.checklist || []).map((item) => (
+                          <div key={item} className="flex items-start gap-2 text-sm text-slate-700">
+                            <span className="mt-1 inline-flex h-2 w-2 rounded-full bg-sky-500" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </>
                 ) : null}
 
@@ -485,10 +632,15 @@ const CommunityPage = () => {
 
             {displayPosts.map((post) => {
               const canManagePost = post.type === 'blog' ? isSuperAdmin : post.isOwner;
-              const likeCount = Number(post.upvoteCount ?? post.likeCount ?? 0);
+              const baseLikeCount = Number(post.upvoteCount ?? post.likeCount ?? 0);
               const commentCount = Number(post.commentCount || 0);
-              const isLiked = Boolean(post.isLiked || post.isUpvoted);
               const isEditorial = Boolean(post.editorialMeta);
+              const isLiked = isEditorial
+                ? Boolean(editorialLikes[post.id])
+                : Boolean(post.isLiked || post.isUpvoted);
+              const likeCount = isEditorial
+                ? baseLikeCount + (isLiked ? 1 : 0)
+                : baseLikeCount;
               const coverImage = isEditorial
                 ? post.editorialMeta.heroImage
                 : post.media?.url
@@ -644,10 +796,12 @@ const CommunityPage = () => {
                             : 'border-slate-200 text-slate-600'
                       }`}
                       onClick={() => {
-                        if (isEditorial) return;
+                        if (isEditorial) {
+                          toggleEditorialLike(post.id);
+                          return;
+                        }
                         toggleLike(post.id);
                       }}
-                      disabled={isEditorial}
                     >
                       <span className={isLiked ? 'text-red-500' : isDark && isEditorial ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true">
                         &#9829;
@@ -673,18 +827,34 @@ const CommunityPage = () => {
                       ))}
 
                       <div className="flex gap-2">
-                        <input
-                          value={commentDrafts[post.id] || ''}
-                          onChange={(event) => setCommentDrafts((prev) => ({ ...prev, [post.id]: event.target.value }))}
-                          placeholder="Add comment..."
-                          className="flex-1 rounded-full border border-slate-200 px-4 py-2 text-sm outline-none transition focus:border-slate-400"
-                        />
-                        <button
-                          className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-                          onClick={() => addComment(post.id)}
-                        >
-                          Comment
-                        </button>
+                        {isAuthenticated ? (
+                          <>
+                            <input
+                              value={commentDrafts[post.id] || ''}
+                              onChange={(event) => setCommentDrafts((prev) => ({ ...prev, [post.id]: event.target.value }))}
+                              placeholder="Add comment..."
+                              className="flex-1 rounded-full border border-slate-200 px-4 py-2 text-sm outline-none transition focus:border-slate-400"
+                            />
+                            <button
+                              className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+                              onClick={() => addComment(post.id)}
+                            >
+                              Comment
+                            </button>
+                          </>
+                        ) : (
+                          <div className="flex w-full flex-wrap items-center justify-between gap-3 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3">
+                            <p className="text-sm text-slate-700">Register or sign in to join the conversation.</p>
+                            <div className="flex gap-2">
+                              <Link to="/signup" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white">
+                                Register
+                              </Link>
+                              <Link to="/login" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700">
+                                Sign In
+                              </Link>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : null}

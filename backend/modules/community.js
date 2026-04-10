@@ -103,7 +103,13 @@ const communityPostLikeSchema = new Schema(
     ownerId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      index: true,
+      default: null,
+    },
+    guestId: {
+      type: String,
+      trim: true,
+      default: '',
       index: true,
     },
   },
@@ -112,7 +118,14 @@ const communityPostLikeSchema = new Schema(
   }
 );
 
-communityPostLikeSchema.index({ postId: 1, ownerId: 1 }, { unique: true });
+communityPostLikeSchema.index(
+  { postId: 1, ownerId: 1 },
+  { unique: true, partialFilterExpression: { ownerId: { $type: 'objectId' } } }
+);
+communityPostLikeSchema.index(
+  { postId: 1, guestId: 1 },
+  { unique: true, partialFilterExpression: { guestId: { $type: 'string', $ne: '' } } }
+);
 
 const CommunityPost =
   mongoose.models.CommunityPost ||

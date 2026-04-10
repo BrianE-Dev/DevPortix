@@ -221,15 +221,21 @@ const Pricing = () => {
             (() => {
               const isCurrentPlan = plan.id === resolvedPlan;
               const isPopular = plan.popular;
-              const cardClass = plan.id === 'free'
-                ? 'border-white/10 bg-slate-900/70'
-                : plan.id === 'basic'
-                  ? 'border-violet-500/80 bg-slate-900/78 shadow-[0_0_0_1px_rgba(139,92,246,0.22),0_22px_60px_rgba(76,29,149,0.24)]'
-                  : plan.id === 'standard'
-                    ? 'border-cyan-500/30 bg-slate-900/72'
-                    : 'border-amber-600/35 bg-[linear-gradient(180deg,rgba(32,18,12,0.9),rgba(24,17,13,0.82))]';
+              const cardAccentClass = plan.id === 'basic'
+                ? isDark
+                  ? 'border-violet-400/35 shadow-[0_18px_55px_rgba(139,92,246,0.18)]'
+                  : 'border-violet-300/70 shadow-[0_18px_48px_rgba(139,92,246,0.16)]'
+                : plan.id === 'standard'
+                  ? isDark
+                    ? 'border-cyan-400/35 shadow-[0_18px_55px_rgba(34,211,238,0.16)]'
+                    : 'border-cyan-300/70 shadow-[0_18px_48px_rgba(34,211,238,0.14)]'
+                  : plan.id === 'premium'
+                    ? isDark
+                      ? 'border-amber-400/35 shadow-[0_18px_55px_rgba(251,191,36,0.14)]'
+                      : 'border-amber-300/70 shadow-[0_18px_48px_rgba(251,191,36,0.14)]'
+                    : '';
               const titleClass = plan.id === 'free'
-                ? 'text-white'
+                ? isDark ? 'text-white' : 'text-slate-900'
                 : plan.id === 'basic'
                   ? isDark
                     ? 'text-violet-300'
@@ -258,7 +264,7 @@ const Pricing = () => {
               return (
             <div
               key={plan.id}
-              className={`relative mx-auto w-full max-w-md rounded-[22px] border p-7 transition-all duration-300 hover:-translate-y-1 ${cardClass}`}
+              className={`landing-glass-blue-card relative mx-auto w-full max-w-md rounded-[22px] p-7 ${cardAccentClass}`}
             >
               {isPopular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 transform">

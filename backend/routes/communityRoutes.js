@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const validateUser = require('../middleware/validate_user');
+const optionalUser = require('../middleware/optional_user');
 const {
   listUsers,
   sendFriendRequest,
@@ -48,17 +49,17 @@ router.post('/friends/requests/:userId', validateUser, sendFriendRequest);
 router.patch('/friends/requests/:requestId', validateUser, respondToFriendRequest);
 router.delete('/friends/requests/:requestId', validateUser, cancelFriendRequest);
 
-router.get('/posts', validateUser, listPosts);
+router.get('/posts', optionalUser, listPosts);
 router.post('/posts', validateUser, upload.single('media'), createPost);
 router.patch('/posts/:id', validateUser, upload.single('media'), updatePost);
 router.delete('/posts/:id', validateUser, deletePost);
 
-router.get('/posts/:postId/comments', validateUser, listComments);
-router.post('/posts/:postId/comments', validateUser, createComment);
+router.get('/posts/:postId/comments', optionalUser, listComments);
+router.post('/posts/:postId/comments', optionalUser, createComment);
 router.patch('/posts/:postId/comments/:commentId', validateUser, updateComment);
 router.delete('/posts/:postId/comments/:commentId', validateUser, deleteComment);
 
-router.post('/posts/:postId/likes/toggle', validateUser, toggleLike);
-router.post('/posts/:postId/upvotes/toggle', validateUser, toggleLike);
+router.post('/posts/:postId/likes/toggle', optionalUser, toggleLike);
+router.post('/posts/:postId/upvotes/toggle', optionalUser, toggleLike);
 
 module.exports = router;

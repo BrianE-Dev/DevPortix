@@ -27,6 +27,7 @@ const parsePositiveInt = (value, fallback, min, max) => {
 };
 
 const escapeRegex = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const normalizeGuestId = (value) => String(value || '').trim().slice(0, 120);
 
 const sameId = (a, b) => String(a) === String(b);
 
@@ -436,7 +437,12 @@ const listPosts = async (req, res) => {
 
     const query = {};
     if (type) query.type = type;
-    if (scope === 'mine') query.ownerId = req.userId;
+    if (scope === 'mine') {
+      if (!req.userId) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      query.ownerId = req.userId;
+    }
 
     if (q) {
       const regex = new RegExp(escapeRegex(q), 'i');
@@ -460,12 +466,16 @@ const listPosts = async (req, res) => {
       .populate('ownerId', 'fullName email role avatar');
 
     const postIds = posts.map((post) => post._id);
-    const likes = postIds.length
-      ? await CommunityPostLike.find({
-          postId: { $in: postIds },
-          ownerId: req.userId,
-        }).select('postId')
-      : [];
+    const guestId = normalizeGuestId(req.headers['x-guest-id']);
+    const likeQuery = postIds.length
+      ? req.userId
+        ? { postId: { $in: postIds }, ownerId: req.userId }
+        : guestId
+          ? { postId: { $in: postIds }, guestId }
+          : null
+      : null;
+
+    const likes = likeQuery ? await CommunityPostLike.find(likeQuery).select('postId') : [];
 
     const likedIds = new Set(likes.map((like) => String(like.postId)));
 
@@ -663,6 +673,10 @@ const listComments = async (req, res) => {
 
 const createComment = async (req, res) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ message: 'Please register or sign in to comment' });
+    }
+
     const post = await CommunityPost.findById(req.params.postId).select('_id');
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
@@ -743,10 +757,17 @@ const toggleLike = async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    const existing = await CommunityPostLike.findOne({
-      postId: req.params.postId,
-      ownerId: req.userId,
-    });
+    const guestId = normalizeGuestId(req.headers['x-guest-id']);
+
+    if (!req.userId && !guestId) {
+      return res.status(400).json({ message: 'Guest identity is required to like this post' });
+    }
+
+    const identityQuery = req.userId
+      ? { postId: req.params.postId, ownerId: req.userId }
+      : { postId: req.params.postId, guestId };
+
+    const existing = await CommunityPostLike.findOne(identityQuery);
 
     let liked;
     if (existing) {
@@ -754,10 +775,17 @@ const toggleLike = async (req, res) => {
       await CommunityPost.updateOne({ _id: req.params.postId }, { $inc: { likeCount: -1 } });
       liked = false;
     } else {
-      await CommunityPostLike.create({
-        postId: req.params.postId,
-        ownerId: req.userId,
-      });
+      await CommunityPostLike.create(
+        req.userId
+          ? {
+              postId: req.params.postId,
+              ownerId: req.userId,
+            }
+          : {
+              postId: req.params.postId,
+              guestId,
+            }
+      );
       await CommunityPost.updateOne({ _id: req.params.postId }, { $inc: { likeCount: 1 } });
       liked = true;
     }
