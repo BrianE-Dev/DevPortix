@@ -53,7 +53,7 @@ const Projects = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const sectionClass = isDark
-    ? 'bg-slate-950'
+    ? 'app-dark-section'
     : 'bg-[linear-gradient(180deg,#e0f2fe_0%,#dbeafe_42%,#e9d5ff_100%)]';
 
   return (

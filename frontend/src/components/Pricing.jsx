@@ -185,7 +185,7 @@ const Pricing = () => {
     : null;
   const PaymentFeedbackIcon = activePaymentFeedback?.icon || null;
   const sectionClass = isDark
-    ? 'bg-slate-950'
+    ? 'app-dark-section'
     : 'bg-[linear-gradient(180deg,#e0f2fe_0%,#dbeafe_40%,#e9d5ff_100%)]';
 
   return (

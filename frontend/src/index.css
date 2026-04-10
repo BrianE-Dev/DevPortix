@@ -9,6 +9,20 @@
 }
 
 @layer components {
+  .app-dark-gradient {
+    background:
+      radial-gradient(circle at 14% 18%, rgba(37, 99, 235, 0.24), transparent 24%),
+      radial-gradient(circle at 84% 14%, rgba(79, 70, 229, 0.2), transparent 28%),
+      linear-gradient(145deg, #020617 0%, #0f172a 36%, #172554 72%, #312e81 100%);
+  }
+
+  .app-dark-section {
+    background:
+      radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 24%),
+      radial-gradient(circle at bottom right, rgba(79, 70, 229, 0.14), transparent 30%),
+      linear-gradient(180deg, rgba(2, 6, 23, 0.98), rgba(15, 23, 42, 0.98), rgba(23, 37, 84, 0.96));
+  }
+
   .container {
     @apply max-w-7xl;
   }

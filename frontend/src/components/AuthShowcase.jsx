@@ -1,6 +1,5 @@
 import React from 'react';
 import { ArrowRight, GitBranch, Layers3, ShieldCheck, Sparkles, TrendingUp } from 'lucide-react';
-import BrandLogo from './BrandLogo';
 
 const SHOWCASE_CONTENT = {
   login: {
@@ -68,7 +67,7 @@ const AuthShowcase = ({ mode = 'login', isDark }) => {
     <section
       className={`relative overflow-hidden rounded-[2rem] border p-8 sm:p-10 lg:min-h-[760px] ${
         isDark
-          ? 'border-white/10 bg-[linear-gradient(155deg,rgba(2,6,23,0.96),rgba(30,41,59,0.92),rgba(37,99,235,0.24))] text-white'
+          ? 'border-white/10 bg-[linear-gradient(155deg,rgba(2,6,23,0.98),rgba(15,23,42,0.94),rgba(30,64,175,0.26),rgba(49,46,129,0.3))] text-white'
           : 'border-sky-200 bg-[linear-gradient(155deg,rgba(255,255,255,0.95),rgba(224,242,254,0.96),rgba(221,214,254,0.9))] text-slate-900 shadow-[0_28px_80px_rgba(148,163,184,0.24)]'
       }`}
     >
@@ -77,11 +76,7 @@ const AuthShowcase = ({ mode = 'login', isDark }) => {
 
       <div className="relative flex h-full flex-col justify-between">
         <div>
-          <div className="animate-in slide-in-from-top duration-700">
-            <BrandLogo className="h-12 w-auto max-w-[12rem]" alt="DevPortix logo" />
-          </div>
-
-          <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] backdrop-blur-sm animate-in slide-in-from-bottom duration-700 delay-100">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] backdrop-blur-sm animate-in slide-in-from-bottom duration-700 delay-100">
             <Sparkles className="h-4 w-4" />
             {content.eyebrow}
           </div>

@@ -6,7 +6,6 @@ import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import { ROLES } from '../utils/constants';
 import { authApi } from '../services/authApi';
-import BrandLogo from '../components/BrandLogo';
 import AuthShowcase from '../components/AuthShowcase';
 
 const Signup = () => {
@@ -133,25 +132,19 @@ const Signup = () => {
   };
 
   return (
-    <div className={`min-h-screen px-4 py-8 sm:px-6 lg:px-8 ${isDark ? 'bg-[linear-gradient(145deg,#020617_0%,#0f172a_38%,#1e1b4b_100%)]' : 'bg-[linear-gradient(145deg,#eff6ff_0%,#e0f2fe_44%,#ede9fe_100%)]'}`}>
+    <div className={`min-h-screen px-4 py-8 sm:px-6 lg:px-8 ${isDark ? 'bg-[linear-gradient(145deg,#020617_0%,#0f172a_34%,#1d4ed8_72%,#312e81_100%)]' : 'bg-[linear-gradient(145deg,#eff6ff_0%,#e0f2fe_44%,#ede9fe_100%)]'}`}>
       <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1.02fr_0.98fr] lg:items-stretch">
         <AuthShowcase mode="signup" isDark={isDark} />
 
         <section className={`auth-form-preserve relative overflow-hidden rounded-[2rem] border p-6 sm:p-8 lg:p-10 ${
           isDark
-            ? 'border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(2,6,23,0.92))] shadow-[0_28px_80px_rgba(2,6,23,0.45)]'
+            ? 'border-white/10 bg-[linear-gradient(180deg,rgba(2,6,23,0.94),rgba(15,23,42,0.92),rgba(30,64,175,0.12))] shadow-[0_28px_80px_rgba(2,6,23,0.45)]'
             : 'border-white/70 bg-white/88 shadow-[0_28px_80px_rgba(148,163,184,0.26)]'
         }`}>
-          <div className={`absolute inset-x-0 top-0 h-28 ${isDark ? 'bg-[radial-gradient(circle_at_top,rgba(139,92,246,0.2),transparent_65%)]' : 'bg-[radial-gradient(circle_at_top,rgba(125,211,252,0.18),transparent_65%)]'}`} />
+          <div className={`absolute inset-x-0 top-0 h-28 ${isDark ? 'bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.2),transparent_65%)]' : 'bg-[radial-gradient(circle_at_top,rgba(125,211,252,0.18),transparent_65%)]'}`} />
 
           <div className="relative">
-            <div className="animate-in slide-in-from-top duration-700">
-              <Link to="/" className="inline-flex items-center">
-                <BrandLogo className="h-11 w-auto max-w-[11rem]" alt="DevPortix logo" />
-              </Link>
-            </div>
-
-            <div className="mt-8 animate-in slide-in-from-bottom duration-700 delay-100">
+            <div className="animate-in slide-in-from-bottom duration-700 delay-100">
               <p className={`text-sm font-semibold uppercase tracking-[0.24em] ${isDark ? 'text-sky-300' : 'text-sky-700'}`}>Create Account</p>
               <h1 className={`mt-3 text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Start your DevPortix workspace</h1>
               <p className={`mt-3 text-sm leading-7 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>

@@ -5,7 +5,7 @@ import BrandLogo from './BrandLogo';
 
 const Footer = () => {
   return (
-    <footer className="border-t border-gray-800 bg-gray-900/50">
+    <footer className="border-t border-white/10 bg-[linear-gradient(180deg,rgba(2,6,23,0.96),rgba(15,23,42,0.94),rgba(30,64,175,0.2),rgba(49,46,129,0.26))]">
       <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 text-center md:grid-cols-4 md:text-left">
           <div className="space-y-4 flex flex-col items-center md:items-start">

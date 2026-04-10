@@ -38,7 +38,7 @@ const AppContent = () => {
   const location = useLocation();
   const appThemeClass =
     theme === 'dark'
-      ? 'min-h-screen bg-gray-950 text-gray-100 transition-colors duration-300 theme-dark'
+      ? 'app-dark-gradient min-h-screen text-gray-100 transition-colors duration-300 theme-dark'
       : 'min-h-screen bg-blue-100 text-gray-900 transition-colors duration-300 theme-light';
   const isDashboardRoute = ['/dashboard', '/role-select', '/student', '/instructor', '/professional', '/admin']
     .some((path) => location.pathname === path || location.pathname.startsWith(`${path}/`));
