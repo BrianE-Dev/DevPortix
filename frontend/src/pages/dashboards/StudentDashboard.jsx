@@ -747,7 +747,7 @@ const StudentDashboard = () => {
       )}
 
       {activeMenuKey === 'settings' && (
-        <SettingsPanel accent={activeAccent} />
+        <SettingsPanel accent={activeAccent} onOpenProfile={() => handleMenuSelect('profile')} />
       )}
 
       {activeMenuKey === 'projects' && (

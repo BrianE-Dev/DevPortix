@@ -42,6 +42,17 @@ const loadEditorialLikes = () => {
   }
 };
 
+const loadEditorialComments = () => {
+  if (typeof window === 'undefined') return {};
+
+  try {
+    const raw = window.localStorage.getItem('devportix_editorial_blog_comments');
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
 const CommunityPage = () => {
   const { confirm } = useModal();
   const { user, isAuthenticated } = useAuth();
@@ -65,11 +76,19 @@ const CommunityPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [editorialLikes, setEditorialLikes] = useState(() => loadEditorialLikes());
+  const [editorialComments, setEditorialComments] = useState(() => loadEditorialComments());
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
 
   const editorialBlogs = useMemo(() => DEVPORTIX_EDITORIAL_BLOGS, []);
   const savedTopics = useMemo(() => DEVPORTIX_BLOG_TOPICS, []);
   const blogTemplates = useMemo(() => DEVPORTIX_BLOG_TEMPLATES, []);
+  const topicTemplateMap = useMemo(
+    () =>
+      new Map(
+        blogTemplates.map((template) => [String(template.title || '').trim().toLowerCase(), template])
+      ),
+    [blogTemplates]
+  );
 
   const syncPost = useCallback((postId, updater) => {
     const applyUpdate = (collection) =>
@@ -326,6 +345,41 @@ const CommunityPage = () => {
     });
   };
 
+  const addEditorialComment = (postId) => {
+    if (!isAuthenticated) {
+      setError('Please register or sign in to comment on blog posts.');
+      return;
+    }
+
+    const text = String(commentDrafts[postId] || '').trim();
+    if (!text) return;
+
+    setEditorialComments((prev) => {
+      const nextComment = {
+        id: `editorial-comment-${Date.now()}`,
+        content: text,
+        createdAt: new Date().toISOString(),
+        author: {
+          fullName: user?.fullName || user?.username || 'DevPortix User',
+        },
+      };
+
+      const next = {
+        ...prev,
+        [postId]: [...(prev[postId] || []), nextComment],
+      };
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('devportix_editorial_blog_comments', JSON.stringify(next));
+      }
+
+      return next;
+    });
+
+    setCommentDrafts((prev) => ({ ...prev, [postId]: '' }));
+    setError('');
+  };
+
   const loadBlogTemplate = (template) => {
     setTab('blog');
     setEditing(null);
@@ -333,6 +387,29 @@ const CommunityPage = () => {
     setTitle(template.title || '');
     setContent(template.content || '');
     setMedia(null);
+    setError('');
+    setMediaPreviewUrl((currentUrl) => {
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+      return '';
+    });
+  };
+
+  const handleTopicClick = (topic) => {
+    setTab('blog');
+    const matchedTemplate = topicTemplateMap.get(String(topic || '').trim().toLowerCase());
+
+    if (matchedTemplate) {
+      loadBlogTemplate(matchedTemplate);
+      return;
+    }
+
+    setSelectedTemplateId('');
+    setTitle(topic);
+    setContent('');
+    setMedia(null);
+    setEditing(null);
     setError('');
     setMediaPreviewUrl((currentUrl) => {
       if (currentUrl) {
@@ -633,8 +710,9 @@ const CommunityPage = () => {
             {displayPosts.map((post) => {
               const canManagePost = post.type === 'blog' ? isSuperAdmin : post.isOwner;
               const baseLikeCount = Number(post.upvoteCount ?? post.likeCount ?? 0);
-              const commentCount = Number(post.commentCount || 0);
               const isEditorial = Boolean(post.editorialMeta);
+              const postComments = isEditorial ? editorialComments[post.id] || [] : comments[post.id] || [];
+              const commentCount = isEditorial ? postComments.length : Number(post.commentCount || 0);
               const isLiked = isEditorial
                 ? Boolean(editorialLikes[post.id])
                 : Boolean(post.isLiked || post.isUpvoted);
@@ -817,9 +895,8 @@ const CommunityPage = () => {
                     ) : null}
                   </div>
 
-                  {!isEditorial ? (
-                    <div className="mt-4 space-y-3">
-                      {(comments[post.id] || []).map((comment) => (
+                  <div className="mt-4 space-y-3">
+                      {postComments.map((comment) => (
                         <div key={comment.id} className="rounded-2xl bg-slate-50 p-3 text-sm">
                           <p className="font-semibold text-slate-900">{comment.author?.fullName}</p>
                           <p className="mt-1 text-slate-700">{comment.content}</p>
@@ -837,7 +914,13 @@ const CommunityPage = () => {
                             />
                             <button
                               className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-                              onClick={() => addComment(post.id)}
+                              onClick={() => {
+                                if (isEditorial) {
+                                  addEditorialComment(post.id);
+                                  return;
+                                }
+                                addComment(post.id);
+                              }}
                             >
                               Comment
                             </button>
@@ -856,8 +939,7 @@ const CommunityPage = () => {
                           </div>
                         )}
                       </div>
-                    </div>
-                  ) : null}
+                  </div>
                   </div>
                 </article>
               );
@@ -898,9 +980,14 @@ const CommunityPage = () => {
                 <h2 className="text-lg font-semibold text-slate-900">Saved Topic Bank</h2>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {savedTopics.map((topic) => (
-                    <span key={topic} className="rounded-full bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700">
+                    <button
+                      key={topic}
+                      type="button"
+                      onClick={() => handleTopicClick(topic)}
+                      className="rounded-full bg-slate-100 px-3 py-2 text-left text-xs font-medium text-slate-700 transition hover:bg-slate-200"
+                    >
                       {topic}
-                    </span>
+                    </button>
                   ))}
                 </div>
               </div>

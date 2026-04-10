@@ -1,8 +1,6 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Circle } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
-import { useAuth } from '../hooks/useAuth';
-import { resolveMediaUrl } from '../utils/api';
 
 const DashboardShell = ({
   role,
@@ -16,26 +14,6 @@ const DashboardShell = ({
   children,
 }) => {
   const { theme } = useTheme();
-  const { user } = useAuth();
-
-  const avatarSrc = useMemo(() => {
-    const avatar = String(user?.avatar || '').trim();
-    if (!avatar) return '';
-    return resolveMediaUrl(avatar);
-  }, [user?.avatar]);
-
-  const initials = useMemo(() => {
-    const fullName = String(user?.fullName || '').trim();
-    if (!fullName) return 'U';
-    const parts = fullName.split(/\s+/).filter(Boolean).slice(0, 2);
-    const chars = parts.map((part) => part[0]?.toUpperCase()).join('');
-    return chars || 'U';
-  }, [user?.fullName]);
-  const currentPlan = useMemo(() => {
-    const normalized = String(user?.subscription || 'free').trim().toLowerCase();
-    if (!normalized) return 'FREE';
-    return normalized.toUpperCase();
-  }, [user?.subscription]);
 
   const activeHighlightClass = activeTabClass
     ? `${activeTabClass} border-transparent text-white shadow-[0_14px_40px_rgba(15,23,42,0.28)]`
@@ -123,10 +101,6 @@ const DashboardShell = ({
             <p className={`text-[11px] uppercase tracking-[0.34em] font-semibold ${accentClass}`}>Live Snapshot</p>
             <div className="mt-5 space-y-4 text-sm">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-gray-400">Current plan</span>
-                <span className="font-semibold text-white">{currentPlan}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
                 <span className="text-gray-400">Role</span>
                 <span className="font-semibold text-white">{role}</span>
               </div>
@@ -147,35 +121,13 @@ const DashboardShell = ({
 
         <section className="min-w-0 lg:h-full lg:overflow-y-auto lg:pr-2">
           <div className="dashboard-hero rounded-[1.75rem] p-6 md:p-8 mb-8">
-            <div className="flex flex-wrap items-start justify-between gap-5">
-              <div>
-                <div className={`dashboard-metric-chip ${accentClass}`}>
-                  <span className={`inline-block h-2.5 w-2.5 rounded-full ${theme === 'dark' ? 'bg-violet-300' : 'bg-indigo-600'}`} />
-                  Report-style workspace
-                </div>
-                <h1 className="mt-4 text-3xl md:text-4xl font-bold text-white">{title}</h1>
-                <p className="text-gray-300 mt-3 max-w-2xl leading-7">{subtitle}</p>
+            <div>
+              <div className={`dashboard-metric-chip ${accentClass}`}>
+                <span className={`inline-block h-2.5 w-2.5 rounded-full ${theme === 'dark' ? 'bg-violet-300' : 'bg-indigo-600'}`} />
+                Report-style workspace
               </div>
-
-              <div className="dashboard-panel rounded-[1.5rem] p-4 flex flex-col items-end">
-                <span className={`mb-3 inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold ${accentClass}`}>
-                  Current Plan: {currentPlan}
-                </span>
-                <div className="group relative rounded-full border border-white/20">
-                  {avatarSrc ? (
-                    <img
-                      src={avatarSrc}
-                      alt={`${user?.fullName || 'User'} profile`}
-                      className="w-14 h-14 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-white font-semibold">
-                      {initials}
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs text-gray-400 mt-2">Edit profile in the Profile menu.</p>
-              </div>
+              <h1 className="mt-4 text-3xl md:text-4xl font-bold text-white">{title}</h1>
+              <p className="text-gray-300 mt-3 max-w-2xl leading-7">{subtitle}</p>
             </div>
           </div>
           {children}

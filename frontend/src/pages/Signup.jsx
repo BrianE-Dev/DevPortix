@@ -1,12 +1,13 @@
 // src/pages/Signup.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Github } from 'lucide-react';
+import { Github, Lock, Mail, User } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import { ROLES } from '../utils/constants';
 import { authApi } from '../services/authApi';
 import BrandLogo from '../components/BrandLogo';
+import AuthShowcase from '../components/AuthShowcase';
 
 const Signup = () => {
   const OTP_RESEND_COOLDOWN_SECONDS = 60;
@@ -17,7 +18,7 @@ const Signup = () => {
     confirmPassword: '',
     otp: '',
     githubUsername: '',
-    role: ''
+    role: '',
   });
   const [error, setError] = useState('');
   const [otpMessage, setOtpMessage] = useState('');
@@ -30,23 +31,24 @@ const Signup = () => {
   const navigate = useNavigate();
 
   const isDark = theme === 'dark';
-  const labelClass = isDark ? 'text-gray-300' : 'text-slate-700';
-  const iconClass = isDark ? 'text-gray-400' : 'text-slate-400';
-  const inputClass = `block w-full rounded-lg focus:ring-blue-500 focus:border-blue-500 ${
+  const labelClass = isDark ? 'text-slate-300' : 'text-slate-700';
+  const iconClass = isDark ? 'text-slate-400' : 'text-slate-400';
+  const inputClass = `block w-full rounded-2xl border py-3.5 pl-11 pr-4 text-sm transition focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/10 ${
     isDark
-      ? 'bg-gray-900 border border-gray-700 text-white placeholder-gray-400'
-      : 'bg-white border border-slate-300 text-slate-900 placeholder-slate-500'
+      ? 'bg-slate-950/80 border-slate-700 text-white placeholder-slate-500'
+      : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
   }`;
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const handleChange = (event) => {
+    const { name, value } = event.target;
     if (name === 'email') {
       setOtpMessage('');
     }
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+
+    setFormData((current) => ({
+      ...current,
+      [name]: value,
+    }));
   };
 
   React.useEffect(() => {
@@ -88,8 +90,8 @@ const Signup = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError('');
     setLoading(true);
 
@@ -124,219 +126,236 @@ const Signup = () => {
       });
       navigate('/dashboard');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Unable to create account');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center space-x-2">
-            <BrandLogo className="h-12 w-auto max-w-[12rem]" alt="DevPortix logo" />
-          </Link>
-          <h2 className={`mt-6 text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Create your account</h2>
-          <p className={`mt-2 ${isDark ? 'text-gray-400' : 'text-slate-600'}`}>Start building your portfolio today</p>
-        </div>
+    <div className={`min-h-screen px-4 py-8 sm:px-6 lg:px-8 ${isDark ? 'bg-[linear-gradient(145deg,#020617_0%,#0f172a_38%,#1e1b4b_100%)]' : 'bg-[linear-gradient(145deg,#eff6ff_0%,#e0f2fe_44%,#ede9fe_100%)]'}`}>
+      <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1.02fr_0.98fr] lg:items-stretch">
+        <AuthShowcase mode="signup" isDark={isDark} />
 
-        <div className={`backdrop-blur-sm rounded-xl p-8 border ${
-          isDark ? 'bg-white/5 border-white/10' : 'bg-white/90 border-slate-200 shadow-lg shadow-slate-200/40'
+        <section className={`auth-form-preserve relative overflow-hidden rounded-[2rem] border p-6 sm:p-8 lg:p-10 ${
+          isDark
+            ? 'border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(2,6,23,0.92))] shadow-[0_28px_80px_rgba(2,6,23,0.45)]'
+            : 'border-white/70 bg-white/88 shadow-[0_28px_80px_rgba(148,163,184,0.26)]'
         }`}>
-          {error && (
-            <div className="p-3 mb-4 text-sm text-red-700 bg-red-100 rounded-lg dark:text-red-400 dark:bg-red-900/20">
-              {error}
-            </div>
-          )}
+          <div className={`absolute inset-x-0 top-0 h-28 ${isDark ? 'bg-[radial-gradient(circle_at_top,rgba(139,92,246,0.2),transparent_65%)]' : 'bg-[radial-gradient(circle_at_top,rgba(125,211,252,0.18),transparent_65%)]'}`} />
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div>
-              <label className={`block text-sm font-medium ${labelClass}`}>Full Name</label>
-              <div className="relative mt-1">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <User className={`w-5 h-5 ${iconClass}`} />
-                </div>
-                <input
-                  type="text"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleChange}
-                  className={`${inputClass} pl-10 pr-3 py-3`}
-                  placeholder="John Doe"
-                />
-              </div>
+          <div className="relative">
+            <div className="animate-in slide-in-from-top duration-700">
+              <Link to="/" className="inline-flex items-center">
+                <BrandLogo className="h-11 w-auto max-w-[11rem]" alt="DevPortix logo" />
+              </Link>
             </div>
 
-            <div>
-              <label className={`block text-sm font-medium ${labelClass}`}>Email</label>
-              <div className="relative mt-1">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <Mail className={`w-5 h-5 ${iconClass}`} />
-                </div>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`${inputClass} pl-10 pr-3 py-3`}
-                  placeholder="you@example.com"
-                  required
-                />
+            <div className="mt-8 animate-in slide-in-from-bottom duration-700 delay-100">
+              <p className={`text-sm font-semibold uppercase tracking-[0.24em] ${isDark ? 'text-sky-300' : 'text-sky-700'}`}>Create Account</p>
+              <h1 className={`mt-3 text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Start your DevPortix workspace</h1>
+              <p className={`mt-3 text-sm leading-7 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                Verify your email, choose your role, and begin building a portfolio story that feels structured from day one.
+              </p>
+            </div>
+
+            {error ? (
+              <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-in slide-in-from-bottom duration-500">
+                {error}
               </div>
-              <div className="mt-3 flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleRequestOtp}
-                  disabled={otpLoading || otpCooldown > 0}
-                  className="rounded-lg border border-blue-500 px-4 py-2 text-sm font-medium text-blue-500 transition hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed dark:hover:bg-blue-950/40"
-                >
-                  {otpLoading ? 'Sending OTP...' : otpCooldown > 0 ? `Resend in ${otpCooldown}s` : 'Send OTP'}
-                </button>
-                {otpMessage ? (
-                  <span className={`text-xs ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
-                    {otpMessage}
+            ) : null}
+
+            <form className="mt-6 space-y-5 animate-in slide-in-from-bottom duration-700 delay-300" onSubmit={handleSubmit}>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label className={`block text-sm font-medium ${labelClass}`}>Full Name</label>
+                  <div className="relative mt-2">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                      <User className={`h-5 w-5 ${iconClass}`} />
+                    </div>
+                    <input
+                      type="text"
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleChange}
+                      className={inputClass}
+                      placeholder="John Doe"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium ${labelClass}`}>Role</label>
+                  <div className="relative mt-2">
+                    <select
+                      name="role"
+                      value={formData.role}
+                      onChange={handleChange}
+                      className={`block w-full rounded-2xl border px-4 py-3.5 text-sm transition focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/10 ${
+                        isDark
+                          ? 'bg-slate-950/80 border-slate-700 text-white'
+                          : 'bg-white border-slate-200 text-slate-900'
+                      }`}
+                      required
+                    >
+                      <option value="">Select role</option>
+                      <option value={ROLES.STUDENT}>Student</option>
+                      <option value={ROLES.INSTRUCTOR}>Instructor / Mentor</option>
+                      <option value={ROLES.ORGANIZATION}>Organization</option>
+                      <option value={ROLES.PROFESSIONAL}>Professional</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${labelClass}`}>Email</label>
+                <div className="relative mt-2">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                    <Mail className={`h-5 w-5 ${iconClass}`} />
+                  </div>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={inputClass}
+                    placeholder="you@example.com"
+                    required
+                  />
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleRequestOtp}
+                    disabled={otpLoading || otpCooldown > 0}
+                    className="rounded-full border border-sky-500/40 bg-sky-500/10 px-4 py-2 text-sm font-medium text-sky-600 transition hover:bg-sky-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {otpLoading ? 'Sending OTP...' : otpCooldown > 0 ? `Resend in ${otpCooldown}s` : 'Send OTP'}
+                  </button>
+                  {otpMessage ? (
+                    <span className={`text-xs ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>{otpMessage}</span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label className={`block text-sm font-medium ${labelClass}`}>Email OTP</label>
+                  <div className="relative mt-2">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                      <Mail className={`h-5 w-5 ${iconClass}`} />
+                    </div>
+                    <input
+                      type="text"
+                      name="otp"
+                      value={formData.otp}
+                      onChange={handleChange}
+                      className={`${inputClass} tracking-[0.28em]`}
+                      placeholder="123456"
+                      inputMode="numeric"
+                      maxLength={6}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium ${labelClass}`}>GitHub Username</label>
+                  <div className="relative mt-2">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                      <Github className={`h-5 w-5 ${iconClass}`} />
+                    </div>
+                    <input
+                      type="text"
+                      name="githubUsername"
+                      value={formData.githubUsername}
+                      onChange={handleChange}
+                      className={inputClass}
+                      placeholder="yourusername"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label className={`block text-sm font-medium ${labelClass}`}>Password</label>
+                  <div className="relative mt-2">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                      <Lock className={`h-5 w-5 ${iconClass}`} />
+                    </div>
+                    <input
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className={inputClass}
+                      placeholder="At least 8 characters"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium ${labelClass}`}>Confirm Password</label>
+                  <div className="relative mt-2">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                      <Lock className={`h-5 w-5 ${iconClass}`} />
+                    </div>
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className={inputClass}
+                      placeholder="Repeat password"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className={`rounded-[1.5rem] border p-4 ${isDark ? 'border-white/10 bg-white/5' : 'border-sky-100 bg-sky-50/80'}`}>
+                <label className={`flex items-start gap-3 text-sm leading-7 ${labelClass}`}>
+                  <input
+                    id="terms"
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(event) => setTermsAccepted(event.target.checked)}
+                    className={`mt-1 h-4 w-4 rounded border ${isDark ? 'border-slate-700 bg-slate-950' : 'border-slate-300 bg-white'}`}
+                  />
+                  <span>
+                    I agree to the{' '}
+                    <a href="#" className="font-medium text-sky-600 transition hover:text-sky-500">
+                      Terms of Service
+                    </a>{' '}
+                    and{' '}
+                    <a href="#" className="font-medium text-sky-600 transition hover:text-sky-500">
+                      Privacy Policy
+                    </a>
+                    .
                   </span>
-                ) : null}
+                </label>
               </div>
-            </div>
 
-            <div>
-              <label className={`block text-sm font-medium ${labelClass}`}>Email OTP</label>
-              <div className="relative mt-1">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <Mail className={`w-5 h-5 ${iconClass}`} />
-                </div>
-                <input
-                  type="text"
-                  name="otp"
-                  value={formData.otp}
-                  onChange={handleChange}
-                  className={`${inputClass} pl-10 pr-3 py-3 tracking-[0.3em]`}
-                  placeholder="123456"
-                  inputMode="numeric"
-                  maxLength={6}
-                  required
-                />
-              </div>
-              <p className={`mt-1 text-xs ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
-                Enter the code sent to your email before creating your account.
-              </p>
-            </div>
+              <button
+                type="submit"
+                disabled={loading || otpLoading}
+                className="w-full rounded-2xl bg-gradient-to-r from-blue-600 via-sky-500 to-violet-600 px-5 py-3.5 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(59,130,246,0.28)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </button>
+            </form>
 
-            <div>
-              <label className={`block text-sm font-medium ${labelClass}`}>Password</label>
-              <div className="relative mt-1">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <Lock className={`w-5 h-5 ${iconClass}`} />
-                </div>
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`${inputClass} pl-10 pr-3 py-3`}
-                  placeholder="********"
-                  required
-                />
-              </div>
-              <p className={`mt-1 text-xs ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
-                Must be at least 8 characters long
-              </p>
-            </div>
-
-            <div>
-              <label className={`block text-sm font-medium ${labelClass}`}>Confirm Password</label>
-              <div className="relative mt-1">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <Lock className={`w-5 h-5 ${iconClass}`} />
-                </div>
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className={`${inputClass} pl-10 pr-3 py-3`}
-                  placeholder="********"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className={`block text-sm font-medium ${labelClass}`}>Role</label>
-              <div className="relative mt-1">
-                <select
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  className={`${inputClass} px-3 py-3`}
-                  required
-                >
-                  <option value="">Select your role</option>
-                  <option value={ROLES.STUDENT}>Student</option>
-                  <option value={ROLES.INSTRUCTOR}>Instructor / Mentor</option>
-                  <option value={ROLES.ORGANIZATION}>Organization</option>
-                  <option value={ROLES.PROFESSIONAL}>Professional</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className={`block text-sm font-medium ${labelClass}`}>GitHub Username (Optional)</label>
-              <div className="relative mt-1">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <Github className={`w-5 h-5 ${iconClass}`} />
-                </div>
-                <input
-                  type="text"
-                  name="githubUsername"
-                  value={formData.githubUsername}
-                  onChange={handleChange}
-                  className={`${inputClass} pl-10 pr-3 py-3`}
-                  placeholder="yourusername"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center">
-              <input
-                id="terms"
-                type="checkbox"
-                checked={termsAccepted}
-                onChange={(e) => setTermsAccepted(e.target.checked)}
-                className={`h-4 w-4 text-blue-600 focus:ring-blue-500 rounded ${
-                  isDark ? 'border-gray-700 bg-gray-900' : 'border-slate-300 bg-white'
-                }`}
-              />
-              <label htmlFor="terms" className={`ml-2 block text-sm ${labelClass}`}>
-                I agree to the{' '}
-                <a href="#" className="text-blue-500 hover:text-blue-400">
-                  Terms of Service
-                </a>{' '}
-                and{' '}
-                <a href="#" className="text-blue-500 hover:text-blue-400">
-                  Privacy Policy
-                </a>
-              </label>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || otpLoading}
-              className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Creating Account...' : 'Create Account'}
-            </button>
-          </form>
-
-          <p className={`mt-6 text-center ${isDark ? 'text-gray-400' : 'text-slate-600'}`}>
-            Already have an account?{' '}
-            <Link to="/login" className="text-blue-500 hover:text-blue-400">
-              Sign in
-            </Link>
-          </p>
-        </div>
+            <p className={`mt-8 text-center text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+              Already have an account?{' '}
+              <Link to="/login" className="font-semibold text-sky-600 transition hover:text-sky-500">
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </section>
       </div>
     </div>
   );

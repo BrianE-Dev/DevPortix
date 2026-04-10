@@ -1,6 +1,6 @@
 ﻿// src/App.jsx
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import { ModalProvider } from './context/ModalContext.jsx';
@@ -35,14 +35,17 @@ const DashboardRedirect = () => {
 
 const AppContent = () => {
   const { theme } = useTheme();
+  const location = useLocation();
   const appThemeClass =
     theme === 'dark'
       ? 'min-h-screen bg-gray-950 text-gray-100 transition-colors duration-300 theme-dark'
       : 'min-h-screen bg-blue-100 text-gray-900 transition-colors duration-300 theme-light';
+  const isDashboardRoute = ['/dashboard', '/role-select', '/student', '/instructor', '/professional', '/admin']
+    .some((path) => location.pathname === path || location.pathname.startsWith(`${path}/`));
 
   return (
     <>
-      <Navbar />
+      {!isDashboardRoute && <Navbar />}
     
     <div className={appThemeClass}>
       
@@ -97,7 +100,7 @@ const AppContent = () => {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>
-      <Footer />
+      {!isDashboardRoute && <Footer />}
     </div>
     </>
   );

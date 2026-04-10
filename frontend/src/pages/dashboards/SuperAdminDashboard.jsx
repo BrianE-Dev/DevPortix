@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { BarChart3, ShieldCheck, Users } from 'lucide-react';
+import { BarChart3, Settings, ShieldCheck, UserCircle, Users } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { ROLES } from '../../utils/constants';
 import DashboardShell from '../../components/DashboardShell';
 import LocalStorageService from '../../services/localStorageService';
 import { adminApi } from '../../services/adminApi';
 import { getDashboardAccent } from '../../utils/dashboardAccent';
+import ProfileSettingsPanel from '../../components/ProfileSettingsPanel';
+import SettingsPanel from '../../components/SettingsPanel';
 
 const ROLE_OPTIONS = [ROLES.STUDENT, ROLES.INSTRUCTOR, ROLES.ORGANIZATION, ROLES.PROFESSIONAL, ROLES.SUPER_ADMIN];
 
@@ -26,7 +28,7 @@ const roleLabel = (role) =>
     .join(' ');
 
 const SuperAdminDashboard = () => {
-  const { loading, isAuthenticated, user, getDashboardPath } = useAuth();
+  const { loading, isAuthenticated, user, getDashboardPath, updateProfile } = useAuth();
   const [users, setUsers] = useState([]);
   const [error, setError] = useState('');
   const [busyUserId, setBusyUserId] = useState('');
@@ -39,8 +41,10 @@ const SuperAdminDashboard = () => {
   const menuItems = useMemo(
     () => [
       { key: 'overview', label: 'Overview', icon: BarChart3, badge: 'Insights' },
+      { key: 'profile', label: 'Profile', icon: UserCircle, badge: 'Account' },
       { key: 'users', label: 'Users', icon: Users, badge: 'Manage' },
       { key: 'roles', label: 'Roles', icon: ShieldCheck, badge: 'Control' },
+      { key: 'settings', label: 'Settings', icon: Settings, badge: 'Workspace', position: 'bottom' },
     ],
     []
   );
@@ -124,6 +128,28 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const handleMenuSelect = async (key) => {
+    setActiveMenuKey(key);
+    try {
+      await updateProfile({
+        dashboardMenu: {
+          ...(user?.dashboardMenu || {}),
+          super_admin: key,
+        },
+      });
+    } catch {
+      // Keep the current UI selection even if persistence fails
+    }
+  };
+
+  useEffect(() => {
+    const savedMenuKey = user?.dashboardMenu?.super_admin;
+    const validMenuKeys = menuItems.map((item) => item.key);
+    if (savedMenuKey && validMenuKeys.includes(savedMenuKey)) {
+      setActiveMenuKey((currentKey) => (currentKey === savedMenuKey ? currentKey : savedMenuKey));
+    }
+  }, [menuItems, user?.dashboardMenu?.super_admin]);
+
   if (loading) return null;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (user?.role !== ROLES.SUPER_ADMIN) return <Navigate to={getDashboardPath()} replace />;
@@ -137,10 +163,18 @@ const SuperAdminDashboard = () => {
       activeTabClass={activeAccent.primaryButtonClass}
       menuItems={menuItems}
       activeMenuKey={activeMenuKey}
-      onMenuSelect={setActiveMenuKey}
+      onMenuSelect={handleMenuSelect}
     >
       <div className="space-y-6">
         {error && <p className="text-sm text-red-300">{error}</p>}
+
+        {activeMenuKey === 'profile' ? (
+          <ProfileSettingsPanel accent={activeAccent} />
+        ) : null}
+
+        {activeMenuKey === 'settings' ? (
+          <SettingsPanel accent={activeAccent} onOpenProfile={() => handleMenuSelect('profile')} />
+        ) : null}
 
         {activeMenuKey === 'overview' ? (
           <>
