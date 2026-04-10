@@ -221,6 +221,21 @@ const Pricing = () => {
             (() => {
               const isCurrentPlan = plan.id === resolvedPlan;
               const isPopular = plan.popular;
+              const glassSurfaceClass = isDark
+                ? plan.id === 'basic'
+                  ? 'bg-[linear-gradient(180deg,rgba(76,29,149,0.24),rgba(15,23,42,0.92)),radial-gradient(circle_at_top_left,rgba(196,181,253,0.16),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(129,140,248,0.12),transparent_38%)]'
+                  : plan.id === 'standard'
+                    ? 'bg-[linear-gradient(180deg,rgba(8,47,73,0.24),rgba(15,23,42,0.92)),radial-gradient(circle_at_top_left,rgba(103,232,249,0.14),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.12),transparent_38%)]'
+                    : plan.id === 'premium'
+                      ? 'bg-[linear-gradient(180deg,rgba(120,53,15,0.24),rgba(15,23,42,0.92)),radial-gradient(circle_at_top_left,rgba(253,186,116,0.14),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(251,191,36,0.12),transparent_38%)]'
+                      : 'bg-[linear-gradient(180deg,rgba(30,41,59,0.78),rgba(15,23,42,0.92)),radial-gradient(circle_at_top_left,rgba(148,163,184,0.16),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.12),transparent_38%)]'
+                : plan.id === 'basic'
+                  ? 'bg-[linear-gradient(180deg,rgba(245,243,255,0.92),rgba(233,213,255,0.62)),radial-gradient(circle_at_top_left,rgba(255,255,255,0.4),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(196,181,253,0.2),transparent_38%)]'
+                  : plan.id === 'standard'
+                    ? 'bg-[linear-gradient(180deg,rgba(236,254,255,0.92),rgba(186,230,253,0.58)),radial-gradient(circle_at_top_left,rgba(255,255,255,0.42),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(103,232,249,0.2),transparent_38%)]'
+                    : plan.id === 'premium'
+                      ? 'bg-[linear-gradient(180deg,rgba(255,247,237,0.92),rgba(254,215,170,0.56)),radial-gradient(circle_at_top_left,rgba(255,255,255,0.42),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(251,191,36,0.18),transparent_38%)]'
+                      : 'bg-[linear-gradient(180deg,rgba(239,246,255,0.94),rgba(191,219,254,0.56)),radial-gradient(circle_at_top_left,rgba(255,255,255,0.42),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(125,211,252,0.18),transparent_38%)]';
               const cardAccentClass = plan.id === 'basic'
                 ? isDark
                   ? 'border-violet-400/35 shadow-[0_18px_55px_rgba(139,92,246,0.18)]'
@@ -244,10 +259,12 @@ const Pricing = () => {
                     ? isDark
                       ? 'text-cyan-400'
                       : 'text-cyan-700'
-                    : 'text-orange-400';
-              const bodyTextClass = isDark || plan.id === 'premium' || plan.id === 'free' ? 'text-slate-300' : 'text-slate-600';
-              const featureTextClass = isDark || plan.id === 'premium' || plan.id === 'free' ? 'text-slate-200' : 'text-slate-700';
-              const priceClass = isDark || plan.id === 'premium' || plan.id === 'free' ? 'text-white' : 'text-slate-900';
+                    : isDark
+                      ? 'text-orange-400'
+                      : 'text-orange-500';
+              const bodyTextClass = isDark ? 'text-slate-300' : 'text-slate-700';
+              const featureTextClass = isDark ? 'text-slate-200' : 'text-slate-800';
+              const priceClass = isDark ? 'text-white' : 'text-slate-900';
               const buttonClass = isPopular
                 ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-[0_14px_30px_rgba(139,92,246,0.35)] hover:opacity-95'
                 : plan.id === 'standard'
@@ -264,10 +281,10 @@ const Pricing = () => {
               return (
             <div
               key={plan.id}
-              className={`landing-glass-blue-card relative mx-auto w-full max-w-md rounded-[22px] p-7 ${cardAccentClass}`}
+              className={`relative mx-auto w-full max-w-md overflow-visible rounded-[22px] border p-7 backdrop-blur-[22px] ${glassSurfaceClass} ${isPopular ? 'pt-12' : ''} ${cardAccentClass}`}
             >
               {isPopular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 transform">
+                <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 transform">
                   <div className="flex items-center rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_12px_26px_rgba(139,92,246,0.32)]">
                     <Sparkles className="w-4 h-4 mr-2" />
                     Most Popular
