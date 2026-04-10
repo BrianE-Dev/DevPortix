@@ -1,5 +1,6 @@
 import React from 'react';
 import { Activity, BarChart3, Users, Zap } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 
 const ANALYTICS_CARDS = [
   {
@@ -49,15 +50,21 @@ const ANALYTICS_CARDS = [
 ];
 
 const Projects = () => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const sectionClass = isDark
+    ? 'bg-slate-950'
+    : 'bg-[linear-gradient(180deg,#e0f2fe_0%,#dbeafe_42%,#e9d5ff_100%)]';
+
   return (
-    <section id="projects" className="bg-slate-950 px-4 py-24 sm:px-6 lg:px-8">
+    <section id="projects" className={`${sectionClass} px-4 py-24 sm:px-6 lg:px-8`}>
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+          <span className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
             Live Metrics
           </span>
-          <h2 className="mt-4 text-4xl font-bold text-white sm:text-5xl">Platform Analytics</h2>
-          <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
+          <h2 className={`mt-4 text-4xl font-bold sm:text-5xl ${isDark ? 'text-white' : 'text-slate-950'}`}>Platform Analytics</h2>
+          <p className={`mx-auto mt-5 max-w-2xl text-sm leading-7 sm:text-base ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
             Real-time growth and engagement metrics across the DEVPORTIX ecosystem.
           </p>
         </div>
@@ -68,19 +75,19 @@ const Projects = () => {
             return (
               <article
                 key={card.id}
-                className="landing-breathe-card rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(15,23,42,0.88),rgba(15,23,42,0.74))] p-7 shadow-[0_22px_60px_rgba(2,6,23,0.28)] transition duration-300 hover:-translate-y-1 hover:border-white/15"
+                className="landing-glass-blue-card rounded-[28px] p-7"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="text-[15px] font-semibold text-white">{card.label}</h3>
-                    <div className="mt-6 text-4xl font-bold tracking-tight text-white">{card.value}</div>
+                    <h3 className={`text-[15px] font-semibold ${isDark ? 'text-white' : 'text-slate-950'}`}>{card.label}</h3>
+                    <div className={`mt-6 text-4xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-950'}`}>{card.value}</div>
                     <p className={`mt-3 text-sm font-medium ${card.trendAccent}`}>{card.trend}</p>
                   </div>
                   <div className={`rounded-2xl p-4 ${card.iconSurface} ${card.accent}`}>
                     <Icon className="h-5 w-5" />
                   </div>
                 </div>
-                <p className="mt-8 max-w-[18rem] text-base leading-8 text-slate-300">{card.description}</p>
+                <p className={`mt-8 max-w-[18rem] text-base leading-8 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{card.description}</p>
               </article>
             );
           })}

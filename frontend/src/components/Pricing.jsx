@@ -184,9 +184,12 @@ const Pricing = () => {
     ? paymentFeedbackConfig[paymentFeedback.tone]
     : null;
   const PaymentFeedbackIcon = activePaymentFeedback?.icon || null;
+  const sectionClass = isDark
+    ? 'bg-slate-950'
+    : 'bg-[linear-gradient(180deg,#e0f2fe_0%,#dbeafe_40%,#e9d5ff_100%)]';
 
   return (
-    <section id="pricing" className="bg-slate-950 py-20 px-4 sm:px-6 lg:px-8">
+    <section id="pricing" className={`${sectionClass} py-20 px-4 sm:px-6 lg:px-8`}>
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">

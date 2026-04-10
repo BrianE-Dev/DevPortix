@@ -1,5 +1,6 @@
 import React from 'react';
-import { Code, Layout, Shield, Users, Zap } from 'lucide-react';
+import { Code, GitBranch, Layout, Shield, Users, Zap } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 
 const FEATURES = [
   {
@@ -52,62 +53,69 @@ const FEATURES = [
     glow: 'from-blue-500/16 via-transparent to-transparent',
     layout: 'default',
   },
+  {
+    icon: GitBranch,
+    title: 'GitHub-Ready Proof',
+    eyebrow: 'Portfolio Signal',
+    description: 'Connect live repos and project evidence so your portfolio shows work, not just claims.',
+    accent: 'text-sky-300',
+    iconSurface: 'bg-sky-500/10',
+    glow: 'from-sky-500/16 via-transparent to-transparent',
+    layout: 'default',
+  },
 ];
 
 const Features = () => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const sectionClass = isDark
+    ? 'bg-slate-950'
+    : 'bg-[linear-gradient(180deg,#e0f2fe_0%,#dbeafe_38%,#e9d5ff_100%)]';
+
   return (
-    <section id="features" className="bg-slate-950 px-4 py-24 sm:px-6 lg:px-8">
+    <section id="features" className={`${sectionClass} px-4 py-24 sm:px-6 lg:px-8`}>
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+          <span className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
             Product Highlights
           </span>
-          <h2 className="mt-4 text-4xl font-bold text-white sm:text-5xl">Powerful Features for Developers</h2>
-          <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
+          <h2 className={`mt-4 text-4xl font-bold sm:text-5xl ${isDark ? 'text-white' : 'text-slate-950'}`}>Powerful Features for Developers</h2>
+          <p className={`mx-auto mt-5 max-w-2xl text-sm leading-7 sm:text-base ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
             Everything you need to showcase your skills and grow your career with our developer-centric toolkit.
           </p>
         </div>
 
-        <div className="mt-16 grid gap-6 sm:mt-18 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="mt-16 grid gap-6 sm:mt-18 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((feature) => {
             const Icon = feature.icon;
-            const isFeatured = feature.layout === 'featured';
-            const isCompact = feature.layout === 'compact';
-            const cardSizeClass = isFeatured
-              ? 'xl:col-span-2 xl:row-span-2'
-              : isCompact
-                ? 'xl:min-h-[300px]'
-                : 'xl:min-h-[340px]';
 
             return (
               <article
                 key={feature.title}
-                className={`landing-breathe-card group relative overflow-hidden rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(15,23,42,0.92),rgba(15,23,42,0.72))] p-8 shadow-[0_22px_60px_rgba(2,6,23,0.3)] transition duration-300 hover:-translate-y-1 hover:border-white/15 ${cardSizeClass}`}
+                className="landing-glass-blue-card group relative rounded-[28px] p-8"
               >
                 <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${feature.glow} opacity-80 transition duration-300 group-hover:opacity-100`} />
-                <div className={`relative flex flex-col ${isFeatured ? 'min-h-[420px] justify-between' : isCompact ? 'min-h-[260px]' : 'min-h-[320px]'}`}>
+                <div className="relative flex min-h-[280px] flex-col justify-between lg:min-h-[320px]">
                   <div className="flex items-start justify-between gap-4">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    <span className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isDark ? 'text-slate-200' : 'text-slate-600'}`}>
                       {feature.eyebrow}
                     </span>
                     <div className={`rounded-2xl ${feature.iconSurface} p-4 ${feature.accent}`}>
                       <Icon className="h-5 w-5" />
                     </div>
                   </div>
-                  <div className={isFeatured ? 'mt-14' : 'mt-10'}>
-                    <h3 className={`font-semibold leading-tight text-white ${isFeatured ? 'max-w-[16rem] text-[2.1rem]' : 'max-w-[12rem] text-[1.75rem]'}`}>
+                  <div className="mt-10">
+                    <h3 className={`max-w-[14rem] font-semibold leading-tight ${isDark ? 'text-white' : 'text-slate-950'} text-[1.75rem]`}>
                       {feature.title}
                     </h3>
-                    <p className={`mt-5 text-slate-300 ${isFeatured ? 'max-w-[24rem] text-lg leading-8' : 'max-w-[15rem] text-base leading-8'}`}>
+                    <p className={`mt-5 max-w-[18rem] text-base leading-8 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
                       {feature.description}
                     </p>
                   </div>
-                  {isFeatured && (
-                    <div className="mt-10 flex items-center gap-3 text-sm text-slate-400">
-                      <span className="inline-flex h-2.5 w-2.5 rounded-full bg-violet-300" />
-                      Built to make technical work feel polished from the first interaction.
-                    </div>
-                  )}
+                  <div className={`mt-10 flex items-center gap-3 text-sm ${isDark ? 'text-slate-200' : 'text-slate-600'}`}>
+                    <span className="inline-flex h-2.5 w-2.5 rounded-full bg-sky-300" />
+                    Built to make technical work feel polished from the first interaction.
+                  </div>
                 </div>
               </article>
             );

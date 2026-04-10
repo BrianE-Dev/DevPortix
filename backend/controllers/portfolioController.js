@@ -1,6 +1,8 @@
 const Portfolio = require('../modules/portfolio');
+const PortfolioScore = require('../modules/portfolioScore');
 const User = require('../modules/userSchema');
 const { MentorshipAssignment } = require('../modules/mentorship');
+const { getPortfolioScore, refreshPortfolioScore } = require('../services/portfolioScoring');
 
 const ALLOWED_ACCENTS = ['blue', 'emerald', 'rose', 'amber', 'violet'];
 const ACCENT_DEBUG = String(process.env.DEBUG_ACCENT || '').trim() === '1';
@@ -92,7 +94,7 @@ const buildGrowthRecords = async (ownerId, { publicView = false } = {}) => {
   };
 };
 
-const toPortfolioPayload = (doc, fallbackSkills = [], fallbackOwner = {}, growthData = {}) => {
+const toPortfolioPayload = (doc, fallbackSkills = [], fallbackOwner = {}, growthData = {}, portfolioScore = null) => {
   const owner = doc?.ownerId && typeof doc.ownerId === 'object' ? doc.ownerId : null;
   const ownerId = owner?._id || doc.ownerId;
   const ownerSkills = Array.isArray(owner?.skills) ? owner.skills : fallbackSkills;
@@ -122,6 +124,7 @@ const toPortfolioPayload = (doc, fallbackSkills = [], fallbackOwner = {}, growth
     codeSnippets: doc.codeSnippets || [],
     growthRecords: Array.isArray(growthData.growthRecords) ? growthData.growthRecords : [],
     growthSummary: growthData.growthSummary || buildGrowthSummary([]),
+    portfolioScore: portfolioScore || null,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
@@ -149,10 +152,11 @@ const getMyPortfolio = async (req, res) => {
       return res.status(404).json({ message: 'Portfolio not found' });
     }
     const growthData = await buildGrowthRecords(req.userId);
+    const portfolioScore = await getPortfolioScore(req.userId);
     if (ACCENT_DEBUG) {
       console.log(`[accent][get] owner=${req.userId} accent=${portfolio.accent}`);
     }
-    return res.status(200).json({ portfolio: toPortfolioPayload(portfolio, [], {}, growthData) });
+    return res.status(200).json({ portfolio: toPortfolioPayload(portfolio, [], {}, growthData, portfolioScore) });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to load portfolio', error: error.message });
   }
@@ -162,7 +166,9 @@ const createMyPortfolio = async (req, res) => {
   try {
     const existing = await Portfolio.findOne({ ownerId: req.userId }).populate('ownerId', 'skills avatar fullName');
     if (existing) {
-      return res.status(200).json({ portfolio: toPortfolioPayload(existing) });
+      const growthData = await buildGrowthRecords(req.userId);
+      const portfolioScore = await getPortfolioScore(req.userId);
+      return res.status(200).json({ portfolio: toPortfolioPayload(existing, [], {}, growthData, portfolioScore) });
     }
 
     const user = await User.findById(req.userId).lean();
@@ -203,13 +209,15 @@ const createMyPortfolio = async (req, res) => {
     });
 
     const growthData = await buildGrowthRecords(req.userId);
+    const portfolioScore = await refreshPortfolioScore(req.userId);
 
     return res.status(201).json({
       portfolio: toPortfolioPayload(
         portfolio,
         user?.skills || [],
         { avatar: user?.avatar || '', fullName: user?.fullName || '' },
-        growthData
+        growthData,
+        portfolioScore
       ),
     });
   } catch (error) {
@@ -322,7 +330,8 @@ const updateMyPortfolio = async (req, res) => {
     }
 
     const growthData = await buildGrowthRecords(req.userId);
-    return res.status(200).json({ portfolio: toPortfolioPayload(updatedPortfolio, [], {}, growthData) });
+    const portfolioScore = await refreshPortfolioScore(req.userId);
+    return res.status(200).json({ portfolio: toPortfolioPayload(updatedPortfolio, [], {}, growthData, portfolioScore) });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to update portfolio', error: error.message });
   }
@@ -340,10 +349,43 @@ const getPublicPortfolio = async (req, res) => {
     }
 
     const growthData = await buildGrowthRecords(portfolio.ownerId?._id || portfolio.ownerId, { publicView: true });
+    const portfolioScore = await getPortfolioScore(portfolio.ownerId?._id || portfolio.ownerId);
 
-    return res.status(200).json({ portfolio: toPortfolioPayload(portfolio, [], {}, growthData) });
+    return res.status(200).json({ portfolio: toPortfolioPayload(portfolio, [], {}, growthData, portfolioScore) });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to load public portfolio', error: error.message });
+  }
+};
+
+const getMyPortfolioScore = async (req, res) => {
+  try {
+    const portfolio = await Portfolio.findOne({ ownerId: req.userId }).select('_id').lean();
+    if (!portfolio) {
+      return res.status(404).json({ message: 'Portfolio not found' });
+    }
+
+    const portfolioScore = await getPortfolioScore(req.userId);
+    return res.status(200).json({ portfolioScore });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to load portfolio score', error: error.message });
+  }
+};
+
+const getPublicPortfolioScore = async (req, res) => {
+  try {
+    const slug = normalizeSlug(req.params.slug);
+    const portfolio = await Portfolio.findOne({
+      $or: [{ slug }, { username: req.params.slug }],
+    }).select('ownerId').lean();
+
+    if (!portfolio) {
+      return res.status(404).json({ message: 'Portfolio not found' });
+    }
+
+    const portfolioScore = await getPortfolioScore(portfolio.ownerId);
+    return res.status(200).json({ portfolioScore });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to load public portfolio score', error: error.message });
   }
 };
 
@@ -353,6 +395,7 @@ const deleteMyPortfolio = async (req, res) => {
     if (!deleted) {
       return res.status(404).json({ message: 'Portfolio not found' });
     }
+    await PortfolioScore.deleteOne({ ownerId: req.userId });
     return res.status(200).json({ message: 'Portfolio deleted successfully' });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to delete portfolio', error: error.message });
@@ -365,4 +408,6 @@ module.exports = {
   updateMyPortfolio,
   deleteMyPortfolio,
   getPublicPortfolio,
+  getMyPortfolioScore,
+  getPublicPortfolioScore,
 };

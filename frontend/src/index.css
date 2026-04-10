@@ -225,6 +225,38 @@
       0 24px 60px rgba(2, 6, 23, 0.34);
   }
 
+  .landing-glass-blue-card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(191, 219, 254, 0.42);
+    background:
+      linear-gradient(180deg, rgba(186, 230, 253, 0.26), rgba(129, 140, 248, 0.16)),
+      radial-gradient(circle at top left, rgba(255, 255, 255, 0.42), transparent 34%),
+      radial-gradient(circle at bottom right, rgba(125, 211, 252, 0.18), transparent 42%),
+      rgba(255, 255, 255, 0.1);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.32),
+      0 20px 55px rgba(56, 189, 248, 0.16);
+    backdrop-filter: blur(22px);
+    transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease, background 220ms ease;
+  }
+
+  .landing-glass-blue-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(140deg, rgba(255, 255, 255, 0.28), transparent 32%, transparent 72%, rgba(196, 181, 253, 0.2));
+    pointer-events: none;
+  }
+
+  .landing-glass-blue-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(224, 242, 254, 0.62);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.36),
+      0 24px 65px rgba(99, 102, 241, 0.18);
+  }
+
   /* Global card hover lift for the shared frosted card pattern */
   :is(div, section, article, li)[class*="bg-white/5"][class*="border-white/10"][class*="rounded-"] {
     @apply transition-transform duration-300;
@@ -247,6 +279,10 @@
     }
 
     .landing-breathe-card:hover {
+      transform: none;
+    }
+
+    .landing-glass-blue-card:hover {
       transform: none;
     }
   }

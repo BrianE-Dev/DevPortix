@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowRight, Clock3, Sparkles } from 'lucide-react';
 import LocalStorageService from '../services/localStorageService';
 import { communityApi } from '../services/communityApi';
 import { useModal } from '../hooks/useModal';
@@ -6,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import { ROLES } from '../utils/constants';
 import { resolveMediaUrl } from '../utils/api';
+import { DEVPORTIX_BLOG_TOPICS, DEVPORTIX_EDITORIAL_BLOGS } from '../data/communityEditorial';
 
 const formatDate = (value) => {
   if (!value) return '';
@@ -22,6 +24,7 @@ const formatDate = (value) => {
 };
 
 const blogSummary = (post) => {
+  if (post?.excerpt) return post.excerpt;
   const content = String(post?.content || '').trim();
   if (content.length <= 150) return content;
   return `${content.slice(0, 150).trim()}...`;
@@ -49,6 +52,9 @@ const CommunityPage = () => {
   const [commentDrafts, setCommentDrafts] = useState({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const editorialBlogs = useMemo(() => DEVPORTIX_EDITORIAL_BLOGS, []);
+  const savedTopics = useMemo(() => DEVPORTIX_BLOG_TOPICS, []);
 
   const syncPost = useCallback((postId, updater) => {
     const applyUpdate = (collection) =>
@@ -280,6 +286,42 @@ const CommunityPage = () => {
     });
   };
 
+  const mergedBlogPosts = useMemo(() => {
+    const apiBlogs = Array.isArray(posts) ? posts : [];
+    const apiTitles = new Set(apiBlogs.map((post) => String(post?.title || '').trim().toLowerCase()));
+    const editorialOnly = editorialBlogs.filter(
+      (post) => !apiTitles.has(String(post?.title || '').trim().toLowerCase())
+    );
+    return [...editorialOnly, ...apiBlogs];
+  }, [editorialBlogs, posts]);
+
+  const mergedRecentBlogs = useMemo(() => {
+    const combined = [...editorialBlogs, ...(recentBlogs || [])];
+    const seen = new Set();
+    return combined.filter((post) => {
+      const key = String(post?.title || post?.id || '').trim().toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 5);
+  }, [editorialBlogs, recentBlogs]);
+
+  const mergedMostLikedBlogs = useMemo(() => {
+    const combined = [...editorialBlogs, ...(mostLikedBlogs || [])];
+    const seen = new Set();
+    return combined
+      .filter((post) => {
+        const key = String(post?.title || post?.id || '').trim().toLowerCase();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => Number(b.likeCount || b.upvoteCount || 0) - Number(a.likeCount || a.upvoteCount || 0))
+      .slice(0, 5);
+  }, [editorialBlogs, mostLikedBlogs]);
+
+  const displayPosts = tab === 'blog' ? mergedBlogPosts : posts;
+
   return (
     <section className="mx-auto max-w-7xl px-4 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -441,23 +483,80 @@ const CommunityPage = () => {
 
             {loading ? <p className="text-sm text-slate-500">Loading...</p> : null}
 
-            {posts.map((post) => {
+            {displayPosts.map((post) => {
               const canManagePost = post.type === 'blog' ? isSuperAdmin : post.isOwner;
               const likeCount = Number(post.upvoteCount ?? post.likeCount ?? 0);
               const commentCount = Number(post.commentCount || 0);
               const isLiked = Boolean(post.isLiked || post.isUpvoted);
+              const isEditorial = Boolean(post.editorialMeta);
+              const coverImage = isEditorial
+                ? post.editorialMeta.heroImage
+                : post.media?.url
+                  ? resolveMediaUrl(post.media.url)
+                  : '';
+              const inlineImage = post.editorialMeta?.inlineImage;
 
               return (
-                <article key={post.id} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+                <article
+                  key={post.id}
+                  className={`overflow-hidden rounded-[2rem] border shadow-sm ${
+                    isEditorial
+                      ? isDark
+                        ? 'border-sky-400/20 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(15,23,42,0.88))]'
+                        : 'border-sky-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,246,255,0.94))]'
+                      : 'border-slate-200 bg-white'
+                  }`}
+                >
+                  {isEditorial ? (
+                    <div className="border-b border-inherit px-5 py-5 sm:px-7">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] ${isDark ? 'bg-sky-500/10 text-sky-300' : 'bg-sky-100 text-sky-700'}`}>
+                          <Sparkles className="h-3.5 w-3.5" />
+                          DevPortix Original
+                        </span>
+                        <span className={`rounded-full px-3 py-1 text-xs font-medium ${isDark ? 'bg-violet-500/10 text-violet-200' : 'bg-violet-100 text-violet-700'}`}>
+                          {post.editorialMeta.category}
+                        </span>
+                        <span className={`inline-flex items-center gap-2 text-xs font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                          <Clock3 className="h-3.5 w-3.5" />
+                          {post.editorialMeta.readingTime}
+                        </span>
+                      </div>
+                      <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_340px] lg:items-center">
+                        <div>
+                          <p className={`text-sm font-semibold ${isDark ? 'text-sky-300' : 'text-sky-700'}`}>{post.author?.fullName}</p>
+                          <h2 className={`mt-3 text-3xl font-bold leading-tight sm:text-4xl ${isDark ? 'text-white' : 'text-slate-900'}`}>{post.title}</h2>
+                          <p className={`mt-4 max-w-2xl text-base leading-8 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{post.excerpt}</p>
+                          <div className="mt-6 flex flex-wrap gap-2">
+                            {post.editorialMeta.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className={`rounded-full px-3 py-1 text-xs font-medium ${isDark ? 'bg-white/5 text-slate-200' : 'bg-slate-100 text-slate-700'}`}
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        {coverImage ? (
+                          <div className="overflow-hidden rounded-[1.75rem] border border-white/10">
+                            <img src={coverImage} alt={post.title} className="h-full min-h-[260px] w-full object-cover" />
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className={isEditorial ? 'px-5 py-6 sm:px-7 sm:py-7' : 'p-5'}>
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">{post.author?.fullName}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.24em] text-slate-400">
+                      <p className={`text-sm font-semibold ${isDark && isEditorial ? 'text-white' : 'text-slate-900'}`}>{post.author?.fullName}</p>
+                      <p className={`mt-1 text-xs uppercase tracking-[0.24em] ${isDark && isEditorial ? 'text-slate-400' : 'text-slate-400'}`}>
                         {post.type} {post.createdAt ? `| ${formatDate(post.createdAt)}` : ''}
                       </p>
-                      {post.title ? <h2 className="mt-3 text-2xl font-semibold text-slate-900">{post.title}</h2> : null}
+                      {post.title && !isEditorial ? <h2 className="mt-3 text-2xl font-semibold text-slate-900">{post.title}</h2> : null}
                     </div>
-                    {canManagePost ? (
+                    {canManagePost && !isEditorial ? (
                       <div className="flex gap-2">
                         <button
                           className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700"
@@ -475,9 +574,55 @@ const CommunityPage = () => {
                     ) : null}
                   </div>
 
-                  <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-700">{post.content}</p>
+                  {isEditorial ? (
+                    <div className="mt-6 space-y-8">
+                      <div className={`grid gap-4 rounded-[1.75rem] border p-5 sm:grid-cols-3 ${isDark ? 'border-white/10 bg-white/5' : 'border-sky-100 bg-sky-50/80'}`}>
+                        {post.editorialMeta.keyStats.map((item) => (
+                          <div key={item.label} className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+                            <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{item.label}</p>
+                            <p className={`mt-2 text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.value}</p>
+                          </div>
+                        ))}
+                      </div>
 
-                  {post.media?.url ? (
+                      {post.editorialMeta.sections.map((section, index) => (
+                        <div key={section.heading} className={index === 3 && inlineImage ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start' : ''}>
+                          <div>
+                            <h3 className={`text-2xl font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{section.heading}</h3>
+                            <div className="mt-4 space-y-4">
+                              {section.body.map((paragraph) => (
+                                <p key={paragraph} className={`text-sm leading-8 sm:text-[15px] ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                  {paragraph}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                          {index === 3 && inlineImage ? (
+                            <div className="overflow-hidden rounded-[1.5rem] border border-white/10">
+                              <img src={inlineImage} alt="Developer reviewing code on screen" className="h-full w-full object-cover" />
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+
+                      <div className={`rounded-[1.75rem] border p-6 ${isDark ? 'border-violet-400/20 bg-violet-500/10' : 'border-violet-200 bg-violet-50'}`}>
+                        <p className={`text-lg font-medium leading-8 ${isDark ? 'text-violet-100' : 'text-violet-900'}`}>"{post.editorialMeta.quote}"</p>
+                      </div>
+
+                      <div className={`rounded-[1.75rem] border p-6 ${isDark ? 'border-sky-400/20 bg-sky-500/10' : 'border-sky-200 bg-sky-50'}`}>
+                        <p className={`text-sm leading-8 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{post.editorialMeta.closing}</p>
+                        <div className={`mt-5 flex flex-wrap gap-3 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {post.editorialMeta.imageCredits.map((credit) => (
+                            <span key={credit}>{credit}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-700">{post.content}</p>
+                  )}
+
+                  {post.media?.url && !isEditorial ? (
                     <div className="mt-4">
                       {(post.media.mimeType || '').startsWith('image/') ? (
                         <img src={resolveMediaUrl(post.media.url)} alt="blog media" className="max-h-96 rounded-[1.5rem] object-cover" />
@@ -492,40 +637,57 @@ const CommunityPage = () => {
                   <div className="mt-5 flex flex-wrap items-center gap-4 border-t border-slate-100 pt-4">
                     <button
                       className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition ${
-                        isLiked ? 'border-red-200 bg-red-50 text-red-600' : 'border-slate-200 text-slate-600'
+                        isLiked
+                          ? 'border-red-200 bg-red-50 text-red-600'
+                          : isDark && isEditorial
+                            ? 'border-white/10 text-slate-300'
+                            : 'border-slate-200 text-slate-600'
                       }`}
-                      onClick={() => toggleLike(post.id)}
+                      onClick={() => {
+                        if (isEditorial) return;
+                        toggleLike(post.id);
+                      }}
+                      disabled={isEditorial}
                     >
-                      <span className={isLiked ? 'text-red-500' : 'text-slate-400'} aria-hidden="true">
+                      <span className={isLiked ? 'text-red-500' : isDark && isEditorial ? 'text-slate-500' : 'text-slate-400'} aria-hidden="true">
                         &#9829;
                       </span>
                       <span>{likeCount}</span>
                     </button>
-                    <span className="text-sm text-slate-500">{commentCount} comments</span>
+                    <span className={`text-sm ${isDark && isEditorial ? 'text-slate-400' : 'text-slate-500'}`}>{commentCount} comments</span>
+                    {isEditorial ? (
+                      <span className={`inline-flex items-center gap-2 text-sm font-medium ${isDark ? 'text-sky-300' : 'text-sky-700'}`}>
+                        Featured by DevPortix
+                        <ArrowRight className="h-4 w-4" />
+                      </span>
+                    ) : null}
                   </div>
 
-                  <div className="mt-4 space-y-3">
-                    {(comments[post.id] || []).map((comment) => (
-                      <div key={comment.id} className="rounded-2xl bg-slate-50 p-3 text-sm">
-                        <p className="font-semibold text-slate-900">{comment.author?.fullName}</p>
-                        <p className="mt-1 text-slate-700">{comment.content}</p>
-                      </div>
-                    ))}
+                  {!isEditorial ? (
+                    <div className="mt-4 space-y-3">
+                      {(comments[post.id] || []).map((comment) => (
+                        <div key={comment.id} className="rounded-2xl bg-slate-50 p-3 text-sm">
+                          <p className="font-semibold text-slate-900">{comment.author?.fullName}</p>
+                          <p className="mt-1 text-slate-700">{comment.content}</p>
+                        </div>
+                      ))}
 
-                    <div className="flex gap-2">
-                      <input
-                        value={commentDrafts[post.id] || ''}
-                        onChange={(event) => setCommentDrafts((prev) => ({ ...prev, [post.id]: event.target.value }))}
-                        placeholder="Add comment..."
-                        className="flex-1 rounded-full border border-slate-200 px-4 py-2 text-sm outline-none transition focus:border-slate-400"
-                      />
-                      <button
-                        className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-                        onClick={() => addComment(post.id)}
-                      >
-                        Comment
-                      </button>
+                      <div className="flex gap-2">
+                        <input
+                          value={commentDrafts[post.id] || ''}
+                          onChange={(event) => setCommentDrafts((prev) => ({ ...prev, [post.id]: event.target.value }))}
+                          placeholder="Add comment..."
+                          className="flex-1 rounded-full border border-slate-200 px-4 py-2 text-sm outline-none transition focus:border-slate-400"
+                        />
+                        <button
+                          className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+                          onClick={() => addComment(post.id)}
+                        >
+                          Comment
+                        </button>
+                      </div>
                     </div>
+                  ) : null}
                   </div>
                 </article>
               );
@@ -537,7 +699,7 @@ const CommunityPage = () => {
               <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="text-lg font-semibold text-slate-900">Recent Blogs</h2>
                 <div className="mt-4 space-y-4">
-                  {recentBlogs.map((post) => (
+                  {mergedRecentBlogs.map((post) => (
                     <article key={post.id} className="border-b border-slate-100 pb-4 last:border-b-0 last:pb-0">
                       <p className="text-xs uppercase tracking-[0.22em] text-slate-400">{formatDate(post.createdAt)}</p>
                       <h3 className="mt-2 font-semibold text-slate-900">{post.title}</h3>
@@ -550,7 +712,7 @@ const CommunityPage = () => {
               <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="text-lg font-semibold text-slate-900">Most Liked Blogs</h2>
                 <div className="mt-4 space-y-4">
-                  {mostLikedBlogs.map((post) => (
+                  {mergedMostLikedBlogs.map((post) => (
                     <article key={post.id} className="border-b border-slate-100 pb-4 last:border-b-0 last:pb-0">
                       <div className="flex items-center justify-between gap-3">
                         <h3 className="font-semibold text-slate-900">{post.title}</h3>
@@ -558,6 +720,17 @@ const CommunityPage = () => {
                       </div>
                       <p className="mt-2 text-sm text-slate-600">{blogSummary(post)}</p>
                     </article>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+                <h2 className="text-lg font-semibold text-slate-900">Saved Topic Bank</h2>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {savedTopics.map((topic) => (
+                    <span key={topic} className="rounded-full bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700">
+                      {topic}
+                    </span>
                   ))}
                 </div>
               </div>

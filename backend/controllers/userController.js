@@ -2,11 +2,13 @@ const User = require('../modules/userSchema');
 const Subscription = require('../modules/subscription');
 const PortfolioSettings = require('../modules/portfolioSettings');
 const Portfolio = require('../modules/portfolio');
+const PortfolioScore = require('../modules/portfolioScore');
 const Project = require('../modules/project');
 const { MentorshipLink, MentorshipAssignment } = require('../modules/mentorship');
 const { CommunityPost, CommunityComment, CommunityPostLike } = require('../modules/community');
 const CommunityMessage = require('../modules/communityMessage');
 const FriendRequest = require('../modules/friendRequest');
+const { refreshPortfolioScore } = require('../services/portfolioScoring');
 
 const BASIC_ROLES = new Set(['student', 'instructor', 'organization', 'professional']);
 const ALL_ROLES = new Set(['student', 'instructor', 'organization', 'professional', 'super_admin']);
@@ -118,6 +120,15 @@ const updateProfile = async (req, res) => {
       updatedAt: user.updatedAt,
     });
 
+    try {
+      const hasPortfolio = await Portfolio.exists({ ownerId: req.userId });
+      if (hasPortfolio) {
+        await refreshPortfolioScore(req.userId);
+      }
+    } catch (scoreError) {
+      console.error('[updateProfile] portfolio score refresh failed:', scoreError.message);
+    }
+
     return res.status(200).json({ user: toPublicUser(user) });
   } catch (error) {
     console.error('[updateProfile] error:', error);
@@ -137,6 +148,7 @@ const deleteAccount = async (req, res) => {
       Subscription.deleteOne({ ownerId: userId }),
       PortfolioSettings.deleteOne({ ownerId: userId }),
       Portfolio.deleteOne({ ownerId: userId }),
+      PortfolioScore.deleteOne({ ownerId: userId }),
       Project.deleteMany({ ownerId: userId }),
       MentorshipLink.deleteMany({
         $or: [{ instructorId: userId }, { studentId: userId }],

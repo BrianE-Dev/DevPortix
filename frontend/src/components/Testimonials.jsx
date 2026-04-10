@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Quote, Star } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 
 const TESTIMONIALS = [
   {
@@ -85,6 +86,8 @@ const formatCountries = (value) => `${Math.floor(value)}+`;
 const formatSatisfaction = (value) => `${Math.round(value)}%`;
 
 const Testimonials = () => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [stats, setStats] = useState(INITIAL_STATS);
   const [hasAnimated, setHasAnimated] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -191,12 +194,15 @@ const Testimonials = () => {
   }, [hasAnimated]);
 
   const currentProfile = TESTIMONIALS[activeIndex % TESTIMONIALS.length];
+  const sectionClass = isDark
+    ? 'bg-slate-950'
+    : 'bg-[linear-gradient(180deg,#e0f2fe_0%,#dbeafe_40%,#e9d5ff_100%)]';
 
   return (
-    <section className="bg-slate-950 px-4 py-24 sm:px-6 lg:px-8">
+    <section className={`${sectionClass} px-4 py-24 sm:px-6 lg:px-8`}>
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 text-center">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+          <span className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
             Social Proof
           </span>
         </div>

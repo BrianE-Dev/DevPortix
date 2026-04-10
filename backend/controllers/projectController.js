@@ -1,5 +1,6 @@
 const Project = require('../modules/project');
 const Subscription = require('../modules/subscription');
+const { refreshPortfolioScore } = require('../services/portfolioScoring');
 
 const toProjectPayload = (projectDoc) => ({
   id: String(projectDoc._id),
@@ -58,6 +59,12 @@ const createProject = async (req, res) => {
       featured: Boolean(featured),
     });
 
+    try {
+      await refreshPortfolioScore(req.userId);
+    } catch (scoreError) {
+      console.error('[createProject] portfolio score refresh failed:', scoreError.message);
+    }
+
     return res.status(201).json({ project: toProjectPayload(created) });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to create project', error: error.message });
@@ -88,6 +95,12 @@ const updateProject = async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
 
+    try {
+      await refreshPortfolioScore(req.userId);
+    } catch (scoreError) {
+      console.error('[updateProject] portfolio score refresh failed:', scoreError.message);
+    }
+
     return res.status(200).json({ project: toProjectPayload(project) });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to update project', error: error.message });
@@ -101,6 +114,13 @@ const deleteProject = async (req, res) => {
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
+
+    try {
+      await refreshPortfolioScore(req.userId);
+    } catch (scoreError) {
+      console.error('[deleteProject] portfolio score refresh failed:', scoreError.message);
+    }
+
     return res.status(204).send();
   } catch (error) {
     return res.status(500).json({ message: 'Failed to delete project', error: error.message });

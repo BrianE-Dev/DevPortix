@@ -1,5 +1,6 @@
 const QuizAttempt = require('../modules/quizAttempt');
 const User = require('../modules/userSchema');
+const { refreshPortfolioScore } = require('../services/portfolioScoring');
 const {
   QUIZ_TRACKS,
   TRACK_KEYS,
@@ -96,6 +97,12 @@ const submitQuiz = async (req, res) => {
       passed,
       answers,
     });
+
+    try {
+      await refreshPortfolioScore(req.userId);
+    } catch (scoreError) {
+      console.error('[submitQuiz] portfolio score refresh failed:', scoreError.message);
+    }
 
     return res.status(201).json({
       message: 'Quiz submitted successfully. Your score is now available.',

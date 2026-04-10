@@ -105,7 +105,7 @@ const Hero = () => {
 
   const heroSectionClass = isDark
     ? "bg-gradient-to-br from-gray-900 via-black to-gray-900"
-    : "bg-blue-100";
+    : "bg-[linear-gradient(135deg,#dbeafe_0%,#bae6fd_34%,#c4b5fd_68%,#e0e7ff_100%)]";
   const heroGlowPrimaryClass = isDark ? "bg-indigo-500/30" : "bg-blue-300/55";
   const heroGlowSecondaryClass = isDark ? "bg-blue-400/30" : "bg-cyan-300/45";
   const heroBadgeClass = isDark
@@ -179,8 +179,8 @@ const Hero = () => {
                 aria-label="Start building portfolio"
                 onClick={handleStartBuilding}
               >
-                <span className="text-base">Create Your Portfolio</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                <span className="text-base text-white">Create Your Portfolio</span>
+                <ArrowRight className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform duration-300" />
               </button>
 
               {/* Secondary Button */}
@@ -188,8 +188,8 @@ const Hero = () => {
                 className="group relative w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-xl font-semibold text-white transition-all duration-300 hover:scale-105 hover:border-blue-500/50 flex items-center justify-center space-x-3"
                 onClick={() => setShowDemo(true)}
               >
-                <Play className="w-5 h-5" />
-                <span>Watch Demo</span>
+                <Play className="w-5 h-5 text-white" />
+                <span className="text-white">Watch Demo</span>
               </button>
             </div>
 
