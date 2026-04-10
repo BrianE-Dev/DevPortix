@@ -271,6 +271,36 @@
       0 24px 65px rgba(99, 102, 241, 0.18);
   }
 
+  .pricing-glass-card {
+    position: relative;
+    animation: pricingFloat 6.6s ease-in-out infinite;
+    transition: transform 260ms ease, box-shadow 260ms ease, border-color 260ms ease;
+  }
+
+  .pricing-glass-card::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    border: 1px solid transparent;
+    opacity: 0;
+    transition: opacity 260ms ease, box-shadow 260ms ease, border-color 260ms ease;
+    pointer-events: none;
+  }
+
+  .pricing-glass-card:hover {
+    transform: translateY(-8px) scale(1.01);
+  }
+
+  .pricing-glass-card:hover::after {
+    opacity: 1;
+    border-color: rgba(255, 255, 255, 0.48);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.2),
+      0 0 26px rgba(96, 165, 250, 0.22),
+      0 0 42px rgba(129, 140, 248, 0.18);
+  }
+
   /* Global card hover lift for the shared frosted card pattern */
   :is(div, section, article, li)[class*="bg-white/5"][class*="border-white/10"][class*="rounded-"] {
     @apply transition-transform duration-300;
@@ -297,6 +327,15 @@
     }
 
     .landing-glass-blue-card:hover {
+      transform: none;
+    }
+
+    .pricing-glass-card,
+    .pricing-glass-card::after {
+      animation: none !important;
+    }
+
+    .pricing-glass-card:hover {
       transform: none;
     }
   }
@@ -479,6 +518,17 @@
 
   50% {
     transform: translateY(-6px);
+  }
+}
+
+@keyframes pricingFloat {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
   }
 }
 

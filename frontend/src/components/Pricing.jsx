@@ -217,7 +217,7 @@ const Pricing = () => {
         )}
 
         <div className={`grid grid-cols-1 gap-6 md:grid-cols-2 ${requiresPaidPlan ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
-          {visiblePlans.map((plan) => (
+          {visiblePlans.map((plan, index) => (
             (() => {
               const isCurrentPlan = plan.id === resolvedPlan;
               const isPopular = plan.popular;
@@ -281,7 +281,8 @@ const Pricing = () => {
               return (
             <div
               key={plan.id}
-              className={`relative mx-auto w-full max-w-md overflow-visible rounded-[22px] border p-7 backdrop-blur-[22px] ${glassSurfaceClass} ${isPopular ? 'pt-12' : ''} ${cardAccentClass}`}
+              className={`pricing-glass-card relative mx-auto w-full max-w-md overflow-visible rounded-[22px] border p-7 backdrop-blur-[22px] ${glassSurfaceClass} ${isPopular ? 'pt-12' : ''} ${cardAccentClass}`}
+              style={{ animationDelay: `${index * 0.55}s` }}
             >
               {isPopular && (
                 <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 transform">
@@ -334,17 +335,17 @@ const Pricing = () => {
               ? 'Organization accounts start from Basic and can upgrade anytime.'
               : 'Start free and upgrade anytime as your student base grows.'}
           </p>
-          <div className="mx-auto mt-6 grid max-w-5xl gap-4 text-left md:grid-cols-2">
-            <p className="rounded-2xl border border-white/8 bg-slate-900/55 px-5 py-4 text-sm leading-7 text-slate-200">
+          <div className="mx-auto mt-6 grid max-w-5xl gap-4 text-left">
+            <p className="rounded-2xl border border-blue-300/70 bg-white/35 px-5 py-4 text-sm leading-7 text-blue-700 backdrop-blur-md">
               Instructors can start with the plan that fits their current student size, then upgrade smoothly as cohorts, assessments, and review workflows expand.
             </p>
-            <p className="rounded-2xl border border-white/8 bg-slate-900/55 px-5 py-4 text-sm leading-7 text-slate-200">
+            <p className="rounded-2xl border border-blue-300/70 bg-white/35 px-5 py-4 text-sm leading-7 text-blue-700 backdrop-blur-md">
               Organizations and training schools can choose structured plans built for larger enrollments, cleaner reporting, and stronger operational visibility.
             </p>
-            <p className="rounded-2xl border border-white/8 bg-slate-900/55 px-5 py-4 text-sm leading-7 text-slate-200">
+            <p className="rounded-2xl border border-blue-300/70 bg-white/35 px-5 py-4 text-sm leading-7 text-blue-700 backdrop-blur-md">
               Students benefit from plans that unlock portfolio access, progress tracking, certificates, and a more complete learning experience across the platform.
             </p>
-            <p className="rounded-2xl border border-white/8 bg-slate-900/55 px-5 py-4 text-sm leading-7 text-slate-200">
+            <p className="rounded-2xl border border-blue-300/70 bg-white/35 px-5 py-4 text-sm leading-7 text-blue-700 backdrop-blur-md">
               Professionals can move to higher tiers when they need advanced portfolio controls, collaboration tools, and stronger support as their work grows.
             </p>
           </div>
