@@ -4,10 +4,12 @@ const {
   CommunityComment,
   CommunityPostLike,
 } = require('../modules/community');
+const CommunityMessage = require('../modules/communityMessage');
 const User = require('../modules/userSchema');
 const FriendRequest = require('../modules/friendRequest');
 
 const VALID_TYPES = new Set(['blog', 'chat']);
+const POSTABLE_TYPES = new Set(['blog']);
 const VALID_SORTS = new Set(['newest', 'oldest', 'mostLiked', 'mostCommented']);
 
 const normalizeType = (value) => {
@@ -112,6 +114,23 @@ const toFriendRequestPayload = (requestDoc, currentUserId) => ({
   updatedAt: requestDoc.updatedAt,
 });
 
+const toMessagePayload = (messageDoc, currentUserId) => {
+  const senderId = String(messageDoc.ownerId?._id || messageDoc.ownerId);
+  const recipientId = String(messageDoc.recipientId?._id || messageDoc.recipientId);
+
+  return {
+    id: String(messageDoc._id),
+    senderId,
+    recipientId,
+    sender: toFriendUserPayload(messageDoc.ownerId),
+    recipient: toFriendUserPayload(messageDoc.recipientId),
+    message: messageDoc.message,
+    isMine: senderId === String(currentUserId),
+    createdAt: messageDoc.createdAt,
+    updatedAt: messageDoc.updatedAt,
+  };
+};
+
 const buildFriendStatusMap = (friendRequests, currentUserId) => {
   const map = new Map();
 
@@ -147,6 +166,15 @@ const createMediaFromFile = (file) => {
     size: Number(file.size || 0),
   };
 };
+
+const findAcceptedFriendship = (userId, friendId) =>
+  FriendRequest.findOne({
+    status: 'accepted',
+    $or: [
+      { requesterId: userId, recipientId: friendId },
+      { requesterId: friendId, recipientId: userId },
+    ],
+  });
 
 const getCurrentUserRole = async (userId) => {
   const user = await User.findById(userId).select('role');
@@ -426,6 +454,97 @@ const cancelFriendRequest = async (req, res) => {
   }
 };
 
+const listFriendMessages = async (req, res) => {
+  try {
+    const friendId = String(req.params.friendId || '').trim();
+    if (!friendId) {
+      return res.status(400).json({ message: 'Friend user id is required' });
+    }
+
+    if (sameId(friendId, req.userId)) {
+      return res.status(400).json({ message: 'You cannot open a chat with yourself' });
+    }
+
+    const [friendUser, friendship] = await Promise.all([
+      User.findById(friendId).select('fullName email role githubUsername avatar'),
+      findAcceptedFriendship(req.userId, friendId),
+    ]);
+
+    if (!friendUser) {
+      return res.status(404).json({ message: 'Friend not found' });
+    }
+
+    if (!friendship) {
+      return res.status(403).json({ message: 'You can only chat with accepted friends' });
+    }
+
+    const messages = await CommunityMessage.find({
+      $or: [
+        { ownerId: req.userId, recipientId: friendId },
+        { ownerId: friendId, recipientId: req.userId },
+      ],
+    })
+      .sort({ createdAt: 1 })
+      .populate('ownerId', 'fullName email role githubUsername avatar')
+      .populate('recipientId', 'fullName email role githubUsername avatar');
+
+    return res.status(200).json({
+      friend: toFriendUserPayload(friendUser),
+      messages: messages.map((messageDoc) => toMessagePayload(messageDoc, req.userId)),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to load chat messages', error: error.message });
+  }
+};
+
+const createFriendMessage = async (req, res) => {
+  try {
+    const friendId = String(req.params.friendId || '').trim();
+    if (!friendId) {
+      return res.status(400).json({ message: 'Friend user id is required' });
+    }
+
+    if (sameId(friendId, req.userId)) {
+      return res.status(400).json({ message: 'You cannot send a message to yourself' });
+    }
+
+    const content = String(req.body?.message || '').trim();
+    if (!content) {
+      return res.status(400).json({ message: 'Message is required' });
+    }
+
+    const [friendUser, friendship] = await Promise.all([
+      User.findById(friendId).select('fullName email role githubUsername avatar'),
+      findAcceptedFriendship(req.userId, friendId),
+    ]);
+
+    if (!friendUser) {
+      return res.status(404).json({ message: 'Friend not found' });
+    }
+
+    if (!friendship) {
+      return res.status(403).json({ message: 'You can only chat with accepted friends' });
+    }
+
+    const created = await CommunityMessage.create({
+      ownerId: req.userId,
+      recipientId: friendId,
+      message: content,
+    });
+
+    const hydrated = await created.populate([
+      { path: 'ownerId', select: 'fullName email role githubUsername avatar' },
+      { path: 'recipientId', select: 'fullName email role githubUsername avatar' },
+    ]);
+
+    return res.status(201).json({
+      messageRecord: toMessagePayload(hydrated, req.userId),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to send message', error: error.message });
+  }
+};
+
 const listPosts = async (req, res) => {
   try {
     const type = normalizeType(req.query?.type);
@@ -507,8 +626,8 @@ const createPost = async (req, res) => {
     const content = String(req.body?.content || '').trim();
     const title = String(req.body?.title || '').trim();
 
-    if (!type) {
-      return res.status(400).json({ message: 'Post type must be blog or chat' });
+    if (!type || !POSTABLE_TYPES.has(type)) {
+      return res.status(400).json({ message: 'Post type must be blog' });
     }
 
     if (!content) {
@@ -810,6 +929,8 @@ module.exports = {
   listFriendRequests,
   respondToFriendRequest,
   cancelFriendRequest,
+  listFriendMessages,
+  createFriendMessage,
   listPosts,
   createPost,
   updatePost,

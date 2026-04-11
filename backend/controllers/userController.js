@@ -22,6 +22,7 @@ const toPublicUser = (userDoc) => ({
   avatar: userDoc.avatar,
   bio: userDoc.bio || '',
   subscription: userDoc.subscription,
+  subscriptionBillingCycle: userDoc.subscriptionBillingCycle || 'monthly',
   skills: Array.isArray(userDoc.skills) ? userDoc.skills : [],
   dashboardMenu: userDoc.dashboardMenu || {},
   createdAt: userDoc.createdAt,
@@ -159,7 +160,9 @@ const deleteAccount = async (req, res) => {
       CommunityPost.deleteMany({ ownerId: userId }),
       CommunityComment.deleteMany({ ownerId: userId }),
       CommunityPostLike.deleteMany({ ownerId: userId }),
-      CommunityMessage.deleteMany({ ownerId: userId }),
+      CommunityMessage.deleteMany({
+        $or: [{ ownerId: userId }, { recipientId: userId }],
+      }),
       FriendRequest.deleteMany({
         $or: [{ requesterId: userId }, { recipientId: userId }],
       }),

@@ -75,7 +75,7 @@ const Projects = () => {
             return (
               <article
                 key={card.id}
-                className="landing-glass-blue-card rounded-[28px] p-7"
+                className="landing-glass-blue-card landing-glass-card-transparent rounded-[28px] p-7"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>

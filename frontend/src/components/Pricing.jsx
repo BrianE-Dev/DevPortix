@@ -15,11 +15,16 @@ const Pricing = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [activePlanId, setActivePlanId] = useState('');
+  const [billingCycle, setBillingCycle] = useState('monthly');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [paymentFeedback, setPaymentFeedback] = useState({ tone: '', message: '' });
   const isDark = theme === 'dark';
   const currentPlan = useMemo(() => String(user?.subscription || 'free').toLowerCase(), [user?.subscription]);
+  const currentBillingCycle = useMemo(
+    () => String(user?.subscriptionBillingCycle || 'monthly').toLowerCase(),
+    [user?.subscriptionBillingCycle]
+  );
   const isOrganization = String(user?.role || '').toLowerCase() === 'organization';
   const requiresPaidPlan = roleRequiresPaidPlan(user?.role);
   const visiblePlans = useMemo(
@@ -30,11 +35,16 @@ const Pricing = () => {
   const callbackStatus = String(searchParams.get('status') || '').trim().toLowerCase();
   const requiredPlan = searchParams.get('required');
   const requestedPlan = searchParams.get('plan');
+  const callbackBillingCycle = String(searchParams.get('billingCycle') || '').trim().toLowerCase();
   const [resolvedPlan, setResolvedPlan] = useState(currentPlan);
 
   useEffect(() => {
     setResolvedPlan(currentPlan);
   }, [currentPlan]);
+
+  useEffect(() => {
+    setBillingCycle(currentBillingCycle === 'annual' ? 'annual' : 'monthly');
+  }, [currentBillingCycle]);
 
   useEffect(() => {
     const verifyFromCallback = async () => {
@@ -85,11 +95,13 @@ const Pricing = () => {
         const response = await paymentApi.verify(token, callbackReference);
         setAuthenticatedUser(response.user);
         setResolvedPlan(String(response.plan || currentPlan).toLowerCase());
+        const resolvedBillingCycle = String(response.billingCycle || callbackBillingCycle || 'monthly').toLowerCase();
+        setBillingCycle(resolvedBillingCycle === 'annual' ? 'annual' : 'monthly');
         setPaymentFeedback({
           tone: 'success',
-          message: `Payment successful. Your subscription is now ${String(response.plan).toUpperCase()}.`,
+          message: `Payment successful. Your subscription is now ${String(response.plan).toUpperCase()} billed ${resolvedBillingCycle === 'annual' ? 'annually' : 'monthly'}.`,
         });
-        setNotice(`Payment successful. Your subscription is now ${String(response.plan).toUpperCase()}.`);
+        setNotice(`Payment successful. Your subscription is now ${String(response.plan).toUpperCase()} billed ${resolvedBillingCycle === 'annual' ? 'annually' : 'monthly'}.`);
         navigate('/pricing', { replace: true });
       } catch (verificationError) {
         setPaymentFeedback({
@@ -103,7 +115,7 @@ const Pricing = () => {
     };
 
     verifyFromCallback();
-  }, [callbackReference, callbackStatus, currentPlan, isAuthenticated, loading, navigate, setAuthenticatedUser]);
+  }, [callbackBillingCycle, callbackReference, callbackStatus, currentPlan, isAuthenticated, loading, navigate, setAuthenticatedUser]);
 
   useEffect(() => {
     if (!requiredPlan || !requiresPaidPlan) {
@@ -135,8 +147,8 @@ const Pricing = () => {
       return;
     }
 
-    if (plan === resolvedPlan) {
-      setNotice(`You are already on the ${plan.toUpperCase()} plan.`);
+    if (plan === resolvedPlan && plan !== 'free' && billingCycle === currentBillingCycle) {
+      setNotice(`You are already on the ${plan.toUpperCase()} plan billed ${billingCycle}.`);
       setError('');
       return;
     }
@@ -151,7 +163,7 @@ const Pricing = () => {
       setActivePlanId(plan);
       setError('');
       setNotice('');
-      const response = await paymentApi.initialize(token, plan);
+      const response = await paymentApi.initialize(token, plan, billingCycle);
       window.location.assign(response.authorizationUrl);
     } catch (checkoutError) {
       setError(checkoutError?.message || 'Unable to start checkout right now.');
@@ -198,6 +210,25 @@ const Pricing = () => {
           <p className={`text-lg max-w-3xl mx-auto ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
             Choose the perfect plan for your needs. All plans include our core features.
           </p>
+          <div className={`mx-auto mt-8 inline-flex rounded-full border p-1 shadow-sm ${isDark ? 'border-white/10 bg-slate-900/70' : 'border-slate-200 bg-white/80'}`}>
+            <button
+              type="button"
+              onClick={() => setBillingCycle('monthly')}
+              className={`rounded-full px-5 py-2 text-sm font-medium transition ${billingCycle === 'monthly' ? 'bg-slate-900 text-white' : isDark ? 'text-slate-300' : 'text-slate-600'}`}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setBillingCycle('annual')}
+              className={`rounded-full px-5 py-2 text-sm font-medium transition ${billingCycle === 'annual' ? 'bg-slate-900 text-white' : isDark ? 'text-slate-300' : 'text-slate-600'}`}
+            >
+              Annual
+            </button>
+          </div>
+          <p className={`mt-3 text-sm font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
+            Annual discounts vary by plan: Basic 8.5% off, Standard 8.5% off, Premium 14% off.
+          </p>
         </div>
 
         {activePaymentFeedback && PaymentFeedbackIcon && (
@@ -220,7 +251,9 @@ const Pricing = () => {
           {visiblePlans.map((plan, index) => (
             (() => {
               const isCurrentPlan = plan.id === resolvedPlan;
+              const isCurrentBillingCycle = billingCycle === currentBillingCycle;
               const isPopular = plan.popular;
+              const activeBilling = plan.billing?.[billingCycle] || plan.billing?.monthly || {};
               const glassSurfaceClass = isDark
                 ? plan.id === 'basic'
                   ? 'bg-[linear-gradient(180deg,rgba(76,29,149,0.24),rgba(15,23,42,0.92)),radial-gradient(circle_at_top_left,rgba(196,181,253,0.16),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(129,140,248,0.12),transparent_38%)]'
@@ -296,9 +329,16 @@ const Pricing = () => {
               <div className="mb-8 text-left">
                 <h3 className={`mb-3 text-[1.7rem] font-bold ${titleClass}`}>{plan.name}</h3>
                 <div className="mb-2 flex items-end gap-2">
-                  <span className={`text-5xl font-bold ${priceClass}`}>{plan.price}</span>
-                  {plan.period && <span className={`mb-1 ${bodyTextClass}`}>{plan.period}</span>}
+                  <span className={`text-5xl font-bold ${priceClass}`}>{activeBilling.priceLabel}</span>
+                  {activeBilling.periodLabel ? <span className={`mb-1 ${bodyTextClass}`}>{activeBilling.periodLabel}</span> : null}
                 </div>
+                {activeBilling.savingsLabel ? (
+                  <p className={`mb-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${
+                    isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-100 text-emerald-700'
+                  }`}>
+                    {activeBilling.savingsLabel}
+                  </p>
+                ) : null}
                 <p className={`max-w-xs text-sm leading-6 ${bodyTextClass}`}>{plan.description}</p>
               </div>
 
@@ -319,8 +359,10 @@ const Pricing = () => {
               >
                 {activePlanId === plan.id
                   ? 'Redirecting...'
-                  : isCurrentPlan
+                  : isCurrentPlan && (plan.id === 'free' || isCurrentBillingCycle)
                     ? 'Current Plan'
+                    : isCurrentPlan
+                      ? `Switch to ${billingCycle === 'annual' ? 'Annual' : 'Monthly'}`
                     : plan.buttonText}
               </button>
             </div>
@@ -332,20 +374,36 @@ const Pricing = () => {
         <div className="mt-12 text-center">
           <p className={`italic ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
             {isOrganization
-              ? 'Organization accounts start from Basic and can upgrade anytime.'
-              : 'Start free and upgrade anytime as your student base grows.'}
+              ? `Organization accounts start from Basic and can upgrade anytime with ${billingCycle} billing.`
+              : `Start free and upgrade anytime as your student base grows with ${billingCycle} billing.`}
           </p>
           <div className="mx-auto mt-6 grid max-w-5xl gap-4 text-left">
-            <p className="rounded-2xl border border-blue-300/70 bg-white/35 px-5 py-4 text-sm leading-7 text-blue-700 backdrop-blur-md">
+            <p className={`rounded-2xl border px-5 py-4 text-sm leading-7 backdrop-blur-md ${
+              isDark
+                ? 'border-blue-300/45 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] text-blue-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_10px_28px_rgba(2,6,23,0.16)]'
+                : 'border-blue-300/70 bg-white/35 text-blue-700'
+            }`}>
               Instructors can start with the plan that fits their current student size, then upgrade smoothly as cohorts, assessments, and review workflows expand.
             </p>
-            <p className="rounded-2xl border border-blue-300/70 bg-white/35 px-5 py-4 text-sm leading-7 text-blue-700 backdrop-blur-md">
+            <p className={`rounded-2xl border px-5 py-4 text-sm leading-7 backdrop-blur-md ${
+              isDark
+                ? 'border-blue-300/45 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] text-blue-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_10px_28px_rgba(2,6,23,0.16)]'
+                : 'border-blue-300/70 bg-white/35 text-blue-700'
+            }`}>
               Organizations and training schools can choose structured plans built for larger enrollments, cleaner reporting, and stronger operational visibility.
             </p>
-            <p className="rounded-2xl border border-blue-300/70 bg-white/35 px-5 py-4 text-sm leading-7 text-blue-700 backdrop-blur-md">
+            <p className={`rounded-2xl border px-5 py-4 text-sm leading-7 backdrop-blur-md ${
+              isDark
+                ? 'border-blue-300/45 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] text-blue-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_10px_28px_rgba(2,6,23,0.16)]'
+                : 'border-blue-300/70 bg-white/35 text-blue-700'
+            }`}>
               Students benefit from plans that unlock portfolio access, progress tracking, certificates, and a more complete learning experience across the platform.
             </p>
-            <p className="rounded-2xl border border-blue-300/70 bg-white/35 px-5 py-4 text-sm leading-7 text-blue-700 backdrop-blur-md">
+            <p className={`rounded-2xl border px-5 py-4 text-sm leading-7 backdrop-blur-md ${
+              isDark
+                ? 'border-blue-300/45 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] text-blue-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_10px_28px_rgba(2,6,23,0.16)]'
+                : 'border-blue-300/70 bg-white/35 text-blue-700'
+            }`}>
               Professionals can move to higher tiers when they need advanced portfolio controls, collaboration tools, and stronger support as their work grows.
             </p>
           </div>

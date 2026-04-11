@@ -41,6 +41,11 @@ const subscriptionSchema = new Schema(
       type: Date,
       default: null,
     },
+    billingCycle: {
+      type: String,
+      enum: ['monthly', 'annual'],
+      default: 'monthly',
+    },
     providerCustomerId: {
       type: String,
       default: null,

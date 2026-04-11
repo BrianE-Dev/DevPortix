@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Clock3, Sparkles } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, Clock3, Share2, Sparkles } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import LocalStorageService from '../services/localStorageService';
 import { communityApi } from '../services/communityApi';
 import { useModal } from '../hooks/useModal';
@@ -24,11 +24,33 @@ const formatDate = (value) => {
   }
 };
 
+const formatDateTime = (value) => {
+  if (!value) return '';
+
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(new Date(value));
+  } catch {
+    return '';
+  }
+};
+
 const blogSummary = (post) => {
   if (post?.excerpt) return post.excerpt;
   const content = String(post?.content || '').trim();
   if (content.length <= 150) return content;
   return `${content.slice(0, 150).trim()}...`;
+};
+
+const truncateTitle = (value, maxLength = 40) => {
+  const text = String(value || '').trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(0, maxLength - 3)).trim()}...`;
 };
 
 const loadEditorialLikes = () => {
@@ -53,10 +75,17 @@ const loadEditorialComments = () => {
   }
 };
 
+const normalizeRequestBuckets = (payload) => ({
+  incoming: Array.isArray(payload?.incoming) ? payload.incoming : [],
+  outgoing: Array.isArray(payload?.outgoing) ? payload.outgoing : [],
+  friends: Array.isArray(payload?.friends) ? payload.friends : [],
+});
+
 const CommunityPage = () => {
-  const { confirm } = useModal();
+  const { confirm, showError, showSuccess } = useModal();
   const { user, isAuthenticated } = useAuth();
   const { theme } = useTheme();
+  const [searchParams, setSearchParams] = useSearchParams();
   const token = useMemo(() => LocalStorageService.getToken(), []);
   const isDark = theme === 'dark';
   const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
@@ -67,6 +96,9 @@ const CommunityPage = () => {
   const [comments, setComments] = useState({});
   const [users, setUsers] = useState([]);
   const [requests, setRequests] = useState({ incoming: [], outgoing: [], friends: [] });
+  const [chatMessages, setChatMessages] = useState([]);
+  const [selectedFriendId, setSelectedFriendId] = useState('');
+  const [chatDraft, setChatDraft] = useState('');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [media, setMedia] = useState(null);
@@ -75,9 +107,11 @@ const CommunityPage = () => {
   const [commentDrafts, setCommentDrafts] = useState({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
   const [editorialLikes, setEditorialLikes] = useState(() => loadEditorialLikes());
   const [editorialComments, setEditorialComments] = useState(() => loadEditorialComments());
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [activeBlogPage, setActiveBlogPage] = useState(0);
 
   const editorialBlogs = useMemo(() => DEVPORTIX_EDITORIAL_BLOGS, []);
   const savedTopics = useMemo(() => DEVPORTIX_BLOG_TOPICS, []);
@@ -114,27 +148,20 @@ const CommunityPage = () => {
   }, []);
 
   const loadPosts = useCallback(async () => {
-    if (tab === 'people') return;
+    if (tab !== 'blog') return;
     setLoading(true);
     setError('');
 
     try {
-      const requestsToRun =
-        tab === 'blog'
-          ? Promise.all([
-              communityApi.listPosts(token, { type: 'blog', page: 1, limit: 25, sort: 'newest' }),
-              communityApi.listPosts(token, { type: 'blog', page: 1, limit: 5, sort: 'newest' }),
-              communityApi.listPosts(token, { type: 'blog', page: 1, limit: 5, sort: 'mostLiked' }),
-            ])
-          : Promise.all([
-              communityApi.listPosts(token, { type: 'chat', page: 1, limit: 25, sort: 'newest' }),
-            ]);
-
-      const [feedResp, recentResp, likedResp] = await requestsToRun;
+      const [feedResp, recentResp, likedResp] = await Promise.all([
+        communityApi.listPosts(token, { type: 'blog', page: 1, limit: 25, sort: 'newest' }),
+        communityApi.listPosts(token, { type: 'blog', page: 1, limit: 5, sort: 'newest' }),
+        communityApi.listPosts(token, { type: 'blog', page: 1, limit: 5, sort: 'mostLiked' }),
+      ]);
       const nextPosts = Array.isArray(feedResp.posts) ? feedResp.posts : [];
       setPosts(nextPosts);
-      setRecentBlogs(tab === 'blog' && Array.isArray(recentResp?.posts) ? recentResp.posts : []);
-      setMostLikedBlogs(tab === 'blog' && Array.isArray(likedResp?.posts) ? likedResp.posts : []);
+      setRecentBlogs(Array.isArray(recentResp?.posts) ? recentResp.posts : []);
+      setMostLikedBlogs(Array.isArray(likedResp?.posts) ? likedResp.posts : []);
 
       const commentPairs = await Promise.all(
         nextPosts.map(async (post) => {
@@ -161,11 +188,7 @@ const CommunityPage = () => {
         communityApi.listFriendRequests(token),
       ]);
       setUsers(Array.isArray(usersResp.users) ? usersResp.users : []);
-      setRequests({
-        incoming: Array.isArray(reqResp.incoming) ? reqResp.incoming : [],
-        outgoing: Array.isArray(reqResp.outgoing) ? reqResp.outgoing : [],
-        friends: Array.isArray(reqResp.friends) ? reqResp.friends : [],
-      });
+      setRequests(normalizeRequestBuckets(reqResp));
     } catch (err) {
       setError(err.message || 'Failed to load users');
     } finally {
@@ -173,14 +196,73 @@ const CommunityPage = () => {
     }
   }, [tab, token]);
 
+  const loadChatFriends = useCallback(async () => {
+    if (!token || tab !== 'chat') return;
+    setLoading(true);
+    setError('');
+
+    try {
+      const reqResp = await communityApi.listFriendRequests(token);
+      setRequests(normalizeRequestBuckets(reqResp));
+    } catch (err) {
+      setError(err.message || 'Failed to load chats');
+    } finally {
+      setLoading(false);
+    }
+  }, [tab, token]);
+
+  const loadChatMessages = useCallback(
+    async (friendId) => {
+      if (!token || !friendId) {
+        setChatMessages([]);
+        return;
+      }
+
+      setChatLoading(true);
+      setError('');
+
+      try {
+        const response = await communityApi.listFriendMessages(token, friendId);
+        setChatMessages(Array.isArray(response.messages) ? response.messages : []);
+      } catch (err) {
+        setError(err.message || 'Failed to load messages');
+      } finally {
+        setChatLoading(false);
+      }
+    },
+    [token]
+  );
+
   useEffect(() => {
     if ((tab === 'people' || tab === 'chat') && !token) {
+      setChatMessages([]);
       setLoading(false);
       return;
     }
     if (tab === 'people') loadPeople();
+    else if (tab === 'chat') loadChatFriends();
     else loadPosts();
-  }, [tab, loadPeople, loadPosts]);
+  }, [tab, token, loadPeople, loadChatFriends, loadPosts]);
+
+  useEffect(() => {
+    if (tab !== 'chat') return;
+
+    const nextFriends = requests.friends || [];
+    if (!nextFriends.length) {
+      setSelectedFriendId('');
+      setChatMessages([]);
+      return;
+    }
+
+    if (!nextFriends.some((friend) => friend.id === selectedFriendId)) {
+      setSelectedFriendId(nextFriends[0].id);
+    }
+  }, [requests.friends, selectedFriendId, tab]);
+
+  useEffect(() => {
+    if (tab !== 'chat' || !selectedFriendId) return;
+    loadChatMessages(selectedFriendId);
+  }, [tab, selectedFriendId, loadChatMessages]);
 
   useEffect(
     () => () => {
@@ -213,9 +295,8 @@ const CommunityPage = () => {
 
   const createOrUpdatePost = async (event) => {
     event.preventDefault();
-    if (!token || !content.trim()) return;
-    if (tab === 'blog' && !title.trim()) return;
-    if (tab === 'blog' && !isSuperAdmin) {
+    if (!token || tab !== 'blog' || !content.trim() || !title.trim()) return;
+    if (!isSuperAdmin) {
       setError('Only super admins can publish blog posts.');
       return;
     }
@@ -224,10 +305,10 @@ const CommunityPage = () => {
 
     try {
       const payload = {
-        type: tab,
+        type: 'blog',
         title: title.trim(),
         content: content.trim(),
-        media: tab === 'blog' ? media : undefined,
+        media,
       };
       if (editing?.id) {
         await communityApi.updatePost(token, editing.id, payload);
@@ -238,6 +319,26 @@ const CommunityPage = () => {
       await loadPosts();
     } catch (err) {
       setError(err.message || 'Failed to save post');
+    }
+  };
+
+  const sendChatMessage = async (event) => {
+    event.preventDefault();
+    if (!token || !selectedFriendId) return;
+
+    const message = String(chatDraft || '').trim();
+    if (!message) return;
+
+    setError('');
+
+    try {
+      const response = await communityApi.sendFriendMessage(token, selectedFriendId, { message });
+      if (response?.messageRecord) {
+        setChatMessages((prev) => [...prev, response.messageRecord]);
+      }
+      setChatDraft('');
+    } catch (err) {
+      setError(err.message || 'Failed to send message');
     }
   };
 
@@ -453,9 +554,112 @@ const CommunityPage = () => {
       .slice(0, 5);
   }, [editorialBlogs, mostLikedBlogs]);
 
-  const displayPosts = tab === 'blog' ? mergedBlogPosts : posts;
+  useEffect(() => {
+    if (tab !== 'blog') return;
+    setActiveBlogPage((currentPage) => {
+      if (mergedBlogPosts.length === 0) return 0;
+      return Math.min(currentPage, mergedBlogPosts.length - 1);
+    });
+  }, [mergedBlogPosts.length, tab]);
+
+  const currentBlogPost = tab === 'blog' ? mergedBlogPosts[activeBlogPage] || null : null;
+  const previousBlogPost = tab === 'blog' && activeBlogPage > 0 ? mergedBlogPosts[activeBlogPage - 1] : null;
+  const nextBlogPost =
+    tab === 'blog' && activeBlogPage < mergedBlogPosts.length - 1 ? mergedBlogPosts[activeBlogPage + 1] : null;
+  const displayPosts = tab === 'blog' ? (currentBlogPost ? [currentBlogPost] : []) : [];
   const activeTemplate =
     blogTemplates.find((template) => template.id === selectedTemplateId) || blogTemplates[0] || null;
+  const selectedFriend =
+    (requests.friends || []).find((friend) => friend.id === selectedFriendId) || null;
+
+  const updateBlogSearchParam = useCallback(
+    (postId) => {
+      const nextParams = new URLSearchParams(searchParams);
+      if (postId) {
+        nextParams.set('post', postId);
+      } else {
+        nextParams.delete('post');
+      }
+      setSearchParams(nextParams, { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
+
+  useEffect(() => {
+    const sharedPostId = searchParams.get('post');
+    if (!sharedPostId || mergedBlogPosts.length === 0) return;
+
+    const matchedIndex = mergedBlogPosts.findIndex((post) => String(post?.id) === String(sharedPostId));
+    if (matchedIndex < 0) return;
+
+    setTab('blog');
+    setActiveBlogPage(matchedIndex);
+  }, [mergedBlogPosts, searchParams]);
+
+  useEffect(() => {
+    if (tab !== 'blog' || !currentBlogPost?.id) return;
+    if (searchParams.get('post') === String(currentBlogPost.id)) return;
+    updateBlogSearchParam(currentBlogPost.id);
+  }, [currentBlogPost?.id, searchParams, tab, updateBlogSearchParam]);
+
+  const openBlogPost = useCallback(
+    (postId) => {
+      const targetIndex = mergedBlogPosts.findIndex((item) => item.id === postId);
+      if (targetIndex < 0) return;
+      setTab('blog');
+      setActiveBlogPage(targetIndex);
+      updateBlogSearchParam(postId);
+    },
+    [mergedBlogPosts, updateBlogSearchParam]
+  );
+
+  const handleShareBlogPost = useCallback(
+    async (post) => {
+      if (typeof window === 'undefined' || !post?.id) return;
+
+      const shareUrl = new URL('/community', window.location.origin);
+      shareUrl.searchParams.set('post', post.id);
+
+      const sharePayload = {
+        title: post.title || 'DevPortix Blog',
+        text: blogSummary(post),
+        url: shareUrl.toString(),
+      };
+
+      try {
+        if (navigator.share) {
+          await navigator.share(sharePayload);
+          showSuccess?.({
+            title: 'Link Shared',
+            message: 'The blog link was shared successfully.',
+            confirmText: 'OK',
+          });
+          return;
+        }
+
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(sharePayload.url);
+          showSuccess?.({
+            title: 'Link Copied',
+            message: 'The blog link is ready to share.',
+            confirmText: 'OK',
+          });
+          return;
+        }
+
+        window.prompt('Copy this blog link:', sharePayload.url);
+      } catch (err) {
+        if (err?.name === 'AbortError') return;
+
+        showError?.({
+          title: 'Share Unavailable',
+          message: 'We could not share this link right now. Please try again.',
+          confirmText: 'OK',
+        });
+      }
+    },
+    [showError, showSuccess]
+  );
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-8">
@@ -570,45 +774,159 @@ const CommunityPage = () => {
       ) : (
         <div className={`mt-6 grid gap-6 ${tab === 'blog' ? 'xl:grid-cols-[minmax(0,1.4fr)_320px]' : ''}`}>
           <div className="space-y-5">
-            {tab === 'chat' && !isAuthenticated ? (
-              <div className="rounded-[2rem] border border-sky-200 bg-white p-5 text-sm text-slate-700 shadow-sm">
-                <h2 className="text-lg font-semibold text-slate-900">Sign in to join community chats</h2>
-                <p className="mt-2">
-                  Blog reading and liking are public now, but posting chats still requires an account.
-                </p>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <Link to="/signup" className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white">
-                    Register
-                  </Link>
-                  <Link to="/login" className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700">
-                    Sign In
-                  </Link>
-                </div>
-              </div>
-            ) : tab === 'chat' || isSuperAdmin ? (
-              <form onSubmit={createOrUpdatePost} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-900">
-                      {editing ? 'Update your post' : tab === 'blog' ? 'Publish a blog post' : 'Start a conversation'}
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {tab === 'blog' ? 'Blogs are reserved for super-admin publishing.' : 'Chats remain open to the community.'}
-                    </p>
+            {tab === 'chat' ? (
+              !isAuthenticated ? (
+                <div className="rounded-[2rem] border border-sky-200 bg-white p-5 text-sm text-slate-700 shadow-sm">
+                  <h2 className="text-lg font-semibold text-slate-900">Sign in to chat with your friends</h2>
+                  <p className="mt-2">
+                    Blogs stay open for everyone, but direct messaging is only available between connected friends.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Link to="/signup" className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white">
+                      Register
+                    </Link>
+                    <Link to="/login" className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700">
+                      Sign In
+                    </Link>
                   </div>
-                  {editing ? (
-                    <button
-                      type="button"
-                      className="rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700"
-                      onClick={clearEditor}
-                    >
-                      Cancel
-                    </button>
-                  ) : null}
                 </div>
+              ) : (
+                <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
+                  <aside className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h2 className="text-lg font-semibold text-slate-900">Friend Chats</h2>
+                        <p className="mt-1 text-sm text-slate-500">Chat one-to-one with people you have already connected with.</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700"
+                        onClick={() => setTab('people')}
+                      >
+                        Find People
+                      </button>
+                    </div>
 
-                {tab === 'blog' ? (
-                  <>
+                    {loading ? <p className="mt-4 text-sm text-slate-500">Loading friends...</p> : null}
+
+                    {!loading && !(requests.friends || []).length ? (
+                      <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-4 text-sm text-slate-700">
+                        Add or accept a friend from the People tab to start a direct conversation.
+                      </div>
+                    ) : (
+                      <div className="mt-4 space-y-3">
+                        {(requests.friends || []).map((friend) => (
+                          <button
+                            key={friend.id}
+                            type="button"
+                            onClick={() => setSelectedFriendId(friend.id)}
+                            className={`block w-full rounded-2xl border px-4 py-3 text-left transition ${
+                              selectedFriendId === friend.id
+                                ? 'border-slate-900 bg-slate-900 text-white'
+                                : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-white'
+                            }`}
+                          >
+                            <p className="font-semibold">{friend.fullName}</p>
+                            <p className={`mt-1 text-xs ${selectedFriendId === friend.id ? 'text-slate-300' : 'text-slate-500'}`}>
+                              Friends since {formatDate(friend.since)}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </aside>
+
+                  <section className="rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+                    {selectedFriend ? (
+                      <>
+                        <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+                          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Direct Message</p>
+                          <h2 className="mt-2 text-2xl font-semibold text-slate-900">{selectedFriend.fullName}</h2>
+                          <p className="mt-1 text-sm text-slate-500">Connected since {formatDate(selectedFriend.since)}</p>
+                        </div>
+
+                        <div className="max-h-[520px] space-y-3 overflow-y-auto px-5 py-5 sm:px-6">
+                          {chatLoading ? <p className="text-sm text-slate-500">Loading conversation...</p> : null}
+                          {!chatLoading && !chatMessages.length ? (
+                            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                              No messages yet. Start the conversation with your first note.
+                            </div>
+                          ) : null}
+                          {!chatLoading
+                            ? chatMessages.map((message) => (
+                                <div
+                                  key={message.id}
+                                  className={`flex ${message.isMine ? 'justify-end' : 'justify-start'}`}
+                                >
+                                  <div
+                                    className={`max-w-xl rounded-[1.5rem] px-4 py-3 text-sm shadow-sm ${
+                                      message.isMine
+                                        ? 'bg-slate-900 text-white'
+                                        : 'border border-slate-200 bg-slate-50 text-slate-800'
+                                    }`}
+                                  >
+                                    <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${
+                                      message.isMine ? 'text-slate-300' : 'text-slate-400'
+                                    }`}>
+                                      {message.isMine ? 'You' : message.sender?.fullName}
+                                    </p>
+                                    <p className="mt-2 whitespace-pre-wrap leading-7">{message.message}</p>
+                                    <p className={`mt-3 text-[11px] ${
+                                      message.isMine ? 'text-slate-300' : 'text-slate-500'
+                                    }`}>
+                                      {formatDateTime(message.createdAt)}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))
+                            : null}
+                        </div>
+
+                        <form onSubmit={sendChatMessage} className="border-t border-slate-100 px-5 py-4 sm:px-6">
+                          <textarea
+                            value={chatDraft}
+                            onChange={(event) => setChatDraft(event.target.value)}
+                            placeholder={`Message ${selectedFriend.fullName}...`}
+                            className="w-full rounded-3xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+                            rows={4}
+                          />
+                          <div className="mt-3 flex justify-end">
+                            <button className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white">
+                              Send Message
+                            </button>
+                          </div>
+                        </form>
+                      </>
+                    ) : (
+                      <div className="px-5 py-10 text-sm text-slate-600 sm:px-6">
+                        Pick a friend from the left to open your chat, or head to People to add a new connection.
+                      </div>
+                    )}
+                  </section>
+                </div>
+              )
+            ) : (
+              <>
+                {isSuperAdmin ? (
+                  <form onSubmit={createOrUpdatePost} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h2 className="text-lg font-semibold text-slate-900">
+                          {editing ? 'Update your post' : 'Publish a blog post'}
+                        </h2>
+                        <p className="mt-1 text-sm text-slate-500">Blogs are reserved for super-admin publishing.</p>
+                      </div>
+                      {editing ? (
+                        <button
+                          type="button"
+                          className="rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700"
+                          onClick={clearEditor}
+                        >
+                          Cancel
+                        </button>
+                      ) : null}
+                    </div>
+
                     <div className="mt-4 rounded-[1.5rem] border border-sky-100 bg-sky-50/80 p-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
@@ -659,19 +977,15 @@ const CommunityPage = () => {
                       placeholder="Blog title"
                       className="mt-4 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
                     />
-                  </>
-                ) : null}
 
-                <textarea
-                  value={content}
-                  onChange={(event) => setContent(event.target.value)}
-                  placeholder={tab === 'blog' ? 'Write blog content...' : 'Write chat message...'}
-                  className="mt-4 w-full rounded-3xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
-                  rows={tab === 'blog' ? 7 : 4}
-                />
+                    <textarea
+                      value={content}
+                      onChange={(event) => setContent(event.target.value)}
+                      placeholder="Write blog content..."
+                      className="mt-4 w-full rounded-3xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+                      rows={7}
+                    />
 
-                {tab === 'blog' ? (
-                  <>
                     <input type="file" onChange={handleMediaChange} className="mt-3 text-xs text-slate-500" />
                     {mediaPreviewUrl ? (
                       <div className="mt-3 w-fit rounded-2xl border border-slate-200 p-2">
@@ -689,23 +1003,23 @@ const CommunityPage = () => {
                         ))}
                       </div>
                     </div>
-                  </>
-                ) : null}
 
-                <button className="mt-4 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white">
-                  {editing ? 'Update' : 'Post'}
-                </button>
-              </form>
-            ) : (
-              <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 shadow-sm">
-                <h2 className="text-lg font-semibold">Blog publishing is limited to super admins</h2>
-                <p className="mt-2">
-                  You can still read every blog, leave comments, and like posts with the heart button below.
-                </p>
-              </div>
+                    <button className="mt-4 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white">
+                      {editing ? 'Update' : 'Post'}
+                    </button>
+                  </form>
+                ) : (
+                  <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 shadow-sm">
+                    <h2 className="text-lg font-semibold">Blog publishing is limited to super admins</h2>
+                    <p className="mt-2">
+                      You can still read every blog, leave comments, and like posts with the heart button below.
+                    </p>
+                  </div>
+                )}
+
+                {loading ? <p className="text-sm text-slate-500">Loading...</p> : null}
+              </>
             )}
-
-            {loading ? <p className="text-sm text-slate-500">Loading...</p> : null}
 
             {displayPosts.map((post) => {
               const canManagePost = post.type === 'blog' ? isSuperAdmin : post.isOwner;
@@ -752,7 +1066,7 @@ const CommunityPage = () => {
                           {post.editorialMeta.readingTime}
                         </span>
                       </div>
-                      <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_340px] lg:items-center">
+                    <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_340px] lg:items-center">
                         <div>
                           <p className={`text-sm font-semibold ${isDark ? 'text-sky-300' : 'text-sky-700'}`}>{post.author?.fullName}</p>
                           <h2 className={`mt-3 text-3xl font-bold leading-tight sm:text-4xl ${isDark ? 'text-white' : 'text-slate-900'}`}>{post.title}</h2>
@@ -782,7 +1096,7 @@ const CommunityPage = () => {
                     <div>
                       <p className={`text-sm font-semibold ${isDark && isEditorial ? 'text-white' : 'text-slate-900'}`}>{post.author?.fullName}</p>
                       <p className={`mt-1 text-xs uppercase tracking-[0.24em] ${isDark && isEditorial ? 'text-slate-400' : 'text-slate-400'}`}>
-                        {post.type} {post.createdAt ? `| ${formatDate(post.createdAt)}` : ''}
+                        {post.type} {post.createdAt ? `| ${formatDateTime(post.createdAt)}` : ''}
                       </p>
                       {post.title && !isEditorial ? <h2 className="mt-3 text-2xl font-semibold text-slate-900">{post.title}</h2> : null}
                     </div>
@@ -806,6 +1120,12 @@ const CommunityPage = () => {
 
                   {isEditorial ? (
                     <div className="mt-6 space-y-8">
+                      <div className={`rounded-[1.5rem] border border-dashed p-4 text-center text-xs uppercase tracking-[0.24em] ${
+                        isDark ? 'border-white/15 bg-white/[0.03] text-slate-400' : 'border-slate-300 bg-slate-50/90 text-slate-500'
+                      }`}>
+                        Banner Ad Space
+                      </div>
+
                       <div className={`grid gap-4 rounded-[1.75rem] border p-5 sm:grid-cols-3 ${isDark ? 'border-white/10 bg-white/5' : 'border-sky-100 bg-sky-50/80'}`}>
                         {post.editorialMeta.keyStats.map((item) => (
                           <div key={item.label} className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
@@ -837,6 +1157,12 @@ const CommunityPage = () => {
 
                       <div className={`rounded-[1.75rem] border p-6 ${isDark ? 'border-violet-400/20 bg-violet-500/10' : 'border-violet-200 bg-violet-50'}`}>
                         <p className={`text-lg font-medium leading-8 ${isDark ? 'text-violet-100' : 'text-violet-900'}`}>"{post.editorialMeta.quote}"</p>
+                      </div>
+
+                      <div className={`rounded-[1.5rem] border border-dashed p-4 text-center text-xs uppercase tracking-[0.24em] ${
+                        isDark ? 'border-white/15 bg-white/[0.03] text-slate-400' : 'border-slate-300 bg-slate-50/90 text-slate-500'
+                      }`}>
+                        Sponsored Banner Slot
                       </div>
 
                       <div className={`rounded-[1.75rem] border p-6 ${isDark ? 'border-sky-400/20 bg-sky-500/10' : 'border-sky-200 bg-sky-50'}`}>
@@ -886,6 +1212,18 @@ const CommunityPage = () => {
                       </span>
                       <span>{likeCount}</span>
                     </button>
+                    <button
+                      type="button"
+                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition ${
+                        isDark && isEditorial
+                          ? 'border-white/10 text-slate-300 hover:bg-white/5'
+                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                      onClick={() => handleShareBlogPost(post)}
+                    >
+                      <Share2 className="h-4 w-4" />
+                      <span>Share</span>
+                    </button>
                     <span className={`text-sm ${isDark && isEditorial ? 'text-slate-400' : 'text-slate-500'}`}>{commentCount} comments</span>
                     {isEditorial ? (
                       <span className={`inline-flex items-center gap-2 text-sm font-medium ${isDark ? 'text-sky-300' : 'text-sky-700'}`}>
@@ -899,6 +1237,9 @@ const CommunityPage = () => {
                       {postComments.map((comment) => (
                         <div key={comment.id} className="rounded-2xl bg-slate-50 p-3 text-sm">
                           <p className="font-semibold text-slate-900">{comment.author?.fullName}</p>
+                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">
+                            {formatDateTime(comment.createdAt)}
+                          </p>
                           <p className="mt-1 text-slate-700">{comment.content}</p>
                         </div>
                       ))}
@@ -940,6 +1281,52 @@ const CommunityPage = () => {
                         )}
                       </div>
                   </div>
+
+                  {tab === 'blog' ? (
+                    <div className={`mt-6 flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between ${isDark && isEditorial ? 'border-white/10' : 'border-slate-100'}`}>
+                      <button
+                        type="button"
+                        onClick={() => previousBlogPost && openBlogPost(previousBlogPost.id)}
+                        disabled={!previousBlogPost}
+                        className={`inline-flex items-center gap-3 rounded-full border px-4 py-2 text-sm font-medium transition ${
+                          previousBlogPost
+                            ? isDark && isEditorial
+                              ? 'border-white/10 text-slate-200 hover:bg-white/5'
+                              : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                            : 'cursor-not-allowed opacity-45'
+                        }`}
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        <span>Prev</span>
+                        <span className="max-w-[220px] truncate text-xs opacity-80">
+                          {previousBlogPost ? truncateTitle(previousBlogPost.title) : 'Start of blog feed'}
+                        </span>
+                      </button>
+
+                      <span className={`text-xs font-semibold uppercase tracking-[0.2em] ${isDark && isEditorial ? 'text-slate-400' : 'text-slate-500'}`}>
+                        Post {activeBlogPage + 1} of {mergedBlogPosts.length}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => nextBlogPost && openBlogPost(nextBlogPost.id)}
+                        disabled={!nextBlogPost}
+                        className={`inline-flex items-center gap-3 rounded-full border px-4 py-2 text-sm font-medium transition ${
+                          nextBlogPost
+                            ? isDark && isEditorial
+                              ? 'border-white/10 text-slate-200 hover:bg-white/5'
+                              : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                            : 'cursor-not-allowed opacity-45'
+                        }`}
+                      >
+                        <span className="max-w-[220px] truncate text-xs opacity-80">
+                          {nextBlogPost ? truncateTitle(nextBlogPost.title) : 'End of blog feed'}
+                        </span>
+                        <span>Next</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : null}
                   </div>
                 </article>
               );
@@ -952,11 +1339,16 @@ const CommunityPage = () => {
                 <h2 className="text-lg font-semibold text-slate-900">Recent Blogs</h2>
                 <div className="mt-4 space-y-4">
                   {mergedRecentBlogs.map((post) => (
-                    <article key={post.id} className="border-b border-slate-100 pb-4 last:border-b-0 last:pb-0">
-                      <p className="text-xs uppercase tracking-[0.22em] text-slate-400">{formatDate(post.createdAt)}</p>
+                    <button
+                      key={post.id}
+                      type="button"
+                      onClick={() => openBlogPost(post.id)}
+                      className="block w-full border-b border-slate-100 pb-4 text-left transition last:border-b-0 last:pb-0 hover:opacity-80"
+                    >
+                      <p className="text-xs uppercase tracking-[0.22em] text-slate-400">{formatDateTime(post.createdAt)}</p>
                       <h3 className="mt-2 font-semibold text-slate-900">{post.title}</h3>
                       <p className="mt-2 text-sm text-slate-600">{blogSummary(post)}</p>
-                    </article>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -965,13 +1357,18 @@ const CommunityPage = () => {
                 <h2 className="text-lg font-semibold text-slate-900">Most Liked Blogs</h2>
                 <div className="mt-4 space-y-4">
                   {mergedMostLikedBlogs.map((post) => (
-                    <article key={post.id} className="border-b border-slate-100 pb-4 last:border-b-0 last:pb-0">
+                    <button
+                      key={post.id}
+                      type="button"
+                      onClick={() => openBlogPost(post.id)}
+                      className="block w-full border-b border-slate-100 pb-4 text-left transition last:border-b-0 last:pb-0 hover:opacity-80"
+                    >
                       <div className="flex items-center justify-between gap-3">
                         <h3 className="font-semibold text-slate-900">{post.title}</h3>
                         <span className="text-sm text-red-500">&#9829; {Number(post.likeCount || post.upvoteCount || 0)}</span>
                       </div>
                       <p className="mt-2 text-sm text-slate-600">{blogSummary(post)}</p>
-                    </article>
+                    </button>
                   ))}
                 </div>
               </div>

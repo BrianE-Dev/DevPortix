@@ -10,6 +10,8 @@ const {
   listFriendRequests,
   respondToFriendRequest,
   cancelFriendRequest,
+  listFriendMessages,
+  createFriendMessage,
   listPosts,
   createPost,
   updatePost,
@@ -48,6 +50,8 @@ router.get('/friends/requests', validateUser, listFriendRequests);
 router.post('/friends/requests/:userId', validateUser, sendFriendRequest);
 router.patch('/friends/requests/:requestId', validateUser, respondToFriendRequest);
 router.delete('/friends/requests/:requestId', validateUser, cancelFriendRequest);
+router.get('/friends/messages/:friendId', validateUser, listFriendMessages);
+router.post('/friends/messages/:friendId', validateUser, createFriendMessage);
 
 router.get('/posts', optionalUser, listPosts);
 router.post('/posts', validateUser, upload.single('media'), createPost);

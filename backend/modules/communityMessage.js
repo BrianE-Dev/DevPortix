@@ -10,6 +10,12 @@ const communityMessageSchema = new Schema(
       required: true,
       index: true,
     },
+    recipientId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
     message: {
       type: String,
       required: true,
@@ -21,6 +27,8 @@ const communityMessageSchema = new Schema(
     timestamps: true,
   }
 );
+
+communityMessageSchema.index({ ownerId: 1, recipientId: 1, createdAt: 1 });
 
 module.exports =
   mongoose.models.CommunityMessage ||

@@ -92,7 +92,7 @@ const Features = () => {
             return (
               <article
                 key={feature.title}
-                className="landing-glass-blue-card group relative rounded-[28px] p-8"
+                className="landing-glass-blue-card landing-glass-card-features group relative rounded-[28px] p-8"
               >
                 <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${feature.glow} opacity-80 transition duration-300 group-hover:opacity-100`} />
                 <div className="relative flex min-h-[280px] flex-col justify-between lg:min-h-[320px]">

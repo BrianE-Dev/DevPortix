@@ -40,6 +40,7 @@ const toPublicUser = (userDoc) => ({
   avatar: userDoc.avatar,
   bio: userDoc.bio || '',
   subscription: userDoc.subscription,
+  subscriptionBillingCycle: userDoc.subscriptionBillingCycle || 'monthly',
   skills: Array.isArray(userDoc.skills) ? userDoc.skills : [],
   dashboardMenu: userDoc.dashboardMenu || {},
   createdAt: userDoc.createdAt,
@@ -160,6 +161,7 @@ const register = async (req, res) => {
     const normalizedRole = String(role || 'student').trim().toLowerCase();
     const assignedRole = PUBLIC_SIGNUP_ROLES.has(normalizedRole) ? normalizedRole : 'student';
     const defaultPlan = 'free';
+    const defaultBillingCycle = 'monthly';
 
     const user = await User.create({
       fullName: fullName?.trim() || 'New User',
@@ -167,11 +169,12 @@ const register = async (req, res) => {
       password: passwordHash,
       role: assignedRole,
       subscription: defaultPlan,
+      subscriptionBillingCycle: defaultBillingCycle,
       githubUsername: githubUsername?.trim() || '',
     });
 
     await Promise.all([
-      Subscription.create({ ownerId: user._id, plan: defaultPlan }),
+      Subscription.create({ ownerId: user._id, plan: defaultPlan, billingCycle: defaultBillingCycle }),
       PortfolioSettings.create({ ownerId: user._id }),
       OtpToken.deleteOne({ _id: otpDoc._id }),
     ]);

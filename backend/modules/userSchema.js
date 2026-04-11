@@ -51,6 +51,11 @@ const userSchema = new Schema(
       enum: ['free', 'basic', 'standard', 'premium', 'pro'],
       default: 'free',
     },
+    subscriptionBillingCycle: {
+      type: String,
+      enum: ['monthly', 'annual'],
+      default: 'monthly',
+    },
     freePngCertificatesIssued: {
       type: Number,
       default: 0,

@@ -9,35 +9,54 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || process.env.PSSEC
 
 const PLAN_PRICING = {
   basic: {
-    amountKobo: 500000,
+    monthlyAmountKobo: 500000,
+    annualDiscountPercentage: 8.5,
     currency: 'NGN',
   },
   standard: {
-    amountKobo: 900000,
+    monthlyAmountKobo: 1200000,
+    annualDiscountPercentage: 8.5,
     currency: 'NGN',
   },
   premium: {
-    amountKobo: 1400000,
+    monthlyAmountKobo: 2000000,
+    annualDiscountPercentage: 14,
     currency: 'NGN',
   },
 };
 
 const isSupportedPaidPlan = (plan) => ['basic', 'standard', 'premium'].includes(plan);
+const isSupportedBillingCycle = (value) => ['monthly', 'annual'].includes(value);
 
-const addOneMonth = () => {
+const addMonths = (count) => {
   const renewalDate = new Date();
-  renewalDate.setMonth(renewalDate.getMonth() + 1);
+  renewalDate.setMonth(renewalDate.getMonth() + count);
   return renewalDate;
 };
 
-const applySuccessfulSubscriptionPayment = async ({ userId, plan, customerCode }) => {
-  const renewalDate = addOneMonth();
+const resolvePricingForCycle = (plan, billingCycle) => {
+  const pricing = PLAN_PRICING[plan];
+  if (!pricing) return null;
+
+  const monthlyAmountKobo = Number(pricing.monthlyAmountKobo || 0);
+  const annualDiscountMultiplier = 1 - Number(pricing.annualDiscountPercentage || 0) / 100;
+  const annualAmountKobo = Math.round(monthlyAmountKobo * 12 * annualDiscountMultiplier);
+
+  return {
+    currency: pricing.currency,
+    amountKobo: billingCycle === 'annual' ? annualAmountKobo : monthlyAmountKobo,
+  };
+};
+
+const applySuccessfulSubscriptionPayment = async ({ userId, plan, billingCycle, customerCode }) => {
+  const renewalDate = billingCycle === 'annual' ? addMonths(12) : addMonths(1);
 
   const updatedSubscription = await Subscription.findOneAndUpdate(
     { ownerId: userId },
     {
       $set: {
         plan,
+        billingCycle,
         status: 'active',
         renewalDate,
         providerCustomerId: customerCode || null,
@@ -48,7 +67,7 @@ const applySuccessfulSubscriptionPayment = async ({ userId, plan, customerCode }
 
   const user = await User.findByIdAndUpdate(
     userId,
-    { $set: { subscription: plan } },
+    { $set: { subscription: plan, subscriptionBillingCycle: billingCycle } },
     { new: true }
   ).lean();
 
@@ -72,8 +91,12 @@ const initializeSubscriptionPayment = async (req, res) => {
     }
 
     const plan = String(req.body?.plan || '').trim().toLowerCase();
+    const billingCycle = String(req.body?.billingCycle || 'monthly').trim().toLowerCase();
     if (!isSupportedPaidPlan(plan)) {
       return res.status(400).json({ message: 'Unsupported plan. Use "basic", "standard", or "premium".' });
+    }
+    if (!isSupportedBillingCycle(billingCycle)) {
+      return res.status(400).json({ message: 'Unsupported billing cycle. Use "monthly" or "annual".' });
     }
 
     const user = await User.findById(req.userId).lean();
@@ -85,9 +108,9 @@ const initializeSubscriptionPayment = async (req, res) => {
       return res.status(403).json({ message: 'Free plan is not available for organization accounts.' });
     }
 
-    const pricing = PLAN_PRICING[plan];
+    const pricing = resolvePricingForCycle(plan, billingCycle);
     const reference = `devportix_${req.userId}_${plan}_${Date.now()}`;
-    const callbackUrl = `${resolveFrontendBaseUrl(req)}/pricing?plan=${encodeURIComponent(plan)}`;
+    const callbackUrl = `${resolveFrontendBaseUrl(req)}/pricing?plan=${encodeURIComponent(plan)}&billingCycle=${encodeURIComponent(billingCycle)}`;
 
     const payload = {
       email: user.email,
@@ -98,6 +121,7 @@ const initializeSubscriptionPayment = async (req, res) => {
       metadata: {
         userId: String(user._id),
         plan,
+        billingCycle,
         product: 'devportix_subscription',
       },
     };
@@ -113,6 +137,7 @@ const initializeSubscriptionPayment = async (req, res) => {
     return res.status(200).json({
       message: 'Payment initialized',
       plan,
+      billingCycle,
       reference,
       authorizationUrl: data.data.authorization_url,
       accessCode: data.data.access_code,
@@ -147,9 +172,10 @@ const verifySubscriptionPayment = async (req, res) => {
     const paid = transaction.status === 'success';
     const metadata = transaction.metadata || {};
     const paidPlan = String(metadata.plan || '').trim().toLowerCase();
+    const paidBillingCycle = String(metadata.billingCycle || 'monthly').trim().toLowerCase();
     const paidUserId = String(metadata.userId || '').trim();
 
-    if (!paid || !isSupportedPaidPlan(paidPlan)) {
+    if (!paid || !isSupportedPaidPlan(paidPlan) || !isSupportedBillingCycle(paidBillingCycle)) {
       return res.status(400).json({
         message: 'Payment is not successful for a supported plan',
         paymentStatus: transaction.status,
@@ -163,6 +189,7 @@ const verifySubscriptionPayment = async (req, res) => {
     const { updatedSubscription, user } = await applySuccessfulSubscriptionPayment({
       userId: req.userId,
       plan: paidPlan,
+      billingCycle: paidBillingCycle,
       customerCode: transaction.customer?.customer_code || null,
     });
 
@@ -173,6 +200,7 @@ const verifySubscriptionPayment = async (req, res) => {
     return res.status(200).json({
       message: 'Payment verified and subscription updated',
       plan: updatedSubscription.plan,
+      billingCycle: updatedSubscription.billingCycle,
       renewalDate: updatedSubscription.renewalDate,
       paymentStatus: transaction.status,
       reference: transaction.reference,
@@ -184,6 +212,7 @@ const verifySubscriptionPayment = async (req, res) => {
         githubUsername: user.githubUsername,
         avatar: user.avatar,
         subscription: user.subscription,
+        subscriptionBillingCycle: user.subscriptionBillingCycle || billingCycle,
         skills: Array.isArray(user.skills) ? user.skills : [],
         dashboardMenu: user.dashboardMenu || {},
         createdAt: user.createdAt,
@@ -229,15 +258,22 @@ const handlePaystackWebhook = async (req, res) => {
     const metadata = transaction.metadata || {};
     const product = String(metadata.product || '').trim().toLowerCase();
     const paidPlan = String(metadata.plan || '').trim().toLowerCase();
+    const paidBillingCycle = String(metadata.billingCycle || 'monthly').trim().toLowerCase();
     const paidUserId = String(metadata.userId || '').trim();
 
-    if (product !== 'devportix_subscription' || !paidUserId || !isSupportedPaidPlan(paidPlan)) {
+    if (
+      product !== 'devportix_subscription' ||
+      !paidUserId ||
+      !isSupportedPaidPlan(paidPlan) ||
+      !isSupportedBillingCycle(paidBillingCycle)
+    ) {
       return res.status(200).json({ received: true, ignored: true, reason: 'Unsupported webhook payload' });
     }
 
     const { user } = await applySuccessfulSubscriptionPayment({
       userId: paidUserId,
       plan: paidPlan,
+      billingCycle: paidBillingCycle,
       customerCode: transaction.customer?.customer_code || null,
     });
 
@@ -250,6 +286,7 @@ const handlePaystackWebhook = async (req, res) => {
       processed: true,
       reference: transaction.reference || null,
       plan: paidPlan,
+      billingCycle: paidBillingCycle,
       userId: paidUserId,
     });
   } catch (error) {

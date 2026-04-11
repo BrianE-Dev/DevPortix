@@ -87,6 +87,21 @@ export const communityApi = {
     });
   },
 
+  async listFriendMessages(token, friendId) {
+    return request(`/api/community/friends/messages/${friendId}`, {
+      method: 'GET',
+      headers: authHeaders(token),
+    });
+  },
+
+  async sendFriendMessage(token, friendId, payload) {
+    return request(`/api/community/friends/messages/${friendId}`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    });
+  },
+
   async listPosts(token, params = {}) {
     const searchParams = new URLSearchParams();
 

@@ -1,13 +1,13 @@
 import { request } from './apiClient';
 
 export const paymentApi = {
-  async initialize(token, plan) {
+  async initialize(token, plan, billingCycle = 'monthly') {
     return request('/api/payments/initialize', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ plan }),
+      body: JSON.stringify({ plan, billingCycle }),
     });
   },
 
