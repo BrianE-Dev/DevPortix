@@ -17,6 +17,7 @@ const toPublicUser = (userDoc) => ({
   id: String(userDoc._id),
   fullName: userDoc.fullName,
   email: userDoc.email,
+  emailVerified: Boolean(userDoc.emailVerified),
   role: userDoc.role,
   githubUsername: userDoc.githubUsername,
   avatar: userDoc.avatar,

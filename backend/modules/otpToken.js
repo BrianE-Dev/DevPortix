@@ -18,7 +18,7 @@ const otpTokenSchema = new Schema(
       lowercase: true,
       default: 'registration',
     },
-    codeHash: {
+    otpHash: {
       type: String,
       required: true,
       trim: true,
@@ -32,6 +32,14 @@ const otpTokenSchema = new Schema(
       type: Number,
       default: 0,
       min: 0,
+    },
+    blockedUntil: {
+      type: Date,
+      default: null,
+    },
+    lastSentAt: {
+      type: Date,
+      default: null,
     },
     verifiedAt: {
       type: Date,

@@ -24,6 +24,11 @@ const userSchema = new Schema(
       minlength: 8,
       select: false,
     },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     role: {
       type: String,
       enum: ['student', 'instructor', 'organization', 'professional', 'super_admin'],
