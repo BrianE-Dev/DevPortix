@@ -3,7 +3,7 @@ const Joi = require('joi');
 const OtpToken = require('./otp.schema');
 
 const OTP_TTL_MINUTES = Number(process.env.OTP_TTL_MINUTES || 10);
-const MAX_VERIFY_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS || 5);
+const MAX_VERIFY_ATTEMPTS = Math.max(1, Number(process.env.OTP_MAX_ATTEMPTS || 6));
 const EMAIL_FROM_NAME = String(process.env.EMAIL_FROM_NAME || 'DevPortix').trim();
 const KEPLERS_API_KEY = String(process.env.KEPLERS_API_KEY || '').trim();
 const KEPLERS_API_URL = String(

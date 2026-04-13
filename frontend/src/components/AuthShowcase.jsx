@@ -67,12 +67,12 @@ const AuthShowcase = ({ mode = 'login', isDark }) => {
     <section
       className={`relative overflow-hidden rounded-[2rem] border p-8 sm:p-10 lg:min-h-[760px] ${
         isDark
-          ? 'border-white/10 bg-[linear-gradient(155deg,rgba(2,6,23,0.98),rgba(15,23,42,0.94),rgba(30,64,175,0.26),rgba(49,46,129,0.3))] text-white'
-          : 'border-sky-200 bg-[linear-gradient(155deg,rgba(255,255,255,0.95),rgba(224,242,254,0.96),rgba(221,214,254,0.9))] text-slate-900 shadow-[0_28px_80px_rgba(148,163,184,0.24)]'
+          ? 'border-indigo-300/12 bg-[linear-gradient(155deg,rgba(15,23,42,0.98),rgba(30,27,75,0.97),rgba(49,46,129,0.92),rgba(67,56,202,0.38))] text-white'
+          : 'border-violet-200 bg-[linear-gradient(155deg,rgba(250,245,255,0.98),rgba(237,233,254,0.98),rgba(221,214,254,0.96),rgba(196,181,253,0.9))] text-slate-900 shadow-[0_28px_80px_rgba(139,92,246,0.18)]'
       }`}
     >
-      <div className={`absolute -top-12 left-10 h-36 w-36 rounded-full blur-3xl ${isDark ? 'bg-sky-500/20' : 'bg-sky-300/60'}`} />
-      <div className={`absolute bottom-8 right-6 h-44 w-44 rounded-full blur-3xl ${isDark ? 'bg-violet-500/20' : 'bg-violet-300/50'}`} />
+      <div className={`absolute -top-12 left-10 h-36 w-36 rounded-full blur-3xl ${isDark ? 'bg-indigo-400/20' : 'bg-violet-300/60'}`} />
+      <div className={`absolute bottom-8 right-6 h-44 w-44 rounded-full blur-3xl ${isDark ? 'bg-fuchsia-400/16' : 'bg-violet-400/45'}`} />
 
       <div className="relative flex h-full flex-col justify-between">
         <div>
