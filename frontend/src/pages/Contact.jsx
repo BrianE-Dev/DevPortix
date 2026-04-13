@@ -1,10 +1,15 @@
 // src/pages/Contact.jsx
 import React from 'react';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
+import AuthShowcase from '../components/AuthShowcase';
 
 const Contact = () => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   return (
-    <div className="pt-20 px-4 sm:px-6 lg:px-8 pb-20">
+    <div className={`min-h-screen pt-20 px-4 sm:px-6 lg:px-8 pb-20 ${isDark ? 'bg-[linear-gradient(145deg,#020617_0%,#0f172a_34%,#1d4ed8_72%,#312e81_100%)]' : 'bg-[linear-gradient(145deg,#eff6ff_0%,#e0f2fe_44%,#ede9fe_100%)]'}`}>
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">Contact Us</h1>
@@ -13,9 +18,12 @@ const Contact = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Contact Info */}
-          <div>
+        <div className="grid gap-12 lg:grid-cols-[0.96fr_1fr]">
+          <AuthShowcase mode="signup" isDark={isDark} />
+
+          <div className="space-y-12">
+            <div className="grid grid-cols-1 gap-12">
+              <div>
             <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
               <h2 className="text-2xl font-bold text-white mb-8">Get in Touch</h2>
               
@@ -66,8 +74,6 @@ const Contact = () => {
             </div>
           </div>
 
-          {/* Contact Form */}
-          <div>
             <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
               <h2 className="text-2xl font-bold text-white mb-8">Send us a Message</h2>
               
