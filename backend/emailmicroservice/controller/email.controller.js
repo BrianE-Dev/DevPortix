@@ -1,80 +1,102 @@
-const crypto = require('crypto');
-const Joi = require('joi');
-const OtpToken = require('./otp.schema');
+const crypto = require("crypto");
+const nodemailer = require("nodemailer");
+const Joi = require("joi");
+const OtpToken = require("./otp.schema");
 
 const OTP_TTL_MINUTES = Number(process.env.OTP_TTL_MINUTES || 10);
-const MAX_VERIFY_ATTEMPTS = Math.max(1, Number(process.env.OTP_MAX_ATTEMPTS || 6));
-const EMAIL_FROM_NAME = String(process.env.EMAIL_FROM_NAME || 'DevPortix').trim();
-const KEPLERS_API_KEY = String(process.env.KEPLERS_API_KEY || '').trim();
-const KEPLERS_API_URL = String(
-  process.env.KEPLERS_API_URL || 'https://api.keplars.com/api/v1/send-email/instant'
+const MAX_VERIFY_ATTEMPTS = Math.max(
+  1,
+  Number(process.env.OTP_MAX_ATTEMPTS || 6),
+);
+const EMAIL_FROM_NAME = String(
+  process.env.EMAIL_FROM_NAME || "DevPortix",
 ).trim();
+const SMTP_HOST = String(process.env.SMTP_HOST || "smtp.gmail.com").trim();
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_SECURE = Boolean(process.env.SMTP_SECURE === "true");
+const SMTP_USER = String(process.env.SMTP_USER || "").trim();
+const SMTP_PASS = String(process.env.SMTP_PASS || "").trim();
 
 const requestOtpSchema = Joi.object({
   email: Joi.string().trim().email().required(),
-  purpose: Joi.string().trim().max(60).default('email_verification'),
+  purpose: Joi.string().trim().max(60).default("email_verification"),
 });
 
 const verifyOtpSchema = Joi.object({
   email: Joi.string().trim().email().required(),
-  otp: Joi.string().trim().pattern(/^\d{6}$/).required(),
-  purpose: Joi.string().trim().max(60).default('email_verification'),
+  otp: Joi.string()
+    .trim()
+    .pattern(/^\d{6}$/)
+    .required(),
+  purpose: Joi.string().trim().max(60).default("email_verification"),
 });
 
-const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
-const normalizePurpose = (value) => String(value || 'email_verification').trim().toLowerCase();
+const normalizeEmail = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
+const normalizePurpose = (value) =>
+  String(value || "email_verification")
+    .trim()
+    .toLowerCase();
 
 const generateOtp = () => String(crypto.randomInt(100000, 1000000));
 const hashOtp = (email, purpose, otp) =>
-  crypto.createHash('sha256').update(`${normalizeEmail(email)}:${normalizePurpose(purpose)}:${String(otp)}`).digest('hex');
+  crypto
+    .createHash("sha256")
+    .update(
+      `${normalizeEmail(email)}:${normalizePurpose(purpose)}:${String(otp)}`,
+    )
+    .digest("hex");
 
-const sendWithKeplers = async ({ to, subject, text, html }) => {
-  if (!KEPLERS_API_KEY) {
-    throw new Error('Keplars API key is not configured');
+const sendWithSmtp = async ({ to, subject, text, html }) => {
+  if (!SMTP_USER || !SMTP_PASS) {
+    throw new Error("SMTP credentials are not configured");
   }
 
-  const response = await fetch(KEPLERS_API_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${KEPLERS_API_KEY}`,
-      'Content-Type': 'application/json',
+  const transporter = nodemailer.createTransporter({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS,
     },
-    body: JSON.stringify({
-      to: [to],
-      subject,
-      body: html || text,
-    }),
   });
 
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload?.success === false) {
-    throw new Error(payload?.error || payload?.message || 'Keplars email request failed');
-  }
+  const mailOptions = {
+    from: `${EMAIL_FROM_NAME} <${SMTP_USER}>`,
+    to,
+    subject,
+    text,
+    html,
+  };
 
-  return payload;
+  const info = await transporter.sendMail(mailOptions);
+  return info;
 };
 
 const sendEmail = async (payload) => {
-  return sendWithKeplers(payload);
+  return sendWithSmtp(payload);
 };
 
 const buildOtpEmail = ({ otp, purpose }) => {
-  const subjectPurpose = normalizePurpose(purpose).replace(/_/g, ' ');
+  const subjectPurpose = normalizePurpose(purpose).replace(/_/g, " ");
   const titlePurpose = subjectPurpose
-    .split(' ')
+    .split(" ")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
+    .join(" ");
 
   return {
     subject: `Your DevPortix OTP for ${titlePurpose}`,
     text: [
-      'DevPortix Verification Code',
-      '',
+      "DevPortix Verification Code",
+      "",
       `Your one-time password for ${subjectPurpose} is: ${otp}`,
       `This code expires in ${OTP_TTL_MINUTES} minutes.`,
-      '',
-      'If you did not request this code, you can safely ignore this email.',
-    ].join('\n'),
+      "",
+      "If you did not request this code, you can safely ignore this email.",
+    ].join("\n"),
     html: `
       <div style="margin: 0; padding: 32px 16px; background: #eef4ff; font-family: Arial, sans-serif; color: #0f172a;">
         <div style="max-width: 640px; margin: 0 auto; overflow: hidden; border-radius: 28px; background: #ffffff; box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);">
@@ -122,9 +144,14 @@ const buildOtpEmail = ({ otp, purpose }) => {
 
 const requestOtp = async (req, res) => {
   try {
-    const { value, error } = requestOtpSchema.validate(req.body || {}, { abortEarly: false, stripUnknown: true });
+    const { value, error } = requestOtpSchema.validate(req.body || {}, {
+      abortEarly: false,
+      stripUnknown: true,
+    });
     if (error) {
-      return res.status(400).json({ message: error.details[0]?.message || 'Invalid request payload' });
+      return res.status(400).json({
+        message: error.details[0]?.message || "Invalid request payload",
+      });
     }
 
     const email = normalizeEmail(value.email);
@@ -145,7 +172,7 @@ const requestOtp = async (req, res) => {
           verifiedAt: null,
         },
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, new: true, setDefaultsOnInsert: true },
     );
 
     const emailPayload = buildOtpEmail({ otp, purpose });
@@ -158,21 +185,28 @@ const requestOtp = async (req, res) => {
     });
 
     return res.status(200).json({
-      message: 'OTP sent successfully',
+      message: "OTP sent successfully",
       email,
       purpose,
       expiresAt,
     });
   } catch (error) {
-    return res.status(500).json({ message: 'Failed to send OTP', error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Failed to send OTP", error: error.message });
   }
 };
 
 const verifyOtp = async (req, res) => {
   try {
-    const { value, error } = verifyOtpSchema.validate(req.body || {}, { abortEarly: false, stripUnknown: true });
+    const { value, error } = verifyOtpSchema.validate(req.body || {}, {
+      abortEarly: false,
+      stripUnknown: true,
+    });
     if (error) {
-      return res.status(400).json({ message: error.details[0]?.message || 'Invalid request payload' });
+      return res.status(400).json({
+        message: error.details[0]?.message || "Invalid request payload",
+      });
     }
 
     const email = normalizeEmail(value.email);
@@ -180,27 +214,27 @@ const verifyOtp = async (req, res) => {
     const otpDoc = await OtpToken.findOne({ email, purpose });
 
     if (!otpDoc) {
-      return res.status(404).json({ message: 'OTP not found or expired' });
+      return res.status(404).json({ message: "OTP not found or expired" });
     }
 
     if (otpDoc.verifiedAt) {
-      return res.status(409).json({ message: 'OTP has already been used' });
+      return res.status(409).json({ message: "OTP has already been used" });
     }
 
     if (otpDoc.expiresAt.getTime() < Date.now()) {
       await OtpToken.deleteOne({ _id: otpDoc._id });
-      return res.status(410).json({ message: 'OTP has expired' });
+      return res.status(410).json({ message: "OTP has expired" });
     }
 
     if (Number(otpDoc.attempts || 0) >= MAX_VERIFY_ATTEMPTS) {
-      return res.status(429).json({ message: 'Maximum OTP attempts exceeded' });
+      return res.status(429).json({ message: "Maximum OTP attempts exceeded" });
     }
 
     const submittedHash = hashOtp(email, purpose, value.otp);
     if (submittedHash !== otpDoc.codeHash) {
       otpDoc.attempts += 1;
       await otpDoc.save();
-      return res.status(400).json({ message: 'Invalid OTP' });
+      return res.status(400).json({ message: "Invalid OTP" });
     }
 
     otpDoc.verifiedAt = new Date();
@@ -208,13 +242,15 @@ const verifyOtp = async (req, res) => {
     await otpDoc.save();
 
     return res.status(200).json({
-      message: 'OTP verified successfully',
+      message: "OTP verified successfully",
       email,
       purpose,
       verifiedAt: otpDoc.verifiedAt,
     });
   } catch (error) {
-    return res.status(500).json({ message: 'Failed to verify OTP', error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Failed to verify OTP", error: error.message });
   }
 };
 
