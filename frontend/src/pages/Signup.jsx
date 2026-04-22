@@ -76,12 +76,20 @@ const Signup = () => {
       }
 
       setOtpLoading(true);
-      await authApi.requestRegistrationOtp({ email: formData.email });
+      const response = await authApi.requestRegistrationOtp({ email: formData.email });
+      const cooldownEndsAt = response?.cooldownEndsAt
+        ? new Date(response.cooldownEndsAt).getTime() - Date.now()
+        : 0;
+      const nextCooldown = cooldownEndsAt > 0
+        ? Math.max(1, Math.ceil(cooldownEndsAt / 1000))
+        : OTP_RESEND_COOLDOWN_SECONDS;
       setOtpMessage(`A registration OTP has been sent to ${formData.email}.`);
-      setOtpCooldown(OTP_RESEND_COOLDOWN_SECONDS);
+      setOtpCooldown(nextCooldown);
     } catch (err) {
       if (err.status === 429) {
-        setOtpCooldown(OTP_RESEND_COOLDOWN_SECONDS);
+        setOtpCooldown(
+          Math.max(1, Number(err.retryAfterSeconds || OTP_RESEND_COOLDOWN_SECONDS)),
+        );
       }
       setError(err.message || 'Failed to send registration OTP');
     } finally {

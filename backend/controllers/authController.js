@@ -80,10 +80,14 @@ const requestRegistrationOtp = async (req, res) => {
       res.set('Retry-After', String(error.retryAfterSeconds));
     }
     console.error('[auth] Failed to send registration OTP:', error.message);
-    return res.status(error?.statusCode || 503).json({
-      message: error?.statusCode && error.statusCode < 500
-        ? error.message
-        : 'OTP service is temporarily unavailable. Please try again shortly.',
+    const statusCode = error?.statusCode || 503;
+    const message = error?.statusCode && error.statusCode < 500
+      ? error.message
+      : 'OTP service is temporarily unavailable. Please try again shortly.';
+
+    return res.status(statusCode).json({
+      message,
+      ...(error?.retryAfterSeconds ? { retryAfterSeconds: error.retryAfterSeconds } : {}),
     });
   }
 };

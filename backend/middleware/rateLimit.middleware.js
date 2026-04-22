@@ -17,8 +17,12 @@ const createMemoryRateLimiter = ({
     }
 
     if (current.count >= maxRequests) {
-      res.set('Retry-After', String(Math.max(1, Math.ceil((current.resetAt - now) / 1000))));
-      return res.status(429).json({ message });
+      const retryAfterSeconds = Math.max(
+        1,
+        Math.ceil((current.resetAt - now) / 1000),
+      );
+      res.set('Retry-After', String(retryAfterSeconds));
+      return res.status(429).json({ message, retryAfterSeconds });
     }
 
     current.count += 1;
@@ -33,11 +37,21 @@ const clientIpKey = (req) =>
     .trim()
     .toLowerCase();
 
+const normalizeEmail = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase();
+
+const otpRequestKey = (req) => {
+  const email = normalizeEmail(req.body?.email);
+  return `${clientIpKey(req)}:${email || 'unknown-email'}`;
+};
+
 const registrationOtpRequestLimiter = createMemoryRateLimiter({
   windowMs: 60 * 1000,
   maxRequests: 10,
-  message: 'Too many OTP requests from this IP. Please wait a minute and try again.',
-  keyGenerator: clientIpKey,
+  message: 'Too many OTP requests for this email from your current network. Please wait a minute and try again.',
+  keyGenerator: otpRequestKey,
 });
 
 const registrationOtpVerifyLimiter = createMemoryRateLimiter({

@@ -3,13 +3,22 @@ import { resolveApiUrl } from '../utils/api';
 const parseError = async (response) => {
   try {
     const payload = await response.json();
-    return payload?.message || 'Request failed';
+    return {
+      message: payload?.message || 'Request failed',
+      payload,
+    };
   } catch (_error) {
     try {
       const text = await response.text();
-      return text || 'Request failed';
+      return {
+        message: text || 'Request failed',
+        payload: null,
+      };
     } catch (_nestedError) {
-      return 'Request failed';
+      return {
+        message: 'Request failed',
+        payload: null,
+      };
     }
   }
 };
@@ -34,9 +43,16 @@ export const request = async (path, options = {}) => {
   });
 
   if (!response.ok) {
-    const message = await parseError(response);
+    const { message, payload } = await parseError(response);
+    const retryAfterHeader = Number(response.headers.get('Retry-After'));
     const error = new Error(message);
     error.status = response.status;
+    error.retryAfterSeconds =
+      payload?.retryAfterSeconds ||
+      (Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
+        ? retryAfterHeader
+        : undefined);
+    error.payload = payload;
     throw error;
   }
 
