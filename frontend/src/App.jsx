@@ -95,6 +95,7 @@ const AppContent = () => {
           <Route path="/signup" element={<Signup />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/blog" element={<CommunityPage initialTab="blog" blogOnly />} />
           <Route path="/community" element={<CommunityPage />} />
           <Route path="/portfolio/:username" element={<PortfolioPage />} />
           <Route path="*" element={<Navigate to="/" />} />

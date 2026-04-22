@@ -61,7 +61,7 @@ const Footer = () => {
             <ul className="space-y-2">
               <li><Link to="/about" className="text-sm text-white transition hover:text-white" style={{ color: '#ffffff' }}>About</Link></li>
               <li><Link to="/contact" className="text-sm text-white transition hover:text-white" style={{ color: '#ffffff' }}>Contact</Link></li>
-              <li><a href="#" className="text-sm text-white transition hover:text-white" style={{ color: '#ffffff' }}>Blog</a></li>
+              <li><Link to="/blog" className="text-sm text-white transition hover:text-white" style={{ color: '#ffffff' }}>Blog</Link></li>
               <li><a href="#" className="text-sm text-white transition hover:text-white" style={{ color: '#ffffff' }}>Careers</a></li>
             </ul>
           </div>

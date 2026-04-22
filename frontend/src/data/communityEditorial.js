@@ -11,8 +11,11 @@ import githubInlineImage from '../assets/community/blog-github-inline.jpg';
 import brandInlineImage from '../assets/community/blog-brand-inline.jpg';
 import educationInlineImage from '../assets/community/blog-education-inline.jpg';
 import modernInlineImage from '../assets/community/blog-modern-inline.jpg';
+import siliconChipHeroImage from '../assets/community/blog-silicon-chip-hero.jpg';
+import siliconStackInlineImage from '../assets/community/blog-silicon-stack-inline.jpg';
 
 export const DEVPORTIX_BLOG_TOPICS = [
+  'Respect the Stack: The Software We Ship Still Runs on Silicon',
   'How Developers Can Turn Projects Into a Portfolio That Gets Interviews',
   'From GitHub Repo to Hire-Ready Story: What Recruiters Actually Want to See',
   '5 Portfolio Mistakes Junior Developers Make and How to Fix Them',
@@ -23,6 +26,97 @@ export const DEVPORTIX_BLOG_TOPICS = [
 ];
 
 export const DEVPORTIX_EDITORIAL_BLOGS = [
+  {
+    id: 'devportix-editorial-respect-the-stack-silicon',
+    type: 'blog',
+    title: 'Respect the Stack: The Software We Ship Still Runs on Silicon',
+    content:
+      'Software can feel weightless because we work through abstractions all day. But every endpoint, queue, mobile screen, background job, and deployment pipeline still lands on physical hardware. Modern products run because billions of transistors switch at extraordinary speed beneath the layers we call frameworks, runtimes, operating systems, and cloud platforms.',
+    excerpt:
+      'A DevPortix editorial on why software engineers should think beyond apps and APIs and remember the physical computing stack that makes modern systems possible.',
+    author: {
+      fullName: 'DevPortix Editorial Team',
+      role: 'Product Marketing',
+    },
+    createdAt: '2026-04-22T09:30:00.000Z',
+    updatedAt: '2026-04-22T09:30:00.000Z',
+    likeCount: 0,
+    upvoteCount: 0,
+    commentCount: 0,
+    isLiked: false,
+    isUpvoted: false,
+    isOwner: false,
+    media: {
+      url: siliconChipHeroImage,
+      mimeType: 'image/jpeg',
+      originalName: 'blog-silicon-chip-hero.jpg',
+      size: 0,
+    },
+    editorialMeta: {
+      readingTime: '5 min read',
+      category: 'Systems Thinking',
+      tags: ['Systems Thinking', 'Infrastructure', 'Hardware', 'Software Engineering'],
+      heroImage: siliconChipHeroImage,
+      inlineImage: siliconStackInlineImage,
+      imageCredits: [
+        'Cover photo: Pixabay / Joa70 - Microchip Close Up Technology',
+        'Inline image: Pixabay / -PromptPlay- - Data Center, Server Racks, Blue Light',
+      ],
+      keyStats: [
+        { label: 'Execution layer', value: 'Silicon' },
+        { label: 'Switching speed', value: 'Nanoseconds' },
+        { label: 'Systems span', value: 'Code to hardware' },
+      ],
+      sections: [
+        {
+          heading: 'Lead',
+          body: [
+            'Engineers do not just build products. They build the infrastructure modern life depends on. A web app may look like frontend code, API routes, and database queries on the surface, but the full path of execution reaches far deeper than the abstractions we touch every day.',
+            'Every request we serve and every feature we ship ultimately runs on chips: dense arrangements of transistors switching at nanosecond speeds, coordinated through compilers, runtimes, operating systems, firmware, networks, and data center hardware. Software is not separate from that stack. It is one layer of it.',
+          ],
+        },
+        {
+          heading: 'Why this matters',
+          body: [
+            'Abstraction is one of engineering’s greatest tools because it lets us move quickly without reinventing the machine every time. But abstraction can also make us forget what our decisions cost in the real world.',
+            'Latency, memory pressure, thermal limits, power budgets, storage throughput, network hops, hardware failures, and manufacturing constraints are not background trivia. They shape what software can do, how reliably it can do it, and how expensive it is to operate at scale.',
+          ],
+        },
+        {
+          heading: 'From code to silicon',
+          body: [
+            'When we say an application "runs," we are really describing a chain of translation. Product requirements become code. Code becomes instructions. Instructions move through processors, memory, buses, and storage. Those physical systems then produce the behavior users experience as a product.',
+            'That is what gives software engineering its leverage. A small change in code can alter the behavior of a system used by thousands or millions of people because the underlying hardware executes those instructions with remarkable consistency and speed.',
+          ],
+        },
+        {
+          heading: 'Software moves physical systems',
+          body: [
+            'This matters even more when software leaves the screen and coordinates real operations. The same computing foundations behind web apps and backend services also support warehouse automation, logistics networks, industrial monitoring, robotics, payment systems, and food and manufacturing workflows.',
+            'Software does not live in isolation. It schedules work, routes goods, monitors sensors, synchronizes machines, and helps physical processes run with precision. In many environments, code is not just describing reality. It is actively shaping it.',
+          ],
+        },
+        {
+          heading: 'What engineers forget',
+          body: [
+            'It is easy to think only in terms of frameworks, tickets, deploys, and dashboards. Those matter, but they are not the whole story. Beneath them is an execution stack engineered by people across semiconductor design, systems architecture, networking, platform engineering, and operations.',
+            'Remembering that broader stack improves judgment. It pushes us to write more efficient systems, reason more clearly about performance, and respect the constraints that make reliability possible.',
+          ],
+        },
+        {
+          heading: 'What this means in practice',
+          body: [
+            'When you optimize a query, reduce bundle size, redesign a hot path, or improve fault tolerance, you are not just polishing code style. You are making better use of real compute, real storage, real bandwidth, and real infrastructure.',
+            'That perspective also sharpens collaboration. Software engineers, hardware engineers, platform teams, SREs, and systems designers are not working on unrelated problems. They are contributing to the same stack from different layers.',
+          ],
+        },
+      ],
+      quote:
+        'Respect the craft means remembering that elegant software still depends on physical systems engineered all the way down.',
+      closing:
+        'The next time you build or use a digital product, it is worth pausing on the full chain beneath it. From high-level code to semiconductor physics, modern computing works because engineers designed, optimized, and shipped every layer. Respect the stack. Respect the craft.',
+    },
+  },
   {
     id: 'devportix-editorial-portfolio-gets-interviews',
     type: 'blog',

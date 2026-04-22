@@ -187,7 +187,7 @@ const normalizeRequestBuckets = (payload) => ({
   friends: Array.isArray(payload?.friends) ? payload.friends : [],
 });
 
-const CommunityPage = () => {
+const CommunityPage = ({ initialTab = "chat", blogOnly = false }) => {
   const { confirm, showError, showSuccess } = useModal();
   const { user, isAuthenticated } = useAuth();
   const { theme } = useTheme();
@@ -195,7 +195,7 @@ const CommunityPage = () => {
   const token = useMemo(() => LocalStorageService.getToken(), []);
   const isDark = theme === "dark";
   const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
-  const [tab, setTab] = useState("chat");
+  const [tab, setTab] = useState(blogOnly ? "blog" : initialTab);
   const [posts, setPosts] = useState([]);
   const [recentBlogs, setRecentBlogs] = useState([]);
   const [mostLikedBlogs, setMostLikedBlogs] = useState([]);
@@ -368,6 +368,12 @@ const CommunityPage = () => {
     },
     [token],
   );
+
+  useEffect(() => {
+    if (blogOnly && tab !== "blog") {
+      setTab("blog");
+    }
+  }, [blogOnly, tab]);
 
   useEffect(() => {
     if ((tab === "people" || tab === "chat") && !token) {
@@ -861,40 +867,43 @@ const CommunityPage = () => {
           <p
             className={`text-sm font-semibold uppercase tracking-[0.28em] ${isDark ? "text-blue-400" : "text-blue-600"}`}
           >
-            Community space
+            {blogOnly ? "Editorial journal" : "Community space"}
           </p>
           <h1
             className={`mt-2 text-3xl font-bold ${isDark ? "text-white" : "text-slate-900"}`}
           >
-            Conversations, blogs, and people
+            {blogOnly ? "DevPortix Blog" : "Conversations, blogs, and people"}
           </h1>
           <p
             className={`mt-2 max-w-2xl text-sm ${isDark ? "text-slate-300" : "text-slate-600"}`}
           >
-            Super admins handle blog publishing, while everyone else can read,
-            like, and join the discussion.
+            {blogOnly
+              ? "Read the latest DevPortix editorial posts, share them, and join the discussion."
+              : "Super admins handle blog publishing, while everyone else can read, like, and join the discussion."}
           </p>
         </div>
-        <div className="flex gap-2 rounded-full border border-slate-200 bg-white p-1 shadow-sm">
-          <button
-            className={`rounded-full px-4 py-2 text-sm ${tab === "chat" ? "bg-slate-900 text-white" : "text-slate-600"}`}
-            onClick={() => setTab("chat")}
-          >
-            Chats
-          </button>
-          <button
-            className={`rounded-full px-4 py-2 text-sm ${tab === "blog" ? "bg-slate-900 text-white" : "text-slate-600"}`}
-            onClick={() => setTab("blog")}
-          >
-            Blogs
-          </button>
-          <button
-            className={`rounded-full px-4 py-2 text-sm ${tab === "people" ? "bg-slate-900 text-white" : "text-slate-600"}`}
-            onClick={() => setTab("people")}
-          >
-            People
-          </button>
-        </div>
+        {!blogOnly ? (
+          <div className="flex gap-2 rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+            <button
+              className={`rounded-full px-4 py-2 text-sm ${tab === "chat" ? "bg-slate-900 text-white" : "text-slate-600"}`}
+              onClick={() => setTab("chat")}
+            >
+              Chats
+            </button>
+            <button
+              className={`rounded-full px-4 py-2 text-sm ${tab === "blog" ? "bg-slate-900 text-white" : "text-slate-600"}`}
+              onClick={() => setTab("blog")}
+            >
+              Blogs
+            </button>
+            <button
+              className={`rounded-full px-4 py-2 text-sm ${tab === "people" ? "bg-slate-900 text-white" : "text-slate-600"}`}
+              onClick={() => setTab("people")}
+            >
+              People
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {error && (
@@ -1901,18 +1910,18 @@ const CommunityPage = () => {
                           }`}
                         >
                           <ArrowLeft className="h-4 w-4" />
-                          <span>Prev</span>
+                          <span>Newer</span>
                           <span className="max-w-[220px] truncate text-xs opacity-80">
                             {previousBlogPost
                               ? truncateTitle(previousBlogPost.title)
-                              : "Start of blog feed"}
+                              : "Newest post in feed"}
                           </span>
                         </button>
 
                         <span
                           className={`text-xs font-semibold uppercase tracking-[0.2em] ${isDark && isEditorial ? "text-slate-400" : "text-slate-500"}`}
                         >
-                          Post {activeBlogPage + 1} of {mergedBlogPosts.length}
+                          Post {activeBlogPage + 1} of {mergedBlogPosts.length} · newest to oldest
                         </span>
 
                         <button
@@ -1932,9 +1941,9 @@ const CommunityPage = () => {
                           <span className="max-w-[220px] truncate text-xs opacity-80">
                             {nextBlogPost
                               ? truncateTitle(nextBlogPost.title)
-                              : "End of blog feed"}
+                              : "Oldest post in feed"}
                           </span>
-                          <span>Next</span>
+                          <span>Older</span>
                           <ArrowRight className="h-4 w-4" />
                         </button>
                       </div>
