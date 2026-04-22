@@ -11,14 +11,42 @@ const {
   verifyRegistrationOtp,
   verifyRegistrationVerificationToken,
 } = require('../services/otp.service');
+const {
+  buildSetupPayload,
+  decryptSecret,
+  encryptSecret,
+  generateSecret,
+  verifyToken,
+} = require('../services/totp.service');
 
 const TOKEN_TTL = '7d';
+const LOGIN_TOTP_TOKEN_TTL = '5m';
 const PUBLIC_SIGNUP_ROLES = new Set(['student', 'instructor', 'organization', 'professional']);
+const JWT_SECRET = process.env.JWT_SECRET || process.env.JWTSECRET || 'devportix_dev_secret';
 
 const signToken = (userId) =>
-  jwt.sign({ sub: String(userId) }, process.env.JWT_SECRET || 'devportix_dev_secret', {
+  jwt.sign({ sub: String(userId) }, JWT_SECRET, {
     expiresIn: TOKEN_TTL,
   });
+
+const signTotpLoginChallenge = (userId) =>
+  jwt.sign(
+    {
+      sub: String(userId),
+      type: 'totp_login_challenge',
+    },
+    JWT_SECRET,
+    { expiresIn: LOGIN_TOTP_TOKEN_TTL },
+  );
+
+const verifyTotpLoginChallenge = (token) => {
+  const payload = jwt.verify(String(token || '').trim(), JWT_SECRET);
+  if (payload?.type !== 'totp_login_challenge' || !payload?.sub) {
+    throw new Error('Invalid TOTP login challenge');
+  }
+
+  return String(payload.sub);
+};
 
 const toPublicUser = (userDoc) => ({
   id: String(userDoc._id),
@@ -33,6 +61,7 @@ const toPublicUser = (userDoc) => ({
   subscriptionBillingCycle: userDoc.subscriptionBillingCycle || 'monthly',
   skills: Array.isArray(userDoc.skills) ? userDoc.skills : [],
   dashboardMenu: userDoc.dashboardMenu || {},
+  totpEnabled: Boolean(userDoc.totpEnabled),
   createdAt: userDoc.createdAt,
   updatedAt: userDoc.updatedAt,
 });
@@ -171,6 +200,14 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
+    if (user.totpEnabled) {
+      return res.status(200).json({
+        message: 'TOTP verification required',
+        requiresTotp: true,
+        loginChallengeToken: signTotpLoginChallenge(user._id),
+      });
+    }
+
     const token = signToken(user._id);
     return res.status(200).json({
       message: 'login successful',
@@ -182,9 +219,138 @@ const login = async (req, res) => {
   }
 };
 
+const verifyLoginTotp = async (req, res) => {
+  try {
+    const { code, loginChallengeToken } = req.body || {};
+    const userId = verifyTotpLoginChallenge(loginChallengeToken);
+    const user = await User.findById(userId).select('+password');
+
+    if (!user || !user.totpEnabled) {
+      return res.status(401).json({ message: 'TOTP is not enabled for this account' });
+    }
+
+    const secret = decryptSecret(user.totpSecret);
+    if (!secret || !verifyToken(secret, code)) {
+      return res.status(401).json({ message: 'Invalid authentication code' });
+    }
+
+    const token = signToken(user._id);
+    return res.status(200).json({
+      message: 'login successful',
+      token,
+      user: toPublicUser(user),
+    });
+  } catch (error) {
+    return res.status(401).json({ message: 'Failed to verify authentication code' });
+  }
+};
+
+const getTotpStatus = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('email totpEnabled totpPendingSecret');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    return res.status(200).json({
+      totpEnabled: Boolean(user.totpEnabled),
+      hasPendingSetup: Boolean(user.totpPendingSecret?.cipherText),
+      email: user.email,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to load TOTP status', error: error.message });
+  }
+};
+
+const createTotpSetup = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('email totpEnabled totpPendingSecret');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const secret = generateSecret();
+    user.totpPendingSecret = encryptSecret(secret);
+    await user.save();
+
+    return res.status(200).json({
+      message: user.totpEnabled ? 'New TOTP setup generated' : 'TOTP setup generated',
+      totpEnabled: Boolean(user.totpEnabled),
+      ...await buildSetupPayload({ email: user.email, secret }),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to create TOTP setup', error: error.message });
+  }
+};
+
+const enableTotp = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('email totpEnabled totpSecret totpPendingSecret');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const pendingSecret = decryptSecret(user.totpPendingSecret);
+    if (!pendingSecret) {
+      return res.status(400).json({ message: 'Start TOTP setup before verifying a code' });
+    }
+
+    if (!verifyToken(pendingSecret, req.body?.code)) {
+      return res.status(400).json({ message: 'Invalid authentication code' });
+    }
+
+    user.totpSecret = user.totpPendingSecret;
+    user.totpPendingSecret = { cipherText: '', iv: '', authTag: '' };
+    user.totpEnabled = true;
+    await user.save();
+
+    return res.status(200).json({
+      message: 'Authenticator app protection enabled',
+      user: toPublicUser(user),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to enable TOTP', error: error.message });
+  }
+};
+
+const disableTotp = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('totpEnabled totpSecret totpPendingSecret');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.totpEnabled) {
+      return res.status(400).json({ message: 'Authenticator app protection is not enabled' });
+    }
+
+    const secret = decryptSecret(user.totpSecret);
+    if (!secret || !verifyToken(secret, req.body?.code)) {
+      return res.status(400).json({ message: 'Invalid authentication code' });
+    }
+
+    user.totpEnabled = false;
+    user.totpSecret = { cipherText: '', iv: '', authTag: '' };
+    user.totpPendingSecret = { cipherText: '', iv: '', authTag: '' };
+    await user.save();
+
+    return res.status(200).json({
+      message: 'Authenticator app protection disabled',
+      user: toPublicUser(user),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to disable TOTP', error: error.message });
+  }
+};
+
 module.exports = {
   requestRegistrationOtp,
   verifyOtp,
   register,
   login,
+  verifyLoginTotp,
+  getTotpStatus,
+  createTotpSetup,
+  enableTotp,
+  disableTotp,
 };

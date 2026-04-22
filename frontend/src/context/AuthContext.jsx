@@ -62,6 +62,27 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const response = await authApi.login({ email, password });
+      if (response?.requiresTotp) {
+        return {
+          success: false,
+          requiresTotp: true,
+          loginChallengeToken: response.loginChallengeToken,
+        };
+      }
+
+      LocalStorageService.setToken(response.token);
+      const normalizedUser = setAuthenticatedUser(response.user);
+
+      return { success: true, user: normalizedUser };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyLoginTotp = async (loginChallengeToken, code) => {
+    setLoading(true);
+    try {
+      const response = await authApi.verifyLoginTotp({ loginChallengeToken, code });
       LocalStorageService.setToken(response.token);
       const normalizedUser = setAuthenticatedUser(response.user);
 
@@ -114,6 +135,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     signup,
+    verifyLoginTotp,
     logout,
     updateProfile,
     deleteAccount,

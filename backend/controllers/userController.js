@@ -26,6 +26,7 @@ const toPublicUser = (userDoc) => ({
   subscriptionBillingCycle: userDoc.subscriptionBillingCycle || 'monthly',
   skills: Array.isArray(userDoc.skills) ? userDoc.skills : [],
   dashboardMenu: userDoc.dashboardMenu || {},
+  totpEnabled: Boolean(userDoc.totpEnabled),
   createdAt: userDoc.createdAt,
   updatedAt: userDoc.updatedAt,
 });

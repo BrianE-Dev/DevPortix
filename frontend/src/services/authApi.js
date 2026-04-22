@@ -22,6 +22,13 @@ export const authApi = {
     });
   },
 
+  async verifyLoginTotp(payload) {
+    return request('/api/auth/login/totp', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
   async me(token) {
     return request('/api/users/me', {
       method: 'GET',
@@ -47,6 +54,44 @@ export const authApi = {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+    });
+  },
+
+  async getTotpStatus(token) {
+    return request('/api/auth/totp/status', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  async createTotpSetup(token) {
+    return request('/api/auth/totp/setup', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  async enableTotp(token, payload) {
+    return request('/api/auth/totp/enable', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async disableTotp(token, payload) {
+    return request('/api/auth/totp/disable', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
     });
   },
 };

@@ -76,6 +76,20 @@ const userSchema = new Schema(
       professional: { type: String, default: 'overview' },
       instructor: { type: String, default: 'overview' },
     },
+    totpEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    totpSecret: {
+      cipherText: { type: String, default: '' },
+      iv: { type: String, default: '' },
+      authTag: { type: String, default: '' },
+    },
+    totpPendingSecret: {
+      cipherText: { type: String, default: '' },
+      iv: { type: String, default: '' },
+      authTag: { type: String, default: '' },
+    },
   },
   {
     timestamps: true,

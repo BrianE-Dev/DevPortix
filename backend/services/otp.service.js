@@ -31,6 +31,14 @@ const OTP_SERVICE_URL = String(
 )
   .trim()
   .replace(/\/+$/, "");
+const BRIMEE_URL = String(
+  process.env.BRIMEE_URL ||
+    process.env.OTP_SERVICE_URL ||
+    process.env.EMAIL_SERVICE_URL ||
+    "",
+)
+  .trim()
+  .replace(/\/+$/, "");
 const BRIMEE_API_KEY = String(process.env.BRIMEE_API_KEY || "").trim();
 
 const normalizeEmail = (value) =>
