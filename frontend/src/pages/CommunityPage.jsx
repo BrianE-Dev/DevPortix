@@ -14,6 +14,11 @@ import {
   DEVPORTIX_BLOG_TOPICS,
   DEVPORTIX_EDITORIAL_BLOGS,
 } from "../data/communityEditorial";
+import techInlineImage from "../assets/community/devportix-blog-inline.jpg";
+import proofCoverImage from "../assets/community/blog-proof-cover.jpg";
+import githubCoverImage from "../assets/community/blog-github-cover.jpg";
+import modernCoverImage from "../assets/community/blog-modern-cover.jpg";
+import modernInlineImage from "../assets/community/blog-modern-inline.jpg";
 
 const formatDate = (value) => {
   if (!value) return "";
@@ -56,6 +61,43 @@ const truncateTitle = (value, maxLength = 40) => {
   const text = String(value || "").trim();
   if (text.length <= maxLength) return text;
   return `${text.slice(0, Math.max(0, maxLength - 3)).trim()}...`;
+};
+
+const toTimestamp = (value) => {
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const splitArticleParagraphs = (content) =>
+  String(content || "")
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+
+const buildFallbackBlogVisuals = (post) => {
+  const text = `${String(post?.title || "")} ${String(post?.content || "")}`.toLowerCase();
+
+  if (text.includes("github") || text.includes("repo")) {
+    return {
+      heroImage: githubCoverImage,
+      inlineImage: modernInlineImage,
+      category: "Engineering Systems",
+    };
+  }
+
+  if (text.includes("proof") || text.includes("trust") || text.includes("craft")) {
+    return {
+      heroImage: proofCoverImage,
+      inlineImage: techInlineImage,
+      category: "Engineering Perspective",
+    };
+  }
+
+  return {
+    heroImage: modernCoverImage,
+    inlineImage: techInlineImage,
+    category: "DevPortix Journal",
+  };
 };
 
 const loadEditorialLikes = () => {
@@ -593,7 +635,9 @@ const CommunityPage = () => {
             .toLowerCase(),
         ),
     );
-    return [...editorialOnly, ...apiBlogs];
+    return [...editorialOnly, ...apiBlogs].sort(
+      (a, b) => toTimestamp(b?.createdAt) - toTimestamp(a?.createdAt),
+    );
   }, [editorialBlogs, posts]);
 
   const mergedRecentBlogs = useMemo(() => {
@@ -608,6 +652,7 @@ const CommunityPage = () => {
         seen.add(key);
         return true;
       })
+      .sort((a, b) => toTimestamp(b?.createdAt) - toTimestamp(a?.createdAt))
       .slice(0, 5);
   }, [editorialBlogs, recentBlogs]);
 
@@ -1306,12 +1351,18 @@ const CommunityPage = () => {
               const likeCount = isEditorial
                 ? baseLikeCount + (isLiked ? 1 : 0)
                 : baseLikeCount;
+              const fallbackVisuals = buildFallbackBlogVisuals(post);
+              const nonEditorialParagraphs = splitArticleParagraphs(post.content);
+              const leadParagraph = nonEditorialParagraphs[0] || "";
+              const bodyParagraphs = nonEditorialParagraphs.slice(1);
               const coverImage = isEditorial
                 ? post.editorialMeta.heroImage
                 : post.media?.url
                   ? resolveMediaUrl(post.media.url)
-                  : "";
-              const inlineImage = post.editorialMeta?.inlineImage;
+                  : fallbackVisuals.heroImage;
+              const inlineImage = isEditorial
+                ? post.editorialMeta?.inlineImage
+                : fallbackVisuals.inlineImage;
 
               return (
                 <article
@@ -1321,7 +1372,9 @@ const CommunityPage = () => {
                       ? isDark
                         ? "border-sky-400/20 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(15,23,42,0.88))]"
                         : "border-sky-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,246,255,0.94))]"
-                      : "border-slate-200 bg-white"
+                      : isDark
+                        ? "border-sky-400/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(15,23,42,0.96))]"
+                        : "border-slate-200 bg-white"
                   }`}
                 >
                   {isEditorial ? (
@@ -1431,24 +1484,14 @@ const CommunityPage = () => {
                     </div>
 
                     {isEditorial ? (
-                      <div className="mt-6 space-y-8">
-                        <div
-                          className={`rounded-[1.5rem] border border-dashed p-4 text-center text-xs uppercase tracking-[0.24em] ${
-                            isDark
-                              ? "border-white/15 bg-white/[0.03] text-slate-400"
-                              : "border-slate-300 bg-slate-50/90 text-slate-500"
-                          }`}
-                        >
-                          Banner Ad Space
-                        </div>
-
+                      <div className="mt-6 space-y-9">
                         <div
                           className={`grid gap-4 rounded-[1.75rem] border p-5 sm:grid-cols-3 ${isDark ? "border-white/10 bg-white/5" : "border-sky-100 bg-sky-50/80"}`}
                         >
                           {post.editorialMeta.keyStats.map((item) => (
                             <div
                               key={item.label}
-                              className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4 backdrop-blur-sm"
+                              className={`rounded-[1.25rem] border p-4 ${isDark ? "border-white/10 bg-black/10" : "border-slate-200 bg-white/80"}`}
                             >
                               <p
                                 className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDark ? "text-slate-400" : "text-slate-500"}`}
@@ -1469,21 +1512,21 @@ const CommunityPage = () => {
                             key={section.heading}
                             className={
                               index === 3 && inlineImage
-                                ? "grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start"
-                                : ""
+                                ? "grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start"
+                                : "max-w-3xl"
                             }
                           >
                             <div>
                               <h3
-                                className={`text-2xl font-semibold ${isDark ? "text-white" : "text-slate-900"}`}
+                                className={`border-l-4 pl-4 text-[1.65rem] font-semibold leading-tight ${isDark ? "border-sky-400 text-white" : "border-sky-500 text-slate-900"}`}
                               >
                                 {section.heading}
                               </h3>
-                              <div className="mt-4 space-y-4">
+                              <div className="mt-5 space-y-5">
                                 {section.body.map((paragraph) => (
                                   <p
                                     key={paragraph}
-                                    className={`text-sm leading-8 sm:text-[15px] ${isDark ? "text-slate-300" : "text-slate-700"}`}
+                                    className={`text-base leading-8 ${isDark ? "text-slate-300" : "text-slate-700"}`}
                                   >
                                     {paragraph}
                                   </p>
@@ -1491,11 +1534,11 @@ const CommunityPage = () => {
                               </div>
                             </div>
                             {index === 3 && inlineImage ? (
-                              <div className="overflow-hidden rounded-[1.5rem] border border-white/10">
+                              <div className="overflow-hidden rounded-[1.5rem] border border-white/10 shadow-[0_16px_40px_rgba(15,23,42,0.18)]">
                                 <img
                                   src={inlineImage}
                                   alt="Developer reviewing code on screen"
-                                  className="h-full w-full object-cover"
+                                  className="h-full min-h-[260px] w-full object-cover"
                                 />
                               </div>
                             ) : null}
@@ -1503,7 +1546,7 @@ const CommunityPage = () => {
                         ))}
 
                         <div
-                          className={`rounded-[1.75rem] border p-6 ${isDark ? "border-violet-400/20 bg-violet-500/10" : "border-violet-200 bg-violet-50"}`}
+                          className={`max-w-3xl rounded-[1.75rem] border p-6 ${isDark ? "border-violet-400/20 bg-violet-500/10" : "border-violet-200 bg-violet-50"}`}
                         >
                           <p
                             className={`text-lg font-medium leading-8 ${isDark ? "text-violet-100" : "text-violet-900"}`}
@@ -1513,17 +1556,7 @@ const CommunityPage = () => {
                         </div>
 
                         <div
-                          className={`rounded-[1.5rem] border border-dashed p-4 text-center text-xs uppercase tracking-[0.24em] ${
-                            isDark
-                              ? "border-white/15 bg-white/[0.03] text-slate-400"
-                              : "border-slate-300 bg-slate-50/90 text-slate-500"
-                          }`}
-                        >
-                          Sponsored Banner Slot
-                        </div>
-
-                        <div
-                          className={`rounded-[1.75rem] border p-6 ${isDark ? "border-sky-400/20 bg-sky-500/10" : "border-sky-200 bg-sky-50"}`}
+                          className={`max-w-3xl rounded-[1.75rem] border p-6 ${isDark ? "border-sky-400/20 bg-sky-500/10" : "border-sky-200 bg-sky-50"}`}
                         >
                           <p
                             className={`text-sm leading-8 ${isDark ? "text-slate-200" : "text-slate-700"}`}
@@ -1540,31 +1573,62 @@ const CommunityPage = () => {
                         </div>
                       </div>
                     ) : (
-                      <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-700">
-                        {post.content}
-                      </p>
-                    )}
+                      <div className="mt-5">
+                        {coverImage ? (
+                          <div className="overflow-hidden rounded-[1.75rem] border border-sky-100 shadow-[0_18px_45px_rgba(14,165,233,0.12)]">
+                            <img
+                              src={coverImage}
+                              alt={post.title}
+                              className="h-[280px] w-full object-cover sm:h-[360px]"
+                            />
+                          </div>
+                        ) : null}
 
-                    {post.media?.url && !isEditorial ? (
-                      <div className="mt-4">
-                        {(post.media.mimeType || "").startsWith("image/") ? (
-                          <img
-                            src={resolveMediaUrl(post.media.url)}
-                            alt="blog media"
-                            className="max-h-96 rounded-[1.5rem] object-cover"
-                          />
-                        ) : (
-                          <a
-                            className="text-sm text-blue-600 underline"
-                            href={resolveMediaUrl(post.media.url)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open media
-                          </a>
-                        )}
+                        <div className="mx-auto mt-8 max-w-3xl space-y-7">
+                          <div className={`flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] ${isDark ? "text-sky-300" : "text-sky-700"}`}>
+                            <span className={`rounded-full px-3 py-1 ${isDark ? "bg-sky-500/10" : "bg-sky-100"}`}>
+                              {fallbackVisuals.category}
+                            </span>
+                            <span className={isDark ? "text-slate-400" : "text-slate-500"}>
+                              {formatDate(post.createdAt)}
+                            </span>
+                          </div>
+
+                          {leadParagraph ? (
+                            <p className={`border-l-4 pl-5 text-xl leading-9 sm:text-[1.45rem] ${isDark ? "border-sky-400 text-slate-100" : "border-sky-500 text-slate-900"}`}>
+                              {leadParagraph}
+                            </p>
+                          ) : null}
+
+                          {bodyParagraphs.length ? (
+                            <div className="space-y-6">
+                              {bodyParagraphs.map((paragraph, index) => (
+                                <div key={`${post.id}-paragraph-${index}`}>
+                                  {index === 1 && inlineImage ? (
+                                    <div className="mb-6 overflow-hidden rounded-[1.5rem] border border-slate-200 shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
+                                      <img
+                                        src={inlineImage}
+                                        alt="Engineering editorial visual"
+                                        className="h-[240px] w-full object-cover sm:h-[320px]"
+                                      />
+                                    </div>
+                                  ) : null}
+                                  <p className={`text-base leading-8 ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                                    {paragraph}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+
+                          <div className={`rounded-[1.5rem] border px-5 py-5 ${isDark ? "border-sky-400/20 bg-sky-500/10" : "border-sky-100 bg-sky-50/80"}`}>
+                            <p className={`text-sm leading-8 ${isDark ? "text-slate-200" : "text-slate-700"}`}>
+                              DevPortix exists to help technical work feel legible, credible, and easier to trust. Strong engineering deserves strong presentation.
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                    ) : null}
+                    )}
 
                     <div className="mt-5 flex flex-wrap items-center gap-4 border-t border-slate-100 pt-4">
                       <button
