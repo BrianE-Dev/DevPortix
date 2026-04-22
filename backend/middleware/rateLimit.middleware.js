@@ -22,6 +22,7 @@ const createMemoryRateLimiter = ({
         Math.ceil((current.resetAt - now) / 1000),
       );
       res.set('Retry-After', String(retryAfterSeconds));
+      res.set('X-OTP-Source', 'backend-ip-email-rate-limit');
       return res.status(429).json({ message, retryAfterSeconds });
     }
 

@@ -5,6 +5,7 @@ const Subscription = require('../modules/subscription');
 const PortfolioSettings = require('../modules/portfolioSettings');
 const {
   BCRYPT_SALT_ROUNDS,
+  hasExternalOtpService,
   isValidEmail,
   normalizeEmail,
   requestRegistrationOtp: issueRegistrationOtp,
@@ -67,17 +68,36 @@ const toPublicUser = (userDoc) => ({
 });
 
 const requestRegistrationOtp = async (req, res) => {
+  const otpMode = hasExternalOtpService() ? 'external-email-service' : 'local-otp-store';
+  res.set('X-OTP-Mode', otpMode);
+
   try {
     const email = normalizeEmail(req.body?.email);
     if (!email || !isValidEmail(email)) {
+      res.set('X-OTP-Source', 'backend-request-validation');
       return res.status(400).json({ message: 'A valid email address is required' });
     }
 
     const payload = await issueRegistrationOtp(email);
+    res.set('X-OTP-Source', hasExternalOtpService() ? 'backend-forwarded-to-external-service' : 'backend-local-otp-issued');
     return res.status(200).json(payload);
   } catch (error) {
     if (error?.statusCode === 429 && error?.retryAfterSeconds) {
       res.set('Retry-After', String(error.retryAfterSeconds));
+    }
+    if (!res.getHeader('X-OTP-Source')) {
+      if (error?.statusCode === 429) {
+        res.set(
+          'X-OTP-Source',
+          hasExternalOtpService()
+            ? 'external-service-or-forwarded-rate-limit'
+            : 'backend-local-otp-cooldown',
+        );
+      } else if (hasExternalOtpService()) {
+        res.set('X-OTP-Source', 'backend-forwarded-to-external-service');
+      } else {
+        res.set('X-OTP-Source', 'backend-local-otp-service');
+      }
     }
     console.error('[auth] Failed to send registration OTP:', error.message);
     const statusCode = error?.statusCode || 503;

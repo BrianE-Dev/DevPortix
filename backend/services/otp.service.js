@@ -325,6 +325,7 @@ module.exports = {
   OTP_MAX_ATTEMPTS,
   OTP_PURPOSE_REGISTRATION,
   OTP_REQUEST_COOLDOWN_SECONDS,
+  hasExternalOtpService,
   normalizeEmail,
   isValidEmail,
   requestRegistrationOtp,
