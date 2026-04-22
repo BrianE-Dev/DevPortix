@@ -1,29 +1,25 @@
 const crypto = require('crypto');
 const User = require('../modules/userSchema');
 const Subscription = require('../modules/subscription');
+const pricingPlanCatalog = require('../../shared/pricingPlans.json');
 const Paystack = /** @type {any} */ (require('paystack-api')(
   process.env.PAYSTACK_SECRET_KEY || process.env.PSSECRET || ''
 ));
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || process.env.PSSECRET || '';
-
-const PLAN_PRICING = {
-  basic: {
-    monthlyAmountKobo: 500000,
-    annualDiscountPercentage: 8.5,
-    currency: 'NGN',
-  },
-  standard: {
-    monthlyAmountKobo: 1200000,
-    annualDiscountPercentage: 8.5,
-    currency: 'NGN',
-  },
-  premium: {
-    monthlyAmountKobo: 2000000,
-    annualDiscountPercentage: 14,
-    currency: 'NGN',
-  },
-};
+const PAYSTACK_CURRENCY = 'NGN';
+const PLAN_PRICING = Object.fromEntries(
+  pricingPlanCatalog
+    .filter((plan) => ['basic', 'standard', 'premium'].includes(String(plan.id || '').toLowerCase()))
+    .map((plan) => [
+      String(plan.id).toLowerCase(),
+      {
+        monthlyAmountKobo: Math.round(Number(plan.monthlyAmount || 0) * 100),
+        annualDiscountPercentage: Number(plan.annualDiscountPercentage || 0),
+        currency: PAYSTACK_CURRENCY,
+      },
+    ])
+);
 
 const isSupportedPaidPlan = (plan) => ['basic', 'standard', 'premium'].includes(plan);
 const isSupportedBillingCycle = (value) => ['monthly', 'annual'].includes(value);
