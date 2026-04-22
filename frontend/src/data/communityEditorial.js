@@ -587,6 +587,45 @@ export const DEVPORTIX_EDITORIAL_BLOGS = [
 
 export const DEVPORTIX_BLOG_TEMPLATES = [
   {
+    id: 'template-devportix-editorial-house-style',
+    title: 'DevPortix Editorial House Style',
+    category: 'Editorial Workflow',
+    recommendedCoverNote:
+      'Use a crisp technology, infrastructure, engineering team, hardware, or systems visual that supports the lead idea.',
+    excerpt:
+      'The default DevPortix super-admin blog structure: strong lead, sectional argument flow, image rhythm, and a closing that ties the topic back to engineering credibility.',
+    tags: ['Editorial Workflow', 'DevPortix Style', 'Publishing', 'Blog Structure'],
+    checklist: [
+      'Open with a strong lead paragraph that frames the real engineering question.',
+      'Use short named sections with blank lines between them so the renderer picks up headings cleanly.',
+      'Add at least one visual-worthy moment by the second or third section.',
+      'Keep the tone technically credible, readable, and publication-style rather than promotional.',
+      'Close with a DevPortix-specific synthesis, not a generic CTA.',
+    ],
+    content: `Lead
+Start with a clear thesis that explains why the topic matters to engineers, builders, or technical teams right now.
+
+Why this matters
+Spell out the practical consequence. Tie the topic to delivery, systems, hiring, infrastructure, product execution, or technical judgment.
+
+What engineers forget
+Introduce the common blind spot, lazy assumption, or oversimplified framing that your article is correcting.
+
+Systems view
+Zoom out. Show how the topic behaves across layers such as product, frontend, backend, data, infrastructure, hardware, operations, or real-world outcomes.
+
+What this means in practice
+Translate the idea into decisions engineers actually make: architecture, tradeoffs, communication, performance, reliability, debugging, or team workflow.
+
+"Use one short quote block when the article needs a memorable line that feels publication-worthy."
+
+Closing perspective
+End with a final paragraph that ties the lesson back to DevPortix: proof of work, engineering credibility, portfolio storytelling, or professional clarity.
+
+Closing
+Finish with one concise line that feels earned, specific, and strong enough to leave with the reader.`,
+  },
+  {
     id: 'template-portfolio-mistakes-juniors',
     title: '5 Portfolio Mistakes Junior Developers Make and How to Fix Them',
     category: 'Career Growth',
@@ -596,50 +635,53 @@ export const DEVPORTIX_BLOG_TEMPLATES = [
     tags: ['Portfolio Strategy', 'Junior Developers', 'Hiring', 'Career Growth'],
     checklist: [
       'Open with one clear hiring problem the post solves.',
-      'Use short subheadings and practical examples.',
+      'Use section headings with blank lines so the house-style renderer can format them cleanly.',
       'End each mistake with a fix readers can apply immediately.',
-      'Add one realistic cover image before publishing.',
+      'Choose visuals that support the article at the hero, middle, and lower sections.',
       'Finish with a DevPortix-specific closing paragraph.',
     ],
-    content: `Intro
+    content: `Lead
 Junior developers often think a portfolio fails because they need more projects. In reality, many portfolios underperform because they present the right work in the wrong way. A hiring manager may only spend a short time scanning your page, so clarity, proof, and structure matter more than volume.
 
+Why this matters
+If a reviewer cannot understand what you built, why it mattered, and how you think, strong work gets flattened into noise. The issue is rarely effort. It is presentation.
+
 Mistake 1: Listing projects without context
-What goes wrong:
 Many junior developers show a title, a screenshot, and a GitHub link, then expect the project to explain itself.
 
-How to fix it:
-Add a short project summary that explains the problem, your role, the tools you used, and the result. Keep it simple and human. Make it easy for someone to understand why the project mattered.
+How to fix it
+Add a short summary that explains the problem, your role, the tools you used, and the result. Make it easy for someone to understand why the project mattered.
 
 Mistake 2: Showing only school or tutorial clones with no reflection
-What goes wrong:
 Tutorial-based work can be useful, but if every project looks identical and has no personal thinking behind it, employers struggle to see your real decision-making.
 
-How to fix it:
-Show what you changed, improved, or explored beyond the tutorial. Mention the design choices, tradeoffs, bugs solved, or features you added independently.
+How to fix it
+Show what you changed, improved, or explored beyond the tutorial. Mention design choices, tradeoffs, bugs solved, or features you added independently.
 
 Mistake 3: Hiding proof behind vague claims
-What goes wrong:
 Saying "I am passionate about coding" or "I build scalable apps" does not create trust on its own.
 
-How to fix it:
-Replace claims with proof. Use screenshots, live demos, GitHub links, commit history, metrics, and short explanations of what you actually built. Let evidence do the talking.
+How to fix it
+Replace claims with proof. Use screenshots, live demos, GitHub links, commit history, metrics, and short explanations of what you actually built.
 
 Mistake 4: Making the portfolio hard to scan
-What goes wrong:
 Dense paragraphs, unclear headings, and cluttered layouts make good work feel weaker than it really is.
 
-How to fix it:
+How to fix it
 Use a clear headline, short sections, strong spacing, and a predictable project structure. A hiring manager should be able to scan your portfolio quickly and still understand your strengths.
 
 Mistake 5: Forgetting to show growth
-What goes wrong:
 Some junior portfolios feel static. They show one version of the work but nothing about improvement, iteration, or learning.
 
-How to fix it:
+How to fix it
 Document progress. Mention what changed after feedback, what you refactored, what you would do differently now, or how a newer project improved on an older one.
 
+"A junior portfolio does not need to look massive. It needs to feel honest, readable, and backed by proof."
+
+Closing perspective
+A strong junior portfolio does not need to be huge. It needs to be believable, readable, and rooted in proof.
+
 Closing
-A strong junior portfolio does not need to be huge. It needs to be believable, readable, and rooted in proof. DevPortix helps turn projects, growth, and real development work into a portfolio story employers can understand quickly and trust more easily.`
+DevPortix helps turn projects, growth, and real development work into a portfolio story employers can understand quickly and trust more easily.`
   },
 ];

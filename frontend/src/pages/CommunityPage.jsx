@@ -19,6 +19,7 @@ import proofCoverImage from "../assets/community/blog-proof-cover.jpg";
 import githubCoverImage from "../assets/community/blog-github-cover.jpg";
 import modernCoverImage from "../assets/community/blog-modern-cover.jpg";
 import modernInlineImage from "../assets/community/blog-modern-inline.jpg";
+import educationCoverImage from "../assets/community/blog-education-cover.jpg";
 
 const formatDate = (value) => {
   if (!value) return "";
@@ -74,13 +75,69 @@ const splitArticleParagraphs = (content) =>
     .map((paragraph) => paragraph.trim())
     .filter(Boolean);
 
+const HEADING_LABELS = new Set([
+  "lead",
+  "why this matters",
+  "what engineers forget",
+  "section",
+  "systems view",
+  "from code to hardware",
+  "what this means in practice",
+  "where it shows up physically",
+  "closing perspective",
+  "takeaway",
+  "closing",
+]);
+
+const classifyArticleBlock = (paragraph) => {
+  const trimmed = String(paragraph || "").trim();
+  const normalized = trimmed.toLowerCase().replace(/[:.]$/, "");
+
+  if (!trimmed) {
+    return { type: "body", text: "" };
+  }
+
+  if (
+    trimmed.startsWith('"') &&
+    trimmed.endsWith('"') &&
+    trimmed.length > 20
+  ) {
+    return { type: "quote", text: trimmed.slice(1, -1).trim() };
+  }
+
+  if (
+    trimmed.length <= 70 &&
+    (HEADING_LABELS.has(normalized) ||
+      /^[A-Z][A-Za-z0-9\s&/-]{3,70}:?$/.test(trimmed))
+  ) {
+    return { type: "heading", text: trimmed.replace(/:$/, "") };
+  }
+
+  return { type: "body", text: trimmed };
+};
+
 const buildFallbackBlogVisuals = (post) => {
   const text = `${String(post?.title || "")} ${String(post?.content || "")}`.toLowerCase();
+
+  if (
+    text.includes("silicon") ||
+    text.includes("semiconductor") ||
+    text.includes("transistor") ||
+    text.includes("hardware") ||
+    text.includes("stack") ||
+    text.includes("physics")
+  ) {
+    return {
+      heroImage: modernCoverImage,
+      inlineImages: [techInlineImage, githubCoverImage, educationCoverImage],
+      category: "Systems & Infrastructure",
+    };
+  }
 
   if (text.includes("github") || text.includes("repo")) {
     return {
       heroImage: githubCoverImage,
-      inlineImage: modernInlineImage,
+      inlineImages: [modernInlineImage, proofCoverImage],
       category: "Engineering Systems",
     };
   }
@@ -88,14 +145,14 @@ const buildFallbackBlogVisuals = (post) => {
   if (text.includes("proof") || text.includes("trust") || text.includes("craft")) {
     return {
       heroImage: proofCoverImage,
-      inlineImage: techInlineImage,
+      inlineImages: [techInlineImage, modernInlineImage],
       category: "Engineering Perspective",
     };
   }
 
   return {
     heroImage: modernCoverImage,
-    inlineImage: techInlineImage,
+    inlineImages: [techInlineImage, modernInlineImage],
     category: "DevPortix Journal",
   };
 };
@@ -1211,11 +1268,13 @@ const CommunityPage = () => {
                             Template Library
                           </p>
                           <h3 className="mt-2 text-base font-semibold text-slate-900">
-                            Quick-start DevPortix blog drafts
+                            DevPortix editorial publishing system
                           </h3>
                           <p className="mt-1 text-sm text-slate-600">
-                            Load a structured draft, replace any section you
-                            want, then attach your cover image and publish.
+                            Every blog should follow the same house style:
+                            strong lead, named sections, visual rhythm, and a
+                            DevPortix-specific close. Load a structured draft,
+                            replace what you need, then publish.
                           </p>
                         </div>
                         <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
@@ -1259,6 +1318,18 @@ const CommunityPage = () => {
                             <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-xs leading-6 text-slate-600">
                               Cover note: {template.recommendedCoverNote}
                             </div>
+                            {template.checklist?.length ? (
+                              <div className="mt-3 rounded-2xl border border-sky-100 bg-sky-50/80 px-4 py-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700">
+                                  House-style checklist
+                                </p>
+                                <div className="mt-2 space-y-1.5 text-xs leading-6 text-slate-600">
+                                  {template.checklist.map((item) => (
+                                    <p key={item}>{item}</p>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null}
                           </div>
                         ))}
                       </div>
@@ -1352,9 +1423,18 @@ const CommunityPage = () => {
                 ? baseLikeCount + (isLiked ? 1 : 0)
                 : baseLikeCount;
               const fallbackVisuals = buildFallbackBlogVisuals(post);
-              const nonEditorialParagraphs = splitArticleParagraphs(post.content);
-              const leadParagraph = nonEditorialParagraphs[0] || "";
-              const bodyParagraphs = nonEditorialParagraphs.slice(1);
+              const nonEditorialBlocks = splitArticleParagraphs(post.content).map(
+                classifyArticleBlock,
+              );
+              const leadParagraphIndex = nonEditorialBlocks.findIndex(
+                (block) => block.type === "body",
+              );
+              const firstBodyBlock =
+                leadParagraphIndex >= 0 ? nonEditorialBlocks[leadParagraphIndex] : null;
+              const leadParagraph = firstBodyBlock?.text || "";
+              const bodyBlocks = nonEditorialBlocks.filter(
+                (_block, index) => index !== leadParagraphIndex,
+              );
               const coverImage = isEditorial
                 ? post.editorialMeta.heroImage
                 : post.media?.url
@@ -1362,7 +1442,12 @@ const CommunityPage = () => {
                   : fallbackVisuals.heroImage;
               const inlineImage = isEditorial
                 ? post.editorialMeta?.inlineImage
-                : fallbackVisuals.inlineImage;
+                : fallbackVisuals.inlineImages?.[0] || "";
+              const galleryImages = isEditorial
+                ? []
+                : Array.isArray(fallbackVisuals.inlineImages)
+                  ? fallbackVisuals.inlineImages
+                  : [];
 
               return (
                 <article
@@ -1600,10 +1685,10 @@ const CommunityPage = () => {
                             </p>
                           ) : null}
 
-                          {bodyParagraphs.length ? (
+                          {bodyBlocks.length ? (
                             <div className="space-y-6">
-                              {bodyParagraphs.map((paragraph, index) => (
-                                <div key={`${post.id}-paragraph-${index}`}>
+                              {bodyBlocks.map((block, index) => (
+                                <div key={`${post.id}-block-${index}`}>
                                   {index === 1 && inlineImage ? (
                                     <div className="mb-6 overflow-hidden rounded-[1.5rem] border border-slate-200 shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
                                       <img
@@ -1613,11 +1698,50 @@ const CommunityPage = () => {
                                       />
                                     </div>
                                   ) : null}
-                                  <p className={`text-base leading-8 ${isDark ? "text-slate-300" : "text-slate-700"}`}>
-                                    {paragraph}
-                                  </p>
+                                  {index === 3 && galleryImages[1] ? (
+                                    <div className="mb-6 overflow-hidden rounded-[1.5rem] border border-slate-200 shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
+                                      <img
+                                        src={galleryImages[1]}
+                                        alt="Technology systems visual"
+                                        className="h-[240px] w-full object-cover sm:h-[320px]"
+                                      />
+                                    </div>
+                                  ) : null}
+                                  {block.type === "heading" ? (
+                                    <h3
+                                      className={`border-l-4 pl-4 text-[1.55rem] font-semibold leading-tight ${isDark ? "border-sky-400 text-white" : "border-sky-500 text-slate-900"}`}
+                                    >
+                                      {block.text}
+                                    </h3>
+                                  ) : block.type === "quote" ? (
+                                    <div
+                                      className={`rounded-[1.5rem] border px-5 py-5 ${isDark ? "border-violet-400/20 bg-violet-500/10" : "border-violet-200 bg-violet-50"}`}
+                                    >
+                                      <p
+                                        className={`text-lg font-medium leading-8 ${isDark ? "text-violet-100" : "text-violet-900"}`}
+                                      >
+                                        "{block.text}"
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <p
+                                      className={`text-base leading-8 ${isDark ? "text-slate-300" : "text-slate-700"}`}
+                                    >
+                                      {block.text}
+                                    </p>
+                                  )}
                                 </div>
                               ))}
+                            </div>
+                          ) : null}
+
+                          {galleryImages[2] ? (
+                            <div className="overflow-hidden rounded-[1.75rem] border border-sky-100 shadow-[0_18px_45px_rgba(14,165,233,0.1)]">
+                              <img
+                                src={galleryImages[2]}
+                                alt="Engineering infrastructure visual"
+                                className="h-[260px] w-full object-cover sm:h-[340px]"
+                              />
                             </div>
                           ) : null}
 
