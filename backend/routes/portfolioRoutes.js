@@ -1,5 +1,6 @@
 const express = require('express');
 const validateUser = require('../middleware/validate_user');
+const requireVerifiedUser = require('../middleware/requireVerifiedUser');
 const { requirePaidPlan } = require('../middleware/requirePaidPlan');
 const {
   getMyPortfolio,
@@ -16,10 +17,10 @@ const router = express.Router();
 
 router.get('/me', validateUser, requirePaidPlan(), getMyPortfolio);
 router.get('/me/score', validateUser, requirePaidPlan(), getMyPortfolioScore);
-router.post('/me', validateUser, requirePaidPlan(), createMyPortfolio);
-router.patch('/me', validateUser, requirePaidPlan(), updateMyPortfolio);
-router.delete('/me', validateUser, deleteMyPortfolio);
-router.get('/me/share', validateUser, requirePaidPlan(), generatePortfolioShareAssets);
+router.post('/me', validateUser, requireVerifiedUser, requirePaidPlan(), createMyPortfolio);
+router.patch('/me', validateUser, requireVerifiedUser, requirePaidPlan(), updateMyPortfolio);
+router.delete('/me', validateUser, requireVerifiedUser, deleteMyPortfolio);
+router.get('/me/share', validateUser, requireVerifiedUser, requirePaidPlan(), generatePortfolioShareAssets);
 router.get('/public/:slug/score', getPublicPortfolioScore);
 router.get('/public/:slug', getPublicPortfolio);
 

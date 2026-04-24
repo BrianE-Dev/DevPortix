@@ -10,6 +10,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Hero from './components/Hero';
 import Features from './components/Features';
+import BlogHighlights from './components/BlogHighlights';
 import Projects from './components/Projects';
 import Testimonials from './components/Testimonials';
 import Pricing from './components/Pricing';
@@ -19,6 +20,8 @@ import Signup from './pages/Signup';
 import Contact from './pages/Contact';
 import PricingPage from './pages/PricingPage';
 import CommunityPage from './pages/CommunityPage';
+import VerifyEmail from './pages/VerifyEmail';
+import VerifyEmailNotice from './pages/VerifyEmailNotice';
 import { ROLES } from './utils/constants';
 import StudentDashboard from './pages/dashboards/StudentDashboard';
 import InstructorDashboard from './pages/dashboards/InstructorDashboard';
@@ -55,6 +58,7 @@ const AppContent = () => {
             <>
               <Hero />
               <Features />
+              <BlogHighlights />
               <Projects />
               <Testimonials />
               <Pricing />
@@ -93,6 +97,8 @@ const AppContent = () => {
           <Route path="/projects/:id" element={<ProjectDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/verify-email-notice" element={<VerifyEmailNotice />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/blog" element={<CommunityPage initialTab="blog" blogOnly />} />

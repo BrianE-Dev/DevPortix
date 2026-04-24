@@ -1,5 +1,6 @@
 const express = require('express');
 const validateUser = require('../middleware/validate_user');
+const requireVerifiedUser = require('../middleware/requireVerifiedUser');
 const {
   initializeSubscriptionPayment,
   verifySubscriptionPayment,
@@ -9,7 +10,7 @@ const {
 const router = express.Router();
 
 router.post('/webhook', handlePaystackWebhook);
-router.post('/initialize', validateUser, initializeSubscriptionPayment);
-router.get('/verify/:reference', validateUser, verifySubscriptionPayment);
+router.post('/initialize', validateUser, requireVerifiedUser, initializeSubscriptionPayment);
+router.get('/verify/:reference', validateUser, requireVerifiedUser, verifySubscriptionPayment);
 
 module.exports = router;

@@ -1,15 +1,22 @@
 import { request } from './apiClient';
 
 export const authApi = {
-  async requestRegistrationOtp(payload) {
-    return request('/api/auth/register/otp/request', {
+  async register(payload) {
+    return request('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
   },
 
-  async register(payload) {
-    return request('/api/auth/register', {
+  async verifyEmail(payload) {
+    return request('/api/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async resendVerificationEmail(payload) {
+    return request('/api/auth/resend-verification-email', {
       method: 'POST',
       body: JSON.stringify(payload),
     });

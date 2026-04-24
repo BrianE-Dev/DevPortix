@@ -2,6 +2,8 @@ const express = require('express');
 const {
   requestRegistrationOtp,
   verifyOtp,
+  verifyEmail,
+  resendVerification,
   register,
   login,
   verifyLoginTotp,
@@ -22,6 +24,9 @@ router.post('/register/otp/request', registrationOtpRequestLimiter, requestRegis
 router.post('/request-otp', registrationOtpRequestLimiter, requestRegistrationOtp);
 router.post('/verify-otp', registrationOtpVerifyLimiter, verifyOtp);
 router.post('/register/otp/verify', registrationOtpVerifyLimiter, verifyOtp);
+router.get('/verify-email', verifyEmail);
+router.post('/verify-email', verifyEmail);
+router.post('/resend-verification-email', registrationOtpRequestLimiter, resendVerification);
 router.post('/register', register);
 router.post('/login', login);
 router.post('/login/totp', verifyLoginTotp);

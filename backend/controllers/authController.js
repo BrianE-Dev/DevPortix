@@ -4,13 +4,17 @@ const User = require('../modules/userSchema');
 const Subscription = require('../modules/subscription');
 const PortfolioSettings = require('../modules/portfolioSettings');
 const {
+  issueVerificationEmailForUser,
+  resendVerificationEmail,
+  verifyEmailVerificationToken,
+} = require('../services/emailVerification.service');
+const {
   BCRYPT_SALT_ROUNDS,
   hasExternalOtpService,
   isValidEmail,
   normalizeEmail,
   requestRegistrationOtp: issueRegistrationOtp,
   verifyRegistrationOtp,
-  verifyRegistrationVerificationToken,
 } = require('../services/otp.service');
 const {
   buildSetupPayload,
@@ -125,9 +129,37 @@ const verifyOtp = async (req, res) => {
   }
 };
 
+const verifyEmail = async (req, res) => {
+  try {
+    const payload = await verifyEmailVerificationToken(req.body?.token || req.query?.token);
+    return res.status(200).json(payload);
+  } catch (error) {
+    return res.status(error?.statusCode || 500).json({
+      message: error?.message || 'Failed to verify email',
+      ...(error?.email ? { email: error.email } : {}),
+    });
+  }
+};
+
+const resendVerification = async (req, res) => {
+  try {
+    const payload = await resendVerificationEmail(req.body?.email);
+    return res.status(200).json(payload);
+  } catch (error) {
+    if (error?.statusCode === 429 && error?.retryAfterSeconds) {
+      res.set('Retry-After', String(error.retryAfterSeconds));
+    }
+
+    return res.status(error?.statusCode || 500).json({
+      message: error?.message || 'Failed to resend verification email',
+      ...(error?.retryAfterSeconds ? { retryAfterSeconds: error.retryAfterSeconds } : {}),
+    });
+  }
+};
+
 const register = async (req, res) => {
   try {
-    const { fullName, email, password, role, githubUsername, otp, verificationToken } = req.body || {};
+    const { fullName, email, password, role, githubUsername } = req.body || {};
 
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
@@ -147,30 +179,6 @@ const register = async (req, res) => {
       return res.status(409).json({ message: 'An account with this email already exists' });
     }
 
-    let emailVerified = false;
-    if (verificationToken) {
-      try {
-        emailVerified = verifyRegistrationVerificationToken(verificationToken, normalizedEmail);
-      } catch (_error) {
-        emailVerified = false;
-      }
-    }
-
-    if (!emailVerified) {
-      if (!otp) {
-        return res.status(400).json({
-          message: 'Provide a valid OTP or verification token before creating your account',
-        });
-      }
-
-      try {
-        await verifyRegistrationOtp(normalizedEmail, otp);
-        emailVerified = true;
-      } catch (error) {
-        return res.status(error?.statusCode || 400).json({ message: error.message || 'Invalid registration OTP' });
-      }
-    }
-
     const passwordHash = await bcrypt.hash(String(password), BCRYPT_SALT_ROUNDS);
 
     const normalizedRole = String(role || 'student').trim().toLowerCase();
@@ -182,7 +190,7 @@ const register = async (req, res) => {
       fullName: fullName?.trim() || 'New User',
       email: normalizedEmail,
       password: passwordHash,
-      emailVerified,
+      emailVerified: false,
       role: assignedRole,
       subscription: defaultPlan,
       subscriptionBillingCycle: defaultBillingCycle,
@@ -194,10 +202,28 @@ const register = async (req, res) => {
       PortfolioSettings.create({ ownerId: user._id }),
     ]);
 
-    const token = signToken(user._id);
+    let verification = null;
+    let verificationEmailSent = false;
+
+    try {
+      verification = await issueVerificationEmailForUser(user, {
+        skipCooldown: true,
+      });
+      verificationEmailSent = true;
+    } catch (error) {
+      if (error?.statusCode !== 503) {
+        throw error;
+      }
+    }
+
     return res.status(201).json({
-      message: 'registration successful',
-      token,
+      message: verificationEmailSent
+        ? 'Registration successful. Please verify your email before signing in.'
+        : 'Registration successful, but we could not send the verification email right away. Please resend it before signing in.',
+      requiresEmailVerification: true,
+      verificationEmailSent,
+      email: normalizedEmail,
+      verification,
       user: toPublicUser(user),
     });
   } catch (error) {
@@ -222,6 +248,14 @@ const login = async (req, res) => {
     const validPassword = await bcrypt.compare(String(password), user.password);
     if (!validPassword) {
       return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    if (!user.emailVerified) {
+      return res.status(403).json({
+        message: 'Please verify your email before signing in',
+        requiresEmailVerification: true,
+        email: user.email,
+      });
     }
 
     if (user.totpEnabled) {
@@ -370,6 +404,8 @@ const disableTotp = async (req, res) => {
 module.exports = {
   requestRegistrationOtp,
   verifyOtp,
+  verifyEmail,
+  resendVerification,
   register,
   login,
   verifyLoginTotp,

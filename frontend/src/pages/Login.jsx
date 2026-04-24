@@ -1,19 +1,24 @@
 // src/pages/Login.jsx
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Github, Lock, Mail, Shield } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Github, Lock, Mail, RefreshCcw, Shield } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import { ROLES } from '../utils/constants';
+import { authApi } from '../services/authApi';
 import AuthShowcase from '../components/AuthShowcase';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [searchParams] = useSearchParams();
+  const [email, setEmail] = useState(String(searchParams.get('email') || '').trim());
   const [password, setPassword] = useState('');
   const [totpCode, setTotpCode] = useState('');
   const [loginChallengeToken, setLoginChallengeToken] = useState('');
   const [requiresTotp, setRequiresTotp] = useState(false);
+  const [requiresEmailVerification, setRequiresEmailVerification] = useState(false);
+  const [verificationCooldown, setVerificationCooldown] = useState(0);
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, signup, verifyLoginTotp } = useAuth();
   const { theme } = useTheme();
@@ -28,9 +33,23 @@ const Login = () => {
       : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
   }`;
 
+  React.useEffect(() => {
+    if (verificationCooldown <= 0) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      setVerificationCooldown((currentValue) => Math.max(currentValue - 1, 0));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [verificationCooldown]);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
+    setInfo('');
+    setRequiresEmailVerification(false);
     setLoading(true);
 
     try {
@@ -47,6 +66,11 @@ const Login = () => {
 
       navigate('/dashboard');
     } catch (err) {
+      if (err?.status === 403 && err?.payload?.requiresEmailVerification) {
+        setRequiresEmailVerification(true);
+        setInfo(`Your account exists, but ${err.payload.email || email} must be verified before you can sign in.`);
+        return;
+      }
       setError(err.message || 'Invalid credentials');
     } finally {
       setLoading(false);
@@ -56,6 +80,7 @@ const Login = () => {
   const handleVerifyTotp = async (event) => {
     event.preventDefault();
     setError('');
+    setInfo('');
     setLoading(true);
 
     try {
@@ -76,7 +101,33 @@ const Login = () => {
     setRequiresTotp(false);
     setTotpCode('');
     setLoginChallengeToken('');
+    setRequiresEmailVerification(false);
     setError('');
+    setInfo('');
+  };
+
+  const handleResendVerification = async () => {
+    setLoading(true);
+    setError('');
+    setInfo('');
+
+    try {
+      const response = await authApi.resendVerificationEmail({ email });
+      const cooldownEndsAt = response?.cooldownEndsAt
+        ? new Date(response.cooldownEndsAt).getTime() - Date.now()
+        : 0;
+      setVerificationCooldown(
+        cooldownEndsAt > 0 ? Math.max(1, Math.ceil(cooldownEndsAt / 1000)) : 60,
+      );
+      setInfo(`A fresh verification link has been sent to ${email}.`);
+    } catch (err) {
+      if (err.status === 429) {
+        setVerificationCooldown(Math.max(1, Number(err.retryAfterSeconds || 60)));
+      }
+      setError(err.message || 'Unable to resend verification email');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDemoLogin = async () => {
@@ -87,7 +138,10 @@ const Login = () => {
       const demoPassword = 'demo12345';
 
       try {
-        await login(demoEmail, demoPassword);
+        const response = await login(demoEmail, demoPassword);
+        if (response?.requiresTotp) {
+          throw new Error('The demo account requires an authenticator code right now.');
+        }
       } catch {
         await signup({
           fullName: 'Demo Developer',
@@ -96,6 +150,7 @@ const Login = () => {
           role: ROLES.PROFESSIONAL,
           githubUsername: 'demodeveloper',
         });
+        throw new Error('The demo account now requires email verification before sign in.');
       }
 
       navigate('/dashboard');
@@ -137,6 +192,12 @@ const Login = () => {
             {error ? (
               <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-in slide-in-from-bottom duration-500">
                 {error}
+              </div>
+            ) : null}
+
+            {info ? (
+              <div className={`mt-6 rounded-2xl border px-4 py-3 text-sm animate-in slide-in-from-bottom duration-500 ${isDark ? 'border-sky-400/20 bg-sky-500/10 text-sky-100' : 'border-sky-200 bg-sky-50 text-sky-800'}`}>
+                {info}
               </div>
             ) : null}
 
@@ -192,6 +253,18 @@ const Login = () => {
                   </label>
                   <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Protected with secure session checks</span>
                 </div>
+
+                {requiresEmailVerification ? (
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={loading || verificationCooldown > 0}
+                    className={`flex w-full items-center justify-center gap-2 rounded-2xl border px-5 py-3.5 text-sm font-semibold transition ${isDark ? 'border-amber-400/25 bg-amber-500/10 text-amber-200 hover:bg-amber-500/15' : 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100'} disabled:cursor-not-allowed disabled:opacity-60`}
+                  >
+                    <RefreshCcw className="h-4 w-4" />
+                    {verificationCooldown > 0 ? `Resend in ${verificationCooldown}s` : 'Resend verification email'}
+                  </button>
+                ) : null}
 
                 <button
                   type="submit"

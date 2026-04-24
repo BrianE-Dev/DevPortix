@@ -97,10 +97,7 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const response = await authApi.register(userData);
-      LocalStorageService.setToken(response.token);
-      const normalizedUser = setAuthenticatedUser(response.user);
-
-      return { success: true, user: normalizedUser };
+      return { success: true, ...response };
     } finally {
       setLoading(false);
     }

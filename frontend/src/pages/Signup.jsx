@@ -5,25 +5,19 @@ import { Github, Lock, Mail, User } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import { ROLES } from '../utils/constants';
-import { authApi } from '../services/authApi';
 import AuthShowcase from '../components/AuthShowcase';
 
 const Signup = () => {
-  const OTP_RESEND_COOLDOWN_SECONDS = 60;
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    otp: '',
     githubUsername: '',
     role: '',
   });
   const [error, setError] = useState('');
-  const [otpMessage, setOtpMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [otpCooldown, setOtpCooldown] = useState(0);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const { signup } = useAuth();
   const { theme } = useTheme();
@@ -40,61 +34,10 @@ const Signup = () => {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    if (name === 'email') {
-      setOtpMessage('');
-    }
-
     setFormData((current) => ({
       ...current,
       [name]: value,
     }));
-  };
-
-  React.useEffect(() => {
-    if (otpCooldown <= 0) {
-      return undefined;
-    }
-
-    const timer = window.setTimeout(() => {
-      setOtpCooldown((currentValue) => Math.max(currentValue - 1, 0));
-    }, 1000);
-
-    return () => window.clearTimeout(timer);
-  }, [otpCooldown]);
-
-  const handleRequestOtp = async () => {
-    setError('');
-    setOtpMessage('');
-
-    try {
-      if (!formData.email) {
-        throw new Error('Enter your email address first');
-      }
-
-      if (otpCooldown > 0) {
-        throw new Error(`Please wait ${otpCooldown}s before requesting another OTP`);
-      }
-
-      setOtpLoading(true);
-      const response = await authApi.requestRegistrationOtp({ email: formData.email });
-      const cooldownEndsAt = response?.cooldownEndsAt
-        ? new Date(response.cooldownEndsAt).getTime() - Date.now()
-        : 0;
-      const nextCooldown = cooldownEndsAt > 0
-        ? Math.max(1, Math.ceil(cooldownEndsAt / 1000))
-        : OTP_RESEND_COOLDOWN_SECONDS;
-      setOtpMessage(`A registration OTP has been sent to ${formData.email}.`);
-      setOtpCooldown(nextCooldown);
-    } catch (err) {
-      if (err.status === 429) {
-        setOtpCooldown(
-          Math.max(1, Number(err.retryAfterSeconds || OTP_RESEND_COOLDOWN_SECONDS)),
-        );
-      }
-      setError(err.message || 'Failed to send registration OTP');
-    } finally {
-      setOtpLoading(false);
-    }
   };
 
   const handleSubmit = async (event) => {
@@ -103,8 +46,8 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      if (!formData.email || !formData.password || !formData.confirmPassword || !formData.otp) {
-        throw new Error('Please fill in all required fields including the OTP');
+      if (!formData.email || !formData.password || !formData.confirmPassword) {
+        throw new Error('Please fill in all required fields');
       }
 
       if (formData.password !== formData.confirmPassword) {
@@ -123,15 +66,14 @@ const Signup = () => {
         throw new Error('Please accept the terms and conditions');
       }
 
-      await signup({
+      const response = await signup({
         email: formData.email,
         fullName: formData.fullName || 'New User',
         password: formData.password,
-        otp: formData.otp,
         githubUsername: formData.githubUsername || '',
         role: formData.role,
       });
-      navigate('/dashboard');
+      navigate(`/verify-email-notice?email=${encodeURIComponent(response?.email || formData.email)}`);
     } catch (err) {
       setError(err.message || 'Unable to create account');
     } finally {
@@ -156,7 +98,7 @@ const Signup = () => {
               <p className={`text-sm font-semibold uppercase tracking-[0.24em] ${isDark ? 'text-sky-300' : 'text-sky-700'}`}>Create Account</p>
               <h1 className={`mt-3 text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Start your DevPortix workspace</h1>
               <p className={`mt-3 text-sm leading-7 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                Verify your email, choose your role, and begin building a portfolio story that feels structured from day one.
+                Create your account, choose your role, and begin building a portfolio story that feels structured from day one.
               </p>
             </div>
 
@@ -225,42 +167,9 @@ const Signup = () => {
                     required
                   />
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={handleRequestOtp}
-                    disabled={otpLoading || otpCooldown > 0}
-                    className="rounded-full border border-sky-500/40 bg-sky-500/10 px-4 py-2 text-sm font-medium text-sky-600 transition hover:bg-sky-500/15 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {otpLoading ? 'Sending OTP...' : otpCooldown > 0 ? `Resend in ${otpCooldown}s` : 'Send OTP'}
-                  </button>
-                  {otpMessage ? (
-                    <span className={`text-xs ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>{otpMessage}</span>
-                  ) : null}
-                </div>
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
-                <div>
-                  <label className={`block text-sm font-medium ${labelClass}`}>Email OTP</label>
-                  <div className="relative mt-2">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                      <Mail className={`h-5 w-5 ${iconClass}`} />
-                    </div>
-                    <input
-                      type="text"
-                      name="otp"
-                      value={formData.otp}
-                      onChange={handleChange}
-                      className={`${inputClass} tracking-[0.28em]`}
-                      placeholder="123456"
-                      inputMode="numeric"
-                      maxLength={6}
-                      required
-                    />
-                  </div>
-                </div>
-
                 <div>
                   <label className={`block text-sm font-medium ${labelClass}`}>GitHub Username</label>
                   <div className="relative mt-2">
@@ -342,7 +251,7 @@ const Signup = () => {
 
               <button
                 type="submit"
-                disabled={loading || otpLoading}
+                disabled={loading}
                 className="w-full rounded-2xl bg-gradient-to-r from-blue-600 via-sky-500 to-violet-600 px-5 py-3.5 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(59,130,246,0.28)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? 'Creating Account...' : 'Create Account'}

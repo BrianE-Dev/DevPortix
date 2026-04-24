@@ -4,6 +4,7 @@ const path = require('path');
 const multer = require('multer');
 const validateUser = require('../middleware/validate_user');
 const optionalUser = require('../middleware/optional_user');
+const requireVerifiedUser = require('../middleware/requireVerifiedUser');
 const {
   listUsers,
   sendFriendRequest,
@@ -47,23 +48,23 @@ const upload = multer({
 
 router.get('/users', validateUser, listUsers);
 router.get('/friends/requests', validateUser, listFriendRequests);
-router.post('/friends/requests/:userId', validateUser, sendFriendRequest);
-router.patch('/friends/requests/:requestId', validateUser, respondToFriendRequest);
-router.delete('/friends/requests/:requestId', validateUser, cancelFriendRequest);
+router.post('/friends/requests/:userId', validateUser, requireVerifiedUser, sendFriendRequest);
+router.patch('/friends/requests/:requestId', validateUser, requireVerifiedUser, respondToFriendRequest);
+router.delete('/friends/requests/:requestId', validateUser, requireVerifiedUser, cancelFriendRequest);
 router.get('/friends/messages/:friendId', validateUser, listFriendMessages);
-router.post('/friends/messages/:friendId', validateUser, createFriendMessage);
+router.post('/friends/messages/:friendId', validateUser, requireVerifiedUser, createFriendMessage);
 
 router.get('/posts', optionalUser, listPosts);
-router.post('/posts', validateUser, upload.single('media'), createPost);
-router.patch('/posts/:id', validateUser, upload.single('media'), updatePost);
-router.delete('/posts/:id', validateUser, deletePost);
+router.post('/posts', validateUser, requireVerifiedUser, upload.single('media'), createPost);
+router.patch('/posts/:id', validateUser, requireVerifiedUser, upload.single('media'), updatePost);
+router.delete('/posts/:id', validateUser, requireVerifiedUser, deletePost);
 
 router.get('/posts/:postId/comments', optionalUser, listComments);
-router.post('/posts/:postId/comments', optionalUser, createComment);
-router.patch('/posts/:postId/comments/:commentId', validateUser, updateComment);
-router.delete('/posts/:postId/comments/:commentId', validateUser, deleteComment);
+router.post('/posts/:postId/comments', validateUser, requireVerifiedUser, createComment);
+router.patch('/posts/:postId/comments/:commentId', validateUser, requireVerifiedUser, updateComment);
+router.delete('/posts/:postId/comments/:commentId', validateUser, requireVerifiedUser, deleteComment);
 
-router.post('/posts/:postId/likes/toggle', optionalUser, toggleLike);
-router.post('/posts/:postId/upvotes/toggle', optionalUser, toggleLike);
+router.post('/posts/:postId/likes/toggle', validateUser, requireVerifiedUser, toggleLike);
+router.post('/posts/:postId/upvotes/toggle', validateUser, requireVerifiedUser, toggleLike);
 
 module.exports = router;

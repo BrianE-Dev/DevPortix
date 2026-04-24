@@ -4,6 +4,7 @@ const path = require('path');
 const multer = require('multer');
 const validateUser = require('../middleware/validate_user');
 const requireRole = require('../middleware/requireRole');
+const requireVerifiedUser = require('../middleware/requireVerifiedUser');
 const {
   listInstructors,
   selectInstructor,
@@ -40,15 +41,16 @@ const upload = multer({
 });
 
 router.get('/instructors', validateUser, requireRole(['student']), listInstructors);
-router.post('/select-instructor', validateUser, requireRole(['student']), selectInstructor);
+router.post('/select-instructor', validateUser, requireVerifiedUser, requireRole(['student']), selectInstructor);
 router.get('/my-mentorship', validateUser, requireRole(['student']), getMyMentorship);
 
 router.get('/my-students', validateUser, requireRole(['instructor']), listMyStudents);
-router.post('/my-students', validateUser, requireRole(['instructor']), addMyStudent);
-router.delete('/my-students/:studentId', validateUser, requireRole(['instructor']), removeMyStudent);
+router.post('/my-students', validateUser, requireVerifiedUser, requireRole(['instructor']), addMyStudent);
+router.delete('/my-students/:studentId', validateUser, requireVerifiedUser, requireRole(['instructor']), removeMyStudent);
 router.post(
   '/assignments',
   validateUser,
+  requireVerifiedUser,
   requireRole(['instructor']),
   upload.single('attachment'),
   createAssignments
@@ -56,6 +58,7 @@ router.post(
 router.post(
   '/my-students/:studentId/assignments',
   validateUser,
+  requireVerifiedUser,
   requireRole(['instructor']),
   upload.single('attachment'),
   createAssignment
@@ -63,14 +66,16 @@ router.post(
 router.patch(
   '/assignments/:assignmentId',
   validateUser,
+  requireVerifiedUser,
   requireRole(['instructor']),
   upload.single('attachment'),
   updateAssignment
 );
-router.delete('/assignments/:assignmentId', validateUser, requireRole(['instructor']), deleteAssignment);
+router.delete('/assignments/:assignmentId', validateUser, requireVerifiedUser, requireRole(['instructor']), deleteAssignment);
 router.patch(
   '/my-assignments/:assignmentId/submit',
   validateUser,
+  requireVerifiedUser,
   requireRole(['student']),
   upload.single('submissionAttachment'),
   submitMyAssignment
