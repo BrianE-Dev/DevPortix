@@ -54,7 +54,7 @@ const sendWithSmtp = async ({ to, subject, text, html }) => {
     throw new Error("SMTP credentials are not configured");
   }
 
-  const transporter = nodemailer.createTransporter({
+  const transporter = nodemailer.createTransport({
     host: SMTP_HOST,
     port: SMTP_PORT,
     secure: SMTP_SECURE,
