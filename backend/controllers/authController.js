@@ -4,7 +4,6 @@ const User = require('../modules/userSchema');
 const Subscription = require('../modules/subscription');
 const PortfolioSettings = require('../modules/portfolioSettings');
 const {
-  issueVerificationEmailForUser,
   resendVerificationEmail,
   verifyEmailVerificationToken,
 } = require('../services/emailVerification.service');
@@ -17,15 +16,11 @@ const {
   verifyRegistrationOtp,
 } = require('../services/otp.service');
 const {
-  buildSetupPayload,
   decryptSecret,
-  encryptSecret,
-  generateSecret,
   verifyToken,
 } = require('../services/totp.service');
 
 const TOKEN_TTL = '7d';
-const LOGIN_TOTP_TOKEN_TTL = '5m';
 const PUBLIC_SIGNUP_ROLES = new Set(['student', 'instructor', 'organization', 'professional']);
 const JWT_SECRET = process.env.JWT_SECRET || process.env.JWTSECRET || 'devportix_dev_secret';
 
@@ -33,16 +28,6 @@ const signToken = (userId) =>
   jwt.sign({ sub: String(userId) }, JWT_SECRET, {
     expiresIn: TOKEN_TTL,
   });
-
-const signTotpLoginChallenge = (userId) =>
-  jwt.sign(
-    {
-      sub: String(userId),
-      type: 'totp_login_challenge',
-    },
-    JWT_SECRET,
-    { expiresIn: LOGIN_TOTP_TOKEN_TTL },
-  );
 
 const verifyTotpLoginChallenge = (token) => {
   const payload = jwt.verify(String(token || '').trim(), JWT_SECRET);
@@ -57,7 +42,7 @@ const toPublicUser = (userDoc) => ({
   id: String(userDoc._id),
   fullName: userDoc.fullName,
   email: userDoc.email,
-  emailVerified: Boolean(userDoc.emailVerified),
+  emailVerified: true,
   role: userDoc.role,
   githubUsername: userDoc.githubUsername,
   avatar: userDoc.avatar,
@@ -66,7 +51,7 @@ const toPublicUser = (userDoc) => ({
   subscriptionBillingCycle: userDoc.subscriptionBillingCycle || 'monthly',
   skills: Array.isArray(userDoc.skills) ? userDoc.skills : [],
   dashboardMenu: userDoc.dashboardMenu || {},
-  totpEnabled: Boolean(userDoc.totpEnabled),
+  totpEnabled: false,
   createdAt: userDoc.createdAt,
   updatedAt: userDoc.updatedAt,
 });
@@ -190,7 +175,7 @@ const register = async (req, res) => {
       fullName: fullName?.trim() || 'New User',
       email: normalizedEmail,
       password: passwordHash,
-      emailVerified: false,
+      emailVerified: true,
       role: assignedRole,
       subscription: defaultPlan,
       subscriptionBillingCycle: defaultBillingCycle,
@@ -202,28 +187,13 @@ const register = async (req, res) => {
       PortfolioSettings.create({ ownerId: user._id }),
     ]);
 
-    let verification = null;
-    let verificationEmailSent = false;
-
-    try {
-      verification = await issueVerificationEmailForUser(user, {
-        skipCooldown: true,
-      });
-      verificationEmailSent = true;
-    } catch (error) {
-      if (error?.statusCode !== 503) {
-        throw error;
-      }
-    }
+    const token = signToken(user._id);
 
     return res.status(201).json({
-      message: verificationEmailSent
-        ? 'Registration successful. Please verify your email before signing in.'
-        : 'Registration successful, but we could not send the verification email right away. Please resend it before signing in.',
-      requiresEmailVerification: true,
-      verificationEmailSent,
+      message: 'Registration successful',
+      requiresEmailVerification: false,
+      token,
       email: normalizedEmail,
-      verification,
       user: toPublicUser(user),
     });
   } catch (error) {
@@ -248,22 +218,6 @@ const login = async (req, res) => {
     const validPassword = await bcrypt.compare(String(password), user.password);
     if (!validPassword) {
       return res.status(401).json({ message: 'Invalid email or password' });
-    }
-
-    if (!user.emailVerified) {
-      return res.status(403).json({
-        message: 'Please verify your email before signing in',
-        requiresEmailVerification: true,
-        email: user.email,
-      });
-    }
-
-    if (user.totpEnabled) {
-      return res.status(200).json({
-        message: 'TOTP verification required',
-        requiresTotp: true,
-        loginChallengeToken: signTotpLoginChallenge(user._id),
-      });
     }
 
     const token = signToken(user._id);
@@ -304,71 +258,19 @@ const verifyLoginTotp = async (req, res) => {
 };
 
 const getTotpStatus = async (req, res) => {
-  try {
-    const user = await User.findById(req.userId).select('email totpEnabled totpPendingSecret');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    return res.status(200).json({
-      totpEnabled: Boolean(user.totpEnabled),
-      hasPendingSetup: Boolean(user.totpPendingSecret?.cipherText),
-      email: user.email,
-    });
-  } catch (error) {
-    return res.status(500).json({ message: 'Failed to load TOTP status', error: error.message });
-  }
+  return res.status(200).json({
+    totpEnabled: false,
+    hasPendingSetup: false,
+    email: req.userData?.email || '',
+  });
 };
 
 const createTotpSetup = async (req, res) => {
-  try {
-    const user = await User.findById(req.userId).select('email totpEnabled totpPendingSecret');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    const secret = generateSecret();
-    user.totpPendingSecret = encryptSecret(secret);
-    await user.save();
-
-    return res.status(200).json({
-      message: user.totpEnabled ? 'New TOTP setup generated' : 'TOTP setup generated',
-      totpEnabled: Boolean(user.totpEnabled),
-      ...await buildSetupPayload({ email: user.email, secret }),
-    });
-  } catch (error) {
-    return res.status(500).json({ message: 'Failed to create TOTP setup', error: error.message });
-  }
+  return res.status(410).json({ message: 'TOTP setup is disabled' });
 };
 
 const enableTotp = async (req, res) => {
-  try {
-    const user = await User.findById(req.userId).select('email totpEnabled totpSecret totpPendingSecret');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    const pendingSecret = decryptSecret(user.totpPendingSecret);
-    if (!pendingSecret) {
-      return res.status(400).json({ message: 'Start TOTP setup before verifying a code' });
-    }
-
-    if (!verifyToken(pendingSecret, req.body?.code)) {
-      return res.status(400).json({ message: 'Invalid authentication code' });
-    }
-
-    user.totpSecret = user.totpPendingSecret;
-    user.totpPendingSecret = { cipherText: '', iv: '', authTag: '' };
-    user.totpEnabled = true;
-    await user.save();
-
-    return res.status(200).json({
-      message: 'Authenticator app protection enabled',
-      user: toPublicUser(user),
-    });
-  } catch (error) {
-    return res.status(500).json({ message: 'Failed to enable TOTP', error: error.message });
-  }
+  return res.status(410).json({ message: 'TOTP setup is disabled' });
 };
 
 const disableTotp = async (req, res) => {

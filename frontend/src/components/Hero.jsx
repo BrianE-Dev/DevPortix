@@ -104,7 +104,7 @@ const Hero = () => {
   };
 
   const heroSectionClass = isDark
-    ? "bg-gradient-to-br from-gray-900 via-black to-gray-900"
+    ? "bg-gradient-to-br from-gray-900 via-black to-blue-500"
     : "bg-[linear-gradient(135deg,#dbeafe_0%,#bae6fd_34%,#c4b5fd_68%,#e0e7ff_100%)]";
   const heroGlowPrimaryClass = isDark ? "bg-indigo-500/30" : "bg-blue-300/55";
   const heroGlowSecondaryClass = isDark ? "bg-blue-400/30" : "bg-cyan-300/45";

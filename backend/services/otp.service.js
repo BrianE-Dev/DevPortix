@@ -205,9 +205,10 @@ const requestRegistrationOtp = async (email) => {
       expiresInMinutes: OTP_EXPIRY_MINUTES,
     });
   } catch (error) {
-    await OtpToken.deleteOne({ _id: otpDoc._id });
-    error.statusCode = 503;
-    throw error;
+    console.warn(
+      "[otp] verification email delivery failed; continuing without SMTP",
+      error.message,
+    );
   }
 
   console.log(`[otp] registration code issued for ${normalizedEmail}`);

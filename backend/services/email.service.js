@@ -1,6 +1,14 @@
-const nodemailer = require('nodemailer');
+const nodemailer = require("nodemailer");
 
 let cachedTransporter = null;
+
+const smtpConfigured = () => {
+  const host = String(process.env.SMTP_HOST || "").trim();
+  const user = String(process.env.SMTP_USER || "").trim();
+  const pass = String(process.env.SMTP_PASS || "").trim();
+
+  return Boolean(host && user && pass);
+};
 
 const parseSmtpPort = () => {
   const parsed = Number(process.env.SMTP_PORT || 587);
@@ -10,14 +18,14 @@ const parseSmtpPort = () => {
 const isSecurePort = (port) => port === 465;
 
 const getSmtpConfig = () => {
-  const host = String(process.env.SMTP_HOST || '').trim();
+  const host = String(process.env.SMTP_HOST || "").trim();
   const port = parseSmtpPort();
-  const user = String(process.env.SMTP_USER || '').trim();
-  const pass = String(process.env.SMTP_PASS || '').trim();
+  const user = String(process.env.SMTP_USER || "").trim();
+  const pass = String(process.env.SMTP_PASS || "").trim();
   const from = String(process.env.SMTP_FROM || user).trim();
 
   if (!host || !user || !pass || !from) {
-    throw new Error('SMTP configuration is incomplete');
+    throw new Error("SMTP configuration is incomplete");
   }
 
   return {
@@ -46,7 +54,7 @@ const getTransporter = () => {
 };
 
 const buildVerificationEmail = ({ otp, expiresInMinutes }) => {
-  const subject = 'DevPortix Verification Code';
+  const subject = "DevPortix Verification Code";
   const text = `Your DevPortix verification code is: ${otp}. It expires in ${expiresInMinutes} minutes.`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #101828;">
@@ -67,8 +75,8 @@ const buildVerificationLinkEmail = ({
   verificationLink,
   expiresInMinutes,
 }) => {
-  const safeName = String(fullName || 'there').trim() || 'there';
-  const subject = 'Verify your DevPortix email';
+  const safeName = String(fullName || "there").trim() || "there";
+  const subject = "Verify your DevPortix email";
   const text = `Hi ${safeName}, verify your DevPortix account by opening this link: ${verificationLink} . This link expires in ${expiresInMinutes} minutes.`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #101828;">
@@ -92,6 +100,19 @@ const buildVerificationLinkEmail = ({
 };
 
 const sendVerificationOtpEmail = async ({ to, otp, expiresInMinutes }) => {
+  if (!smtpConfigured()) {
+    console.warn(
+      "[email-service] SMTP is not configured; skipping verification OTP email delivery",
+    );
+    return {
+      skipped: true,
+      reason: "smtp-not-configured",
+      to,
+      otp,
+      expiresInMinutes,
+    };
+  }
+
   const transporter = getTransporter();
   const config = getSmtpConfig();
   const message = buildVerificationEmail({ otp, expiresInMinutes });
@@ -103,6 +124,8 @@ const sendVerificationOtpEmail = async ({ to, otp, expiresInMinutes }) => {
     text: message.text,
     html: message.html,
   });
+
+  return { skipped: false, to };
 };
 
 const sendEmailVerificationLinkEmail = async ({
@@ -111,6 +134,20 @@ const sendEmailVerificationLinkEmail = async ({
   verificationLink,
   expiresInMinutes,
 }) => {
+  if (!smtpConfigured()) {
+    console.warn(
+      "[email-service] SMTP is not configured; skipping email verification link delivery",
+    );
+    return {
+      skipped: true,
+      reason: "smtp-not-configured",
+      to,
+      fullName,
+      verificationLink,
+      expiresInMinutes,
+    };
+  }
+
   const transporter = getTransporter();
   const config = getSmtpConfig();
   const message = buildVerificationLinkEmail({
@@ -126,6 +163,8 @@ const sendEmailVerificationLinkEmail = async ({
     text: message.text,
     html: message.html,
   });
+
+  return { skipped: false, to };
 };
 
 module.exports = {

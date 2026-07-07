@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import LocalStorageService from '../services/localStorageService';
 import { ROLES } from '../utils/constants';
 import { AuthContext } from './authContext';
@@ -62,14 +62,6 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const response = await authApi.login({ email, password });
-      if (response?.requiresTotp) {
-        return {
-          success: false,
-          requiresTotp: true,
-          loginChallengeToken: response.loginChallengeToken,
-        };
-      }
-
       LocalStorageService.setToken(response.token);
       const normalizedUser = setAuthenticatedUser(response.user);
 
@@ -97,6 +89,12 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const response = await authApi.register(userData);
+      if (response?.token) {
+        LocalStorageService.setToken(response.token);
+        const normalizedUser = setAuthenticatedUser(response.user);
+        return { success: true, user: normalizedUser, ...response };
+      }
+
       return { success: true, ...response };
     } finally {
       setLoading(false);

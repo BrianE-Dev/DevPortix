@@ -1,5 +1,5 @@
 // src/pages/Signup.jsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Github, Lock, Mail, User } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -66,14 +66,14 @@ const Signup = () => {
         throw new Error('Please accept the terms and conditions');
       }
 
-      const response = await signup({
+      await signup({
         email: formData.email,
         fullName: formData.fullName || 'New User',
         password: formData.password,
         githubUsername: formData.githubUsername || '',
         role: formData.role,
       });
-      navigate(`/verify-email-notice?email=${encodeURIComponent(response?.email || formData.email)}`);
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Unable to create account');
     } finally {

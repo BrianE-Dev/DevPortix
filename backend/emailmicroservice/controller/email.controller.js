@@ -54,6 +54,13 @@ const sendWithSmtp = async ({ to, subject, text, html }) => {
     throw new Error("SMTP credentials are not configured");
   }
 
+  console.log(
+    `[email-service] Sending email to ${to} with subject: ${subject}`,
+  );
+  console.log(
+    `[email-service] SMTP config: host=${SMTP_HOST}, port=${SMTP_PORT}, secure=${SMTP_SECURE}, user=${SMTP_USER}`,
+  );
+
   const transporter = nodemailer.createTransport({
     host: SMTP_HOST,
     port: SMTP_PORT,
@@ -72,8 +79,14 @@ const sendWithSmtp = async ({ to, subject, text, html }) => {
     html,
   };
 
-  const info = await transporter.sendMail(mailOptions);
-  return info;
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[email-service] Email sent successfully: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    console.error(`[email-service] Failed to send email:`, error.message);
+    throw error;
+  }
 };
 
 const sendEmail = async (payload) => {

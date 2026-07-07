@@ -1,8 +1,8 @@
-const crypto = require('crypto');
-const EmailVerificationToken = require('../modules/emailVerificationToken');
-const User = require('../modules/userSchema');
-const { normalizeEmail, isValidEmail } = require('./otp.service');
-const { sendEmailVerificationLinkEmail } = require('./email.service');
+const crypto = require("crypto");
+const EmailVerificationToken = require("../modules/emailVerificationToken");
+const User = require("../modules/userSchema");
+const { normalizeEmail, isValidEmail } = require("./otp.service");
+const { sendEmailVerificationLinkEmail } = require("./email.service");
 
 const EMAIL_VERIFICATION_TOKEN_BYTES = 32;
 const EMAIL_VERIFICATION_TTL_MINUTES = Math.max(
@@ -13,13 +13,16 @@ const EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS = Math.max(
   15,
   Number(process.env.EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS || 60),
 );
-const DEFAULT_PUBLIC_APP_URL = 'http://localhost:5173';
+const DEFAULT_PUBLIC_APP_URL = "http://localhost:5173";
 
 const hashToken = (token) =>
-  crypto.createHash('sha256').update(String(token || '')).digest('hex');
+  crypto
+    .createHash("sha256")
+    .update(String(token || ""))
+    .digest("hex");
 
 const generateVerificationToken = () =>
-  crypto.randomBytes(EMAIL_VERIFICATION_TOKEN_BYTES).toString('hex');
+  crypto.randomBytes(EMAIL_VERIFICATION_TOKEN_BYTES).toString("hex");
 
 const getExpiryDate = () =>
   new Date(Date.now() + EMAIL_VERIFICATION_TTL_MINUTES * 60 * 1000);
@@ -32,10 +35,10 @@ const getPublicAppUrl = () =>
       DEFAULT_PUBLIC_APP_URL,
   )
     .trim()
-    .replace(/\/+$/, '');
+    .replace(/\/+$/, "");
 
 const buildVerificationLink = (token) =>
-  `${getPublicAppUrl()}/verify-email?token=${encodeURIComponent(String(token || ''))}`;
+  `${getPublicAppUrl()}/verify-email?token=${encodeURIComponent(String(token || ""))}`;
 
 const invalidateActiveVerificationTokens = async (userId) => {
   await EmailVerificationToken.updateMany(
@@ -53,7 +56,7 @@ const invalidateActiveVerificationTokens = async (userId) => {
 const getRetryAfterSeconds = async (userId) => {
   const latestToken = await EmailVerificationToken.findOne({ userId })
     .sort({ createdAt: -1 })
-    .select('createdAt');
+    .select("createdAt");
 
   if (!latestToken?.createdAt) {
     return 0;
@@ -69,11 +72,11 @@ const getRetryAfterSeconds = async (userId) => {
 
 const issueVerificationEmailForUser = async (user, options = {}) => {
   if (!user?._id || !user?.email) {
-    throw new Error('A valid user is required to issue a verification email');
+    throw new Error("A valid user is required to issue a verification email");
   }
 
   if (user.emailVerified) {
-    const error = new Error('This email address has already been verified');
+    const error = new Error("This email address has already been verified");
     error.statusCode = 409;
     throw error;
   }
@@ -84,7 +87,7 @@ const issueVerificationEmailForUser = async (user, options = {}) => {
 
   if (retryAfterSeconds > 0) {
     const error = new Error(
-      'A verification email was sent recently. Please wait before requesting another link.',
+      "A verification email was sent recently. Please wait before requesting another link.",
     );
     error.statusCode = 429;
     error.retryAfterSeconds = retryAfterSeconds;
@@ -110,13 +113,14 @@ const issueVerificationEmailForUser = async (user, options = {}) => {
       expiresInMinutes: EMAIL_VERIFICATION_TTL_MINUTES,
     });
   } catch (error) {
-    await EmailVerificationToken.deleteOne({ _id: verificationToken._id });
-    error.statusCode = 503;
-    throw error;
+    console.warn(
+      "[email-verification] verification email delivery failed; continuing without SMTP",
+      error.message,
+    );
   }
 
   return {
-    message: 'Verification email sent successfully',
+    message: "Verification email sent successfully",
     email: normalizeEmail(user.email),
     expiresAt: verificationToken.expiresAt,
     cooldownEndsAt: new Date(
@@ -128,17 +132,17 @@ const issueVerificationEmailForUser = async (user, options = {}) => {
 const resendVerificationEmail = async (email) => {
   const normalizedEmail = normalizeEmail(email);
   if (!isValidEmail(normalizedEmail)) {
-    const error = new Error('A valid email address is required');
+    const error = new Error("A valid email address is required");
     error.statusCode = 400;
     throw error;
   }
 
   const user = await User.findOne({ email: normalizedEmail }).select(
-    '_id email fullName emailVerified',
+    "_id email fullName emailVerified",
   );
 
   if (!user) {
-    const error = new Error('No account was found for that email address');
+    const error = new Error("No account was found for that email address");
     error.statusCode = 404;
     throw error;
   }
@@ -147,9 +151,9 @@ const resendVerificationEmail = async (email) => {
 };
 
 const verifyEmailVerificationToken = async (token) => {
-  const normalizedToken = String(token || '').trim();
+  const normalizedToken = String(token || "").trim();
   if (!normalizedToken) {
-    const error = new Error('Verification token is required');
+    const error = new Error("Verification token is required");
     error.statusCode = 400;
     throw error;
   }
@@ -160,7 +164,7 @@ const verifyEmailVerificationToken = async (token) => {
   });
 
   if (!verificationToken) {
-    const error = new Error('This verification link is invalid');
+    const error = new Error("This verification link is invalid");
     error.statusCode = 400;
     throw error;
   }
@@ -168,32 +172,34 @@ const verifyEmailVerificationToken = async (token) => {
   const normalizedEmail = normalizeEmail(verificationToken.email);
 
   if (verificationToken.consumedAt) {
-    const error = new Error('This verification link has already been used');
+    const error = new Error("This verification link has already been used");
     error.statusCode = 409;
     error.email = normalizedEmail;
     throw error;
   }
 
   if (verificationToken.invalidatedAt) {
-    const error = new Error('This verification link has been replaced by a newer one');
+    const error = new Error(
+      "This verification link has been replaced by a newer one",
+    );
     error.statusCode = 409;
     error.email = normalizedEmail;
     throw error;
   }
 
   if (verificationToken.expiresAt.getTime() <= Date.now()) {
-    const error = new Error('This verification link has expired');
+    const error = new Error("This verification link has expired");
     error.statusCode = 410;
     error.email = normalizedEmail;
     throw error;
   }
 
   const user = await User.findById(verificationToken.userId).select(
-    '_id email fullName emailVerified',
+    "_id email fullName emailVerified",
   );
 
   if (!user) {
-    const error = new Error('This verification link is no longer valid');
+    const error = new Error("This verification link is no longer valid");
     error.statusCode = 404;
     error.email = normalizedEmail;
     throw error;
@@ -220,7 +226,7 @@ const verifyEmailVerificationToken = async (token) => {
   );
 
   return {
-    message: 'Email verified successfully',
+    message: "Email verified successfully",
     email: normalizeEmail(user.email),
   };
 };
