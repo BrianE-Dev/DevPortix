@@ -14,7 +14,7 @@ const ACCENT_NAV_STYLES = {
       "bg-gradient-to-r from-gray-900/95 via-violet-950/95 to-blue-950/95 border-slate-700/60",
     activeDesktopLink: "text-cyan-500",
     activeMobileLinkDark: "text-cyan-300 bg-gray-800",
-    activeMobileLinkLight: "text-cyan-700 bg-cyan-100",
+    activeMobileLinkLight: "text-cyan-500 bg-cyan-100",
     avatarBg: "bg-blue-600/20 border-blue-500/30",
     avatarIcon: "text-blue-400",
     ctaGradient: "bg-gradient-to-r from-blue-600 to-purple-600",
@@ -26,7 +26,7 @@ const ACCENT_NAV_STYLES = {
       "bg-gradient-to-r from-gray-900/95 via-emerald-950/95 to-teal-950/95 border-slate-700/60",
     activeDesktopLink: "text-cyan-500",
     activeMobileLinkDark: "text-cyan-300 bg-gray-800",
-    activeMobileLinkLight: "text-cyan-700 bg-cyan-100",
+    activeMobileLinkLight: "text-cyan-500 bg-cyan-100",
     avatarBg: "bg-emerald-600/20 border-emerald-500/30",
     avatarIcon: "text-emerald-400",
     ctaGradient: "bg-gradient-to-r from-emerald-600 to-teal-600",
@@ -38,7 +38,7 @@ const ACCENT_NAV_STYLES = {
       "bg-gradient-to-r from-gray-900/95 via-rose-950/95 to-pink-950/95 border-slate-700/60",
     activeDesktopLink: "text-cyan-500",
     activeMobileLinkDark: "text-cyan-300 bg-gray-800",
-    activeMobileLinkLight: "text-cyan-700 bg-cyan-100",
+    activeMobileLinkLight: "text-cyan-500 bg-cyan-100",
     avatarBg: "bg-rose-600/20 border-rose-500/30",
     avatarIcon: "text-rose-400",
     ctaGradient: "bg-gradient-to-r from-rose-600 to-pink-600",
@@ -50,7 +50,7 @@ const ACCENT_NAV_STYLES = {
       "bg-gradient-to-r from-gray-900/95 via-amber-950/95 to-orange-950/95 border-slate-700/60",
     activeDesktopLink: "text-cyan-500",
     activeMobileLinkDark: "text-cyan-300 bg-gray-800",
-    activeMobileLinkLight: "text-cyan-700 bg-cyan-100",
+    activeMobileLinkLight: "text-cyan-500 bg-cyan-100",
     avatarBg: "bg-amber-600/20 border-amber-500/30",
     avatarIcon: "text-amber-400",
     ctaGradient: "bg-gradient-to-r from-amber-600 to-orange-600",
@@ -62,7 +62,7 @@ const ACCENT_NAV_STYLES = {
       "bg-gradient-to-r from-gray-900/95 via-violet-950/95 to-fuchsia-950/95 border-slate-700/60",
     activeDesktopLink: "text-cyan-500",
     activeMobileLinkDark: "text-cyan-300 bg-gray-800",
-    activeMobileLinkLight: "text-cyan-700 bg-cyan-100",
+    activeMobileLinkLight: "text-cyan-500 bg-cyan-100",
     avatarBg: "bg-violet-600/20 border-violet-500/30",
     avatarIcon: "text-violet-400",
     ctaGradient: "bg-gradient-to-r from-violet-600 to-fuchsia-600",
@@ -246,14 +246,14 @@ const Navbar = () => {
                         handleLinkClick(link.path);
                       }
                     }}
-                    className={`px-3 py-2 text-sm font-medium transition ${
+                    className={`px-3 py-2 text-sm font-medium transition underline-offset-8 ${
                       location.pathname ===
                         (link.path.startsWith("/#") ? "/" : link.path) ||
                       location.hash === link.path.substring(1)
-                        ? accentStyles.activeDesktopLink
+                        ? `${accentStyles.activeDesktopLink} underline decoration-cyan-500 decoration-2 underline-offset-8`
                         : isDark
-                          ? "text-gray-200 hover:text-white"
-                          : "text-white hover:text-white"
+                          ? "text-gray-200 hover:text-white hover:underline hover:decoration-cyan-500 hover:decoration-2"
+                          : "text-white hover:text-white hover:underline hover:decoration-cyan-500 hover:decoration-2"
                     }`}
                   >
                     {link.name}
@@ -263,12 +263,12 @@ const Navbar = () => {
               {!isPortfolioPage && isAuthenticated && (
                 <Link
                   to={dashboardPath}
-                  className={`px-3 py-2 text-sm font-medium transition ${
+                  className={`px-3 py-2 text-sm font-medium transition underline-offset-8 ${
                     location.pathname === dashboardPath
-                      ? accentStyles.activeDesktopLink
+                      ? `${accentStyles.activeDesktopLink} underline decoration-cyan-500 decoration-2 underline-offset-8`
                       : isDark
-                        ? "text-gray-200 hover:text-white"
-                        : "text-white hover:text-white"
+                        ? "text-gray-200 hover:text-white hover:underline hover:decoration-cyan-500 hover:decoration-2"
+                        : "text-white hover:text-white hover:underline hover:decoration-cyan-500 hover:decoration-2"
                   }`}
                 >
                   Dashboard
@@ -424,16 +424,16 @@ const Navbar = () => {
                     }
                     setIsOpen(false);
                   }}
-                  className={`block px-3 py-2 text-base font-medium ${
+                  className={`block px-3 py-2 text-base font-medium transition underline-offset-8 ${
                     location.pathname ===
                       (link.path.startsWith("/#") ? "/" : link.path) ||
                     location.hash === link.path.substring(1)
                       ? isDark
-                        ? accentStyles.activeMobileLinkDark
-                        : accentStyles.activeMobileLinkLight
+                        ? `${accentStyles.activeMobileLinkDark} underline decoration-cyan-300 decoration-2 underline-offset-8`
+                        : `${accentStyles.activeMobileLinkLight} underline decoration-cyan-500 decoration-2 underline-offset-8`
                       : isDark
-                        ? "text-gray-200 hover:text-white hover:bg-gray-800"
-                        : "text-white hover:text-white hover:bg-white/10"
+                        ? "text-gray-200 hover:text-white hover:bg-gray-800 hover:underline hover:decoration-cyan-500 hover:decoration-2"
+                        : "text-white hover:text-white hover:bg-white/10 hover:underline hover:decoration-cyan-500 hover:decoration-2"
                   }`}
                 >
                   {link.name}
@@ -443,14 +443,14 @@ const Navbar = () => {
             {!isPortfolioPage && isAuthenticated && (
               <Link
                 to={dashboardPath}
-                className={`block px-3 py-2 text-base font-medium ${
+                className={`block px-3 py-2 text-base font-medium transition underline-offset-8 ${
                   location.pathname === dashboardPath
                     ? isDark
-                      ? accentStyles.activeMobileLinkDark
-                      : accentStyles.activeMobileLinkLight
+                      ? `${accentStyles.activeMobileLinkDark} underline decoration-cyan-300 decoration-2 underline-offset-8`
+                      : `${accentStyles.activeMobileLinkLight} underline decoration-cyan-500 decoration-2 underline-offset-8`
                     : isDark
-                      ? "text-gray-200 hover:text-white hover:bg-gray-800"
-                      : "text-white hover:text-white hover:bg-white/10"
+                      ? "text-gray-200 hover:text-white hover:bg-gray-800 hover:underline hover:decoration-cyan-500 hover:decoration-2"
+                      : "text-white hover:text-white hover:bg-white/10 hover:underline hover:decoration-cyan-500 hover:decoration-2"
                 }`}
                 onClick={() => setIsOpen(false)}
               >
