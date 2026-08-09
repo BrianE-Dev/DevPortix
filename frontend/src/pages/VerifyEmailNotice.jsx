@@ -11,9 +11,7 @@ const VerifyEmailNotice = () => {
   const email = useMemo(() => String(searchParams.get('email') || '').trim(), [searchParams]);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const [message, setMessage] = useState(
-    email ? `We sent a verification link to ${email}.` : 'Check your inbox for your verification link.',
-  );
+  const [message, setMessage] = useState('Check your inbox for the confirmation link.');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -32,7 +30,7 @@ const VerifyEmailNotice = () => {
 
   const handleResend = async () => {
     if (!email) {
-      setError('We need your email address to resend the verification link.');
+      setError('Return to sign in to request a fresh confirmation link.');
       return;
     }
 
@@ -49,12 +47,12 @@ const VerifyEmailNotice = () => {
           ? Math.max(1, Math.ceil(cooldownEndsAt / 1000))
           : DEFAULT_COOLDOWN_SECONDS,
       );
-      setMessage(`A fresh verification link has been sent to ${email}.`);
+      setMessage('A fresh confirmation link has been sent.');
     } catch (err) {
       if (err.status === 429) {
         setCooldown(Math.max(1, Number(err.retryAfterSeconds || DEFAULT_COOLDOWN_SECONDS)));
       }
-      setError(err.message || 'Failed to resend verification email');
+      setError(err.message || 'Failed to resend the confirmation link');
     } finally {
       setBusy(false);
     }
@@ -66,9 +64,9 @@ const VerifyEmailNotice = () => {
         <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl ${isDark ? 'bg-sky-500/15 text-sky-300' : 'bg-sky-100 text-sky-700'}`}>
           <Mail className="h-8 w-8" />
         </div>
-        <h1 className="mt-6 text-center text-3xl font-bold">Verify your email</h1>
+        <h1 className="mt-6 text-center text-3xl font-bold">Check your inbox</h1>
         <p className={`mt-4 text-center text-sm leading-7 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-          We’ve created your account, but you’ll need to confirm your email address before you can sign in.
+          We have created your account. Use the confirmation link we sent before signing in.
         </p>
 
         <div className={`mt-8 rounded-[1.5rem] border px-5 py-4 text-sm ${isDark ? 'border-sky-400/20 bg-sky-500/10 text-slate-100' : 'border-sky-200 bg-sky-50 text-slate-700'}`}>
@@ -88,7 +86,7 @@ const VerifyEmailNotice = () => {
             disabled={busy || cooldown > 0}
             className="flex-1 rounded-2xl bg-gradient-to-r from-blue-600 via-sky-500 to-violet-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {busy ? 'Sending...' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend verification email'}
+            {busy ? 'Sending...' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend confirmation link'}
           </button>
           <Link
             to="/login"

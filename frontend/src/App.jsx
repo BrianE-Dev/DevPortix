@@ -1,35 +1,40 @@
 ﻿// src/App.jsx
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext.jsx';
-import { ThemeProvider } from './context/ThemeContext.jsx';
-import { ModalProvider } from './context/ModalContext.jsx';
-import { useAuth } from './hooks/useAuth';
-import ProtectedRoute from './components/ProtectedRoute';
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import Hero from './components/Hero';
-import Features from './components/Features';
-import BlogHighlights from './components/BlogHighlights';
-import Projects from './components/Projects';
-import Testimonials from './components/Testimonials';
-import Pricing from './components/Pricing';
-import ProjectDetail from './pages/ProjectDetail';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import Contact from './pages/Contact';
-import PricingPage from './pages/PricingPage';
-import CommunityPage from './pages/CommunityPage';
-import VerifyEmail from './pages/VerifyEmail';
-import VerifyEmailNotice from './pages/VerifyEmailNotice';
-import { ROLES } from './utils/constants';
-import StudentDashboard from './pages/dashboards/StudentDashboard';
-import InstructorDashboard from './pages/dashboards/InstructorDashboard';
-import ProfessionalDashboard from './pages/dashboards/ProfessionalDashboard';
-import SuperAdminDashboard from './pages/dashboards/SuperAdminDashboard';
-import RoleSelectionPage from './pages/auth/RoleSelectionPage';
-import PortfolioPage from './pages/PortfolioPage';
-import { useTheme } from './hooks/useTheme';
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext.jsx";
+import { ThemeProvider } from "./context/ThemeContext.jsx";
+import { ModalProvider } from "./context/ModalContext.jsx";
+import { useAuth } from "./hooks/useAuth";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+import Hero from "./components/Hero";
+import Features from "./components/Features";
+import Projects from "./components/Projects";
+import Testimonials from "./components/Testimonials";
+import Pricing from "./components/Pricing";
+import ProjectDetail from "./pages/ProjectDetail";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import Contact from "./pages/Contact";
+import PricingPage from "./pages/PricingPage";
+import CommunityPage from "./pages/CommunityPage";
+import VerifyEmail from "./pages/VerifyEmail";
+import VerifyEmailNotice from "./pages/VerifyEmailNotice";
+import { ROLES } from "./utils/constants";
+import StudentDashboard from "./pages/dashboards/StudentDashboard";
+import InstructorDashboard from "./pages/dashboards/InstructorDashboard";
+import ProfessionalDashboard from "./pages/dashboards/ProfessionalDashboard";
+import SuperAdminDashboard from "./pages/dashboards/SuperAdminDashboard";
+import RoleSelectionPage from "./pages/auth/RoleSelectionPage";
+import PortfolioPage from "./pages/PortfolioPage";
+import { useTheme } from "./hooks/useTheme";
 
 const DashboardRedirect = () => {
   const { getDashboardPath } = useAuth();
@@ -40,75 +45,111 @@ const AppContent = () => {
   const { theme } = useTheme();
   const location = useLocation();
   const appThemeClass =
-    theme === 'dark'
-      ? 'app-dark-gradient min-h-screen text-gray-100 transition-colors duration-300 theme-dark'
-      : 'min-h-screen bg-blue-100 text-gray-900 transition-colors duration-300 theme-light';
-  const isDashboardRoute = ['/dashboard', '/role-select', '/student', '/instructor', '/professional', '/admin']
-    .some((path) => location.pathname === path || location.pathname.startsWith(`${path}/`));
+    theme === "dark"
+      ? "app-dark-gradient min-h-screen text-gray-100 transition-colors duration-300 theme-dark"
+      : "min-h-screen bg-blue-100 text-gray-900 transition-colors duration-300 theme-light";
+  const isDashboardRoute = [
+    "/dashboard",
+    "/role-select",
+    "/student",
+    "/instructor",
+    "/professional",
+    "/admin",
+  ].some(
+    (path) =>
+      location.pathname === path || location.pathname.startsWith(`${path}/`),
+  );
 
   return (
     <>
       {!isDashboardRoute && <Navbar />}
-    
-    <div className={appThemeClass}>
-      
-      <main>
-        <Routes>
-          <Route path="/" element={
-            <>
-              <Hero />
-              <Features />
-              <BlogHighlights />
-              <Projects />
-              <Testimonials />
-              <Pricing />
-            </>
-          } />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <DashboardRedirect />
-            </ProtectedRoute>
-          } />
-          <Route path="/role-select" element={
-            <ProtectedRoute>
-              <RoleSelectionPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/student" element={
-            <ProtectedRoute allowedRoles={[ROLES.STUDENT]}>
-              <StudentDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/instructor" element={
-            <ProtectedRoute allowedRoles={[ROLES.INSTRUCTOR]}>
-              <InstructorDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/professional" element={
-            <ProtectedRoute allowedRoles={[ROLES.PROFESSIONAL, ROLES.ORGANIZATION]}>
-              <ProfessionalDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin" element={
-            <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
-              <SuperAdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/projects/:id" element={<ProjectDetail />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/verify-email-notice" element={<VerifyEmailNotice />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/blog" element={<CommunityPage initialTab="blog" blogOnly />} />
-          <Route path="/community" element={<CommunityPage />} />
-          <Route path="/portfolio/:username" element={<PortfolioPage />} />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </main>
-      {!isDashboardRoute && <Footer />}
-    </div>
+
+      <div className={appThemeClass}>
+        <main>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <>
+                  <Hero />
+                  <Features />
+                  <Projects />
+                  <Testimonials />
+                  <Pricing />
+                </>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <DashboardRedirect />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/role-select"
+              element={
+                <ProtectedRoute>
+                  <RoleSelectionPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student"
+              element={
+                <ProtectedRoute allowedRoles={[ROLES.STUDENT]}>
+                  <StudentDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/instructor"
+              element={
+                <ProtectedRoute allowedRoles={[ROLES.INSTRUCTOR]}>
+                  <InstructorDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/professional"
+              element={
+                <ProtectedRoute
+                  allowedRoles={[ROLES.PROFESSIONAL, ROLES.ORGANIZATION]}
+                >
+                  <ProfessionalDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+                  <SuperAdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/projects/:id" element={<ProjectDetail />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route
+              path="/verify-email-notice"
+              element={<VerifyEmailNotice />}
+            />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route
+              path="/blog"
+              element={<CommunityPage initialTab="blog" blogOnly />}
+            />
+            <Route path="/community" element={<CommunityPage />} />
+            <Route path="/portfolio/:username" element={<PortfolioPage />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </main>
+        {!isDashboardRoute && <Footer />}
+      </div>
     </>
   );
 };
@@ -128,4 +169,3 @@ function App() {
 }
 
 export default App;
-
