@@ -97,11 +97,7 @@ const classifyArticleBlock = (paragraph) => {
     return { type: "body", text: "" };
   }
 
-  if (
-    trimmed.startsWith('"') &&
-    trimmed.endsWith('"') &&
-    trimmed.length > 20
-  ) {
+  if (trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length > 20) {
     return { type: "quote", text: trimmed.slice(1, -1).trim() };
   }
 
@@ -117,7 +113,8 @@ const classifyArticleBlock = (paragraph) => {
 };
 
 const buildFallbackBlogVisuals = (post) => {
-  const text = `${String(post?.title || "")} ${String(post?.content || "")}`.toLowerCase();
+  const text =
+    `${String(post?.title || "")} ${String(post?.content || "")}`.toLowerCase();
 
   if (
     text.includes("silicon") ||
@@ -142,7 +139,11 @@ const buildFallbackBlogVisuals = (post) => {
     };
   }
 
-  if (text.includes("proof") || text.includes("trust") || text.includes("craft")) {
+  if (
+    text.includes("proof") ||
+    text.includes("trust") ||
+    text.includes("craft")
+  ) {
     return {
       heroImage: proofCoverImage,
       inlineImages: [techInlineImage, modernInlineImage],
@@ -769,9 +770,14 @@ const CommunityPage = ({ initialTab = "chat", blogOnly = false }) => {
 
   const updateBlogSearchParam = useCallback(
     (postId) => {
+      const nextValue = postId ? String(postId) : null;
+      const currentValue = searchParams.get("post");
+
+      if (currentValue === nextValue) return;
+
       const nextParams = new URLSearchParams(searchParams);
-      if (postId) {
-        nextParams.set("post", postId);
+      if (nextValue) {
+        nextParams.set("post", nextValue);
       } else {
         nextParams.delete("post");
       }
@@ -795,7 +801,11 @@ const CommunityPage = ({ initialTab = "chat", blogOnly = false }) => {
 
   useEffect(() => {
     if (tab !== "blog" || !currentBlogPost?.id) return;
-    if (searchParams.get("post") === String(currentBlogPost.id)) return;
+
+    const currentValue = searchParams.get("post");
+    const nextValue = String(currentBlogPost.id);
+    if (currentValue === nextValue) return;
+
     updateBlogSearchParam(currentBlogPost.id);
   }, [currentBlogPost?.id, searchParams, tab, updateBlogSearchParam]);
 
@@ -1432,14 +1442,16 @@ const CommunityPage = ({ initialTab = "chat", blogOnly = false }) => {
                 ? baseLikeCount + (isLiked ? 1 : 0)
                 : baseLikeCount;
               const fallbackVisuals = buildFallbackBlogVisuals(post);
-              const nonEditorialBlocks = splitArticleParagraphs(post.content).map(
-                classifyArticleBlock,
-              );
+              const nonEditorialBlocks = splitArticleParagraphs(
+                post.content,
+              ).map(classifyArticleBlock);
               const leadParagraphIndex = nonEditorialBlocks.findIndex(
                 (block) => block.type === "body",
               );
               const firstBodyBlock =
-                leadParagraphIndex >= 0 ? nonEditorialBlocks[leadParagraphIndex] : null;
+                leadParagraphIndex >= 0
+                  ? nonEditorialBlocks[leadParagraphIndex]
+                  : null;
               const leadParagraph = firstBodyBlock?.text || "";
               const bodyBlocks = nonEditorialBlocks.filter(
                 (_block, index) => index !== leadParagraphIndex,
@@ -1679,17 +1691,27 @@ const CommunityPage = ({ initialTab = "chat", blogOnly = false }) => {
                         ) : null}
 
                         <div className="mx-auto mt-8 max-w-3xl space-y-7">
-                          <div className={`flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] ${isDark ? "text-sky-300" : "text-sky-700"}`}>
-                            <span className={`rounded-full px-3 py-1 ${isDark ? "bg-sky-500/10" : "bg-sky-100"}`}>
+                          <div
+                            className={`flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] ${isDark ? "text-sky-300" : "text-sky-700"}`}
+                          >
+                            <span
+                              className={`rounded-full px-3 py-1 ${isDark ? "bg-sky-500/10" : "bg-sky-100"}`}
+                            >
                               {fallbackVisuals.category}
                             </span>
-                            <span className={isDark ? "text-slate-400" : "text-slate-500"}>
+                            <span
+                              className={
+                                isDark ? "text-slate-400" : "text-slate-500"
+                              }
+                            >
                               {formatDate(post.createdAt)}
                             </span>
                           </div>
 
                           {leadParagraph ? (
-                            <p className={`border-l-4 pl-5 text-xl leading-9 sm:text-[1.45rem] ${isDark ? "border-sky-400 text-slate-100" : "border-sky-500 text-slate-900"}`}>
+                            <p
+                              className={`border-l-4 pl-5 text-xl leading-9 sm:text-[1.45rem] ${isDark ? "border-sky-400 text-slate-100" : "border-sky-500 text-slate-900"}`}
+                            >
                               {leadParagraph}
                             </p>
                           ) : null}
@@ -1754,9 +1776,15 @@ const CommunityPage = ({ initialTab = "chat", blogOnly = false }) => {
                             </div>
                           ) : null}
 
-                          <div className={`rounded-[1.5rem] border px-5 py-5 ${isDark ? "border-sky-400/20 bg-sky-500/10" : "border-sky-100 bg-sky-50/80"}`}>
-                            <p className={`text-sm leading-8 ${isDark ? "text-slate-200" : "text-slate-700"}`}>
-                              DevPortix exists to help technical work feel legible, credible, and easier to trust. Strong engineering deserves strong presentation.
+                          <div
+                            className={`rounded-[1.5rem] border px-5 py-5 ${isDark ? "border-sky-400/20 bg-sky-500/10" : "border-sky-100 bg-sky-50/80"}`}
+                          >
+                            <p
+                              className={`text-sm leading-8 ${isDark ? "text-slate-200" : "text-slate-700"}`}
+                            >
+                              DevPortix exists to help technical work feel
+                              legible, credible, and easier to trust. Strong
+                              engineering deserves strong presentation.
                             </p>
                           </div>
                         </div>
@@ -1921,7 +1949,8 @@ const CommunityPage = ({ initialTab = "chat", blogOnly = false }) => {
                         <span
                           className={`text-xs font-semibold uppercase tracking-[0.2em] ${isDark && isEditorial ? "text-slate-400" : "text-slate-500"}`}
                         >
-                          Post {activeBlogPage + 1} of {mergedBlogPosts.length} · newest to oldest
+                          Post {activeBlogPage + 1} of {mergedBlogPosts.length}{" "}
+                          · newest to oldest
                         </span>
 
                         <button
